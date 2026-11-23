@@ -51,7 +51,6 @@ export function buybackVaultPrepInstructions({ programId, series, mint, payer })
   const vault = deriveBuybackVault(programId, series, mint);
   return { vault, instructions: [
     createAssociatedTokenAccountIdempotentInstruction(key(payer), vault.baseVault, vault.authority, key(mint), TOKEN_2022_PROGRAM_ID),
-    createAssociatedTokenAccountIdempotentInstruction(key(payer), vault.quoteVault, vault.authority, NATIVE_MINT, TOKEN_PROGRAM_ID),
   ] };
 }
 
@@ -70,6 +69,8 @@ export async function buildPumpBuybackRoute({ programId, series, mint, spendable
   const expected = [
     [1, key(mint)], [2, NATIVE_MINT], [3, TOKEN_2022_PROGRAM_ID],
     [4, TOKEN_PROGRAM_ID], [8, vault.authority], [9, vault.baseVault], [10, vault.quoteVault],
+    [12, new PublicKey('8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt')],
+    [14, SystemProgram.programId], [16, PUMP_PROGRAM_ID],
   ];
   if (!route.programId.equals(PUMP_PROGRAM_ID) || route.keys.length !== 17 ||
     Buffer.from(route.data).subarray(0, 8).toString('hex') !== 'e1f7501ed5b38488' ||

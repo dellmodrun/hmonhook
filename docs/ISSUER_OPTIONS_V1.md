@@ -29,7 +29,7 @@ After a valid default, each outstanding purchased option becomes a claim to its 
 
 ## Premiums and buybacks
 
-Premiums currently remain in the series' program-controlled SOL account. **There is no release, buyback, or refund instruction for those funds. Do not use the current program with real premiums.** The earlier text promised market buybacks after all locked tokens sold, but a safe buyback needs a specific router, slippage bound, destination token account, deadline, and execution permissions. Until that route is implemented and tested, premiums cannot be advertised as automatically buying tokens. The contract must not expose an unrestricted issuer withdrawal of premium escrow.
+Premiums currently remain in the series' program-controlled SOL account. A buyer can claim a pro-rata refund of unspent premiums after expiry, including any final rounding remainder. **There is still no executable buyback instruction. Do not use the current program with real premiums.** A safe buyback needs a specific router, slippage bound, destination token account, deadline, and execution permissions. Until that route is implemented and tested, premiums cannot be advertised as automatically buying tokens. The contract must not expose an unrestricted issuer withdrawal of premium escrow.
 
 ## Release gates
 

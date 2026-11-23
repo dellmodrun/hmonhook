@@ -36,15 +36,15 @@ test('Pump buyback route targets a separate program-owned vault', async () => {
   const buyback = deriveBuybackVault(programId, series, mint);
   assert.notEqual(buyback.baseVault.toBase58(), vault.toBase58());
   const prep = buybackVaultPrepInstructions({ programId, series, mint, payer: issuer });
-  assert.equal(prep.instructions.length, 2);
+  assert.equal(prep.instructions.length, 1);
   assert.equal(prep.instructions[0].keys[1].pubkey.toBase58(), buyback.baseVault.toBase58());
-  assert.equal(prep.instructions[1].keys[1].pubkey.toBase58(), buyback.quoteVault.toBase58());
   const { route } = await buildPumpBuybackRoute({
     programId, series, mint, spendableQuoteIn: 1_000_000n, minTokensOut: 1_000n,
   });
   assert.equal(route.keys[8].pubkey.toBase58(), buyback.authority.toBase58());
   assert.equal(route.keys[9].pubkey.toBase58(), buyback.baseVault.toBase58());
   assert.equal(route.keys[10].pubkey.toBase58(), buyback.quoteVault.toBase58());
+  assert.equal(route.keys[12].pubkey.toBase58(), '8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt');
   await assert.rejects(() => buildPumpBuybackRoute({
     programId, series, mint, spendableQuoteIn: 0n, minTokensOut: 1n,
   }), /positive/);
