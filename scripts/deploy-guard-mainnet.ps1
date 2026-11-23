@@ -30,26 +30,8 @@ Write-Output "Management wallet: $expectedManagement"
 Write-Output "Guard program ID: $expectedProgram"
 Write-Output "Guard SBF: $($binary.Length) bytes, SHA-256 $digest"
 if (-not $Deploy) {
-    Write-Output 'Preflight only. Use -Deploy after funding and the remaining release checks.'
+    Write-Output 'Inspection only. Mainnet deployment is reserved for the unified h/monhook release.'
     exit 0
 }
 
-$env:HMONHOOK_MANAGEMENT_KEYFILE = $managementKey
-$balance = node -e "const fs=require('fs');const {Connection,Keypair}=require('@solana/web3.js');const k=Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(process.env.HMONHOOK_MANAGEMENT_KEYFILE,'utf8'))));new Connection('https://api.mainnet-beta.solana.com','confirmed').getBalance(k.publicKey).then(x=>console.log(x)).catch(e=>{console.error(e.message);process.exit(1)})"
-if ($LASTEXITCODE -ne 0) { throw 'Could not check mainnet balance' }
-$lamports = [long]$balance.Trim()
-if ($lamports -lt 400000000) { throw "Guard deployment preflight blocked: management wallet has $lamports lamports; at least 0.4 SOL is required by this conservative preflight." }
-
-function Convert-ToWslPath([string]$path) {
-    $resolved = (Resolve-Path -LiteralPath $path).Path
-    $drive = $resolved.Substring(0, 1).ToLowerInvariant()
-    return '/mnt/' + $drive + $resolved.Substring(2).Replace('\', '/')
-}
-
-$wslManagementKey = Convert-ToWslPath $managementKey
-$wslProgramKey = Convert-ToWslPath $programKey
-$wslProgramBinary = Convert-ToWslPath $programBinary
-wsl -d Ubuntu-24.04 -e /root/.local/share/solana/install/active_release/bin/solana program deploy $wslProgramBinary --program-id $wslProgramKey --keypair $wslManagementKey --upgrade-authority $wslManagementKey --url mainnet-beta --use-rpc
-if ($LASTEXITCODE -ne 0) { throw 'Guard deployment failed; inspect any leftover buffer account before retrying.' }
-wsl -d Ubuntu-24.04 -e /root/.local/share/solana/install/active_release/bin/solana program show $expectedProgram --url mainnet-beta
-if ($LASTEXITCODE -ne 0) { throw 'Guard deployed but post-deploy verification failed.' }
+throw 'Standalone Guard deployment is disabled. Complete and verify the full h/monhook release, then deploy all programs and services together.'

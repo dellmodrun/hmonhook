@@ -2,6 +2,10 @@
 
 The public GitHub Pages site is still using the existing deployed Guard program. The new h/monhook programs in this branch are **development artifacts**, not deployed to Solana mainnet.
 
+## Unified mainnet release
+
+The owner chose to finish the product and deploy it as one release. The old Guard-only deployment script is inspection-only; its `-Deploy` switch deliberately fails. Do not deploy the Guard, options program, database, or production front-end separately. The final release needs a single plan covering both program binaries, the launch and metadata service, the market index, privacy integration, site configuration, authority backup, funding, and post-deployment transactions. No mainnet release date or SOL amount is established yet.
+
 ## Verified locally
 
 - `programs/hmonhook-guard` builds to SBF. Its own wire marker is `HMON`, and `hmonhook-sdk` builds matching instructions and receipts.
