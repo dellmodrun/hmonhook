@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "hmonhook.launches.v1";
+  var STORAGE_KEY = "joltwork.launches.v1";
   var state = { launches: [], pairs: new Map(), filter: "all", sort: "newest", loading: false };
   var byId = function (id) { return document.getElementById(id); };
   if (!byId("market-grid")) return;

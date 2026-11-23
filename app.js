@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var cachedWalletAddress = sessionStorage.getItem("hmonhook-wallet") || null;
+  var cachedWalletAddress = sessionStorage.getItem("joltwork-wallet") || null;
   var walletAddress = null;
   var verifiedMetadataUri = null;
   var verifiedMetadata = null;
@@ -75,8 +75,8 @@
   function setWalletAddress(address, providerObject) {
     walletAddress = address ? String(address) : null;
     activeProvider = providerObject || null;
-    if (walletAddress) sessionStorage.setItem("hmonhook-wallet", walletAddress);
-    else sessionStorage.removeItem("hmonhook-wallet");
+    if (walletAddress) sessionStorage.setItem("joltwork-wallet", walletAddress);
+    else sessionStorage.removeItem("joltwork-wallet");
     var label = walletButton && walletButton.querySelector(".rail-label");
     if (label) label.textContent = walletAddress ? shortAddress(walletAddress) : "CONNECT WALLET";
     document.querySelectorAll("[data-wallet-state]").forEach(function (item) {
@@ -227,7 +227,7 @@
         }
       } catch (error) { /* not previously approved in this wallet */ }
     }
-    sessionStorage.removeItem("hmonhook-wallet");
+    sessionStorage.removeItem("joltwork-wallet");
     cachedWalletAddress = null;
   }
 
@@ -421,11 +421,11 @@
           explorer: result.explorer,
           createdAt: Date.now()
         };
-        var storedLaunches = JSON.parse(localStorage.getItem("hmonhook.launches.v1") || "[]");
+        var storedLaunches = JSON.parse(localStorage.getItem("joltwork.launches.v1") || "[]");
         if (!Array.isArray(storedLaunches)) storedLaunches = [];
         storedLaunches = storedLaunches.filter(function (item) { return item && item.mint !== launchRecord.mint; });
         storedLaunches.unshift(launchRecord);
-        localStorage.setItem("hmonhook.launches.v1", JSON.stringify(storedLaunches.slice(0, 100)));
+        localStorage.setItem("joltwork.launches.v1", JSON.stringify(storedLaunches.slice(0, 100)));
       } catch (_) { /* A confirmed launch remains valid if local storage is unavailable. */ }
       showToast("Coin creation confirmed on Solana", "success");
     } catch (error) {
@@ -588,7 +588,7 @@
       var blob = new Blob([target.textContent], { type: "application/json" });
       var link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = button.dataset.filename || "hmonhook-manifest.json";
+      link.download = button.dataset.filename || "joltwork-manifest.json";
       link.click();
       URL.revokeObjectURL(link.href);
       showToast("JSON manifest downloaded", "success");
@@ -717,7 +717,7 @@
     var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = path.split("/").pop() || "hmonhook-source.txt";
+    link.download = path.split("/").pop() || "joltwork-source.txt";
     link.click();
     URL.revokeObjectURL(link.href);
     showToast("Source file downloaded", "success");
