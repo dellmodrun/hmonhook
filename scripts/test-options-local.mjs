@@ -47,11 +47,24 @@ assert.equal(series.totalLots, 50n);
 assert.ok((await listVerifiedSeriesByMint(connection, programId, mint)).some((row) => row.address.equals(opened.series.address)));
 assert.equal((await getAccount(connection, opened.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(50 * unit));
 
+let prematureDefaultRejected = false;
+try { await send([triggerDefaultInstruction({ programId, series: opened.series.address, treasury })], [buyer]); }
+catch (_) { prematureDefaultRejected = true; }
+assert.ok(prematureDefaultRejected, 'default must require a breached registered treasury');
+
+const seriesLamportsBeforeBuy = await connection.getBalance(opened.series.address, 'confirmed');
 const buySignature = await send([buyOptionsInstruction({ programId, series: opened.series.address, buyer: buyer.publicKey, lots: 2n })], [buyer]);
 series = await fetchVerifiedSeries(connection, programId, opened.series.address);
 assert.equal(series.soldLots, 2n);
+assert.equal((await connection.getBalance(opened.series.address, 'confirmed')) - seriesLamportsBeforeBuy, 200);
 
 const exercised = exerciseInstructions({ programId, series: opened.series.address, mint, vault: opened.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n });
+const diverted = exerciseInstructions({ programId, series: opened.series.address, mint, vault: opened.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n });
+diverted.instructions[1].keys[6] = { pubkey: source, isSigner: false, isWritable: true };
+let divertedExerciseRejected = false;
+try { await send(diverted.instructions, [buyer]); } catch (_) { divertedExerciseRejected = true; }
+assert.ok(divertedExerciseRejected, 'buyer cannot redirect the option payout to an issuer token account');
+assert.equal((await getAccount(connection, opened.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(50 * unit));
 const exerciseSignature = await send(exercised.instructions, [buyer]);
 assert.equal((await getAccount(connection, exercised.destination, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(unit));
 
@@ -81,6 +94,15 @@ const expiring = openSeriesInstructions({
 await send(expiring.instructions, [issuer]);
 await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, lots: 2n })], [buyer]);
 while ((await connection.getSlot('confirmed')) <= expiryStart + 10) await new Promise((resolve) => setTimeout(resolve, 350));
+let expiredSaleRejected = false;
+try { await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, lots: 1n })], [buyer]); }
+catch (_) { expiredSaleRejected = true; }
+assert.ok(expiredSaleRejected, 'option purchases after the sale deadline must fail');
+const unauthorized = reclaimInstructions({ programId, issuer: buyer.publicKey, series: expiring.series.address, mint, vault: expiring.series.vault });
+let unauthorizedReclaimRejected = false;
+try { await send(unauthorized.instructions, [buyer]); } catch (_) { unauthorizedReclaimRejected = true; }
+assert.ok(unauthorizedReclaimRejected, 'a buyer cannot reclaim the issuer collateral');
+assert.equal((await getAccount(connection, expiring.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(50 * unit));
 const reclaim = reclaimInstructions({ programId, issuer: issuer.publicKey, series: expiring.series.address, mint, vault: expiring.series.vault });
 const earlyReclaimSignature = await send(reclaim.instructions, [issuer]);
 assert.equal((await getAccount(connection, expiring.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(2 * unit));
@@ -100,5 +122,6 @@ assert.ok(expiredExerciseRejected, 'exercise after expiry must fail');
 console.log(JSON.stringify({
   network: endpoint, programId: programId.toBase58(), series: opened.series.address.toBase58(),
   openSignature, buySignature, exerciseSignature, defaultSignature, claimSignature,
+  prematureDefaultRejected, divertedExerciseRejected, expiredSaleRejected, unauthorizedReclaimRejected,
   duplicateClaimRejected, earlyReclaimSignature, reclaimSignature, expiredExerciseRejected,
 }, null, 2));
