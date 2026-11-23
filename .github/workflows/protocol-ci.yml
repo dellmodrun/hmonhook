@@ -10,6 +10,12 @@ on:
       - "launch-client.ts"
       - "launch-confirm.mjs"
       - "scripts/test-launch-confirm.mjs"
+      - "scripts/test-launch-registry.mjs"
+      - "supabase/**"
+      - "markets.js"
+      - "markets/registry-service.json"
+      - "app.js"
+      - "bundle.py"
       - "scripts/test-options-client.mjs"
       - "scripts/test-options-local.mjs"
       - "scripts/test-guard-local.mjs"
@@ -23,6 +29,12 @@ on:
       - "launch-client.ts"
       - "launch-confirm.mjs"
       - "scripts/test-launch-confirm.mjs"
+      - "scripts/test-launch-registry.mjs"
+      - "supabase/**"
+      - "markets.js"
+      - "markets/registry-service.json"
+      - "app.js"
+      - "bundle.py"
       - "scripts/test-options-client.mjs"
       - "scripts/test-options-local.mjs"
       - "scripts/test-guard-local.mjs"
@@ -92,6 +104,8 @@ jobs:
       - run: npm ci
       - run: npm run test:launch
       - run: npm run build:client
+      - run: npm run build:site
+      - run: npm run test:site
 
   sdk:
     runs-on: ubuntu-latest

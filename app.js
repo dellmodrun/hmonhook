@@ -36,7 +36,7 @@
   function metadataUri(value) {
     var parsed;
     try { parsed = new URL(value); } catch (error) { throw new Error("metadata uri must be a valid URL"); }
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("metadata uri must use http or https");
+    if (parsed.protocol !== "https:") throw new Error("metadata uri must use https");
     return parsed.href;
   }
 
@@ -415,7 +415,7 @@
         uri: metadataUri(byId("coin-uri").value.trim()),
         rpcEndpoint: metadataUri(byId("coin-rpc").value.trim())
       });
-      output.textContent = JSON.stringify({
+      var launchResult = {
         status: "confirmed",
         network: "solana-mainnet-beta",
         mint: result.mint,
@@ -423,8 +423,10 @@
         solscan: result.explorer,
         pump: result.pump,
         shareableMarket: new URL(result.market, document.baseURI).href,
+        directoryStatus: "not published",
         note: "The Pump coin was created on mainnet. The local JLM1 policy plan was not published or enforced by this transaction."
-      }, null, 2);
+      };
+      output.textContent = JSON.stringify(launchResult, null, 2);
       var marketLink = byId("launch-market-link");
       if (marketLink) { marketLink.href = result.market; marketLink.hidden = false; }
       try {
@@ -451,6 +453,22 @@
         storedLaunches.unshift(launchRecord);
         localStorage.setItem("joltwork.launches.v1", JSON.stringify(storedLaunches.slice(0, 100)));
       } catch (_) { /* A confirmed launch remains valid if local storage is unavailable. */ }
+      try {
+        var serviceResponse = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+        var serviceConfig = serviceResponse.ok ? await serviceResponse.json() : {};
+        if (serviceConfig.endpoint && /^https:\/\//.test(serviceConfig.endpoint)) {
+          var publishResponse = await fetch(serviceConfig.endpoint, {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ signature: result.signature, mint: result.mint, creator: authority })
+          });
+          if (!publishResponse.ok) throw new Error("Verified directory did not accept this launch yet");
+          launchResult.directoryStatus = "published after on-chain verification";
+          output.textContent = JSON.stringify(launchResult, null, 2);
+        }
+      } catch (_) {
+        launchResult.directoryStatus = "not published; use the shareable Mint link";
+        output.textContent = JSON.stringify(launchResult, null, 2);
+      }
       showToast("Coin creation confirmed on Solana", "success");
     } catch (error) {
       output.textContent = "creation error · " + (error && error.message ? error.message : String(error));

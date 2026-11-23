@@ -68,6 +68,9 @@ assert.match(marketsClient, /api\.dexscreener\.com\/tokens\/v1\/solana/, "market
 assert.ok(!marketsClient.includes('source: "search", createdAt: Date.now()'), "market search must not invent a launch date");
 assert.match(app, /joltwork\.launches\.v1/, "confirmed launches must be persisted for market discovery");
 const marketRegistry = JSON.parse(readFileSync(resolve(root, "markets/registry.json"), "utf8"));
+const registryService = JSON.parse(readFileSync(resolve(root, "markets/registry-service.json"), "utf8"));
+assert.equal(typeof registryService.endpoint, "string", "launch registry endpoint configuration missing");
+if (existsSync(resolve(root, "dist"))) assert.ok(existsSync(resolve(root, "dist/markets/registry-service.json")), "bundled site misses registry configuration");
 assert.equal(marketRegistry.format, "JOLTWORK_MARKETS_V1", "unexpected markets registry format");
 for (const launch of marketRegistry.launches) {
   assert.match(launch.mint, /^[1-9A-HJ-NP-Za-km-z]{32,44}$/, "registry contains an invalid Solana Mint");

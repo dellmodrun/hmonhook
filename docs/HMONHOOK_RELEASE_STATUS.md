@@ -25,5 +25,6 @@ The public GitHub Pages site is still using the existing deployed Guard program.
 - The launch client now checks that the connected wallet matches the payer and rechecks the transaction signature after an RPC confirmation timeout. Unit tests cover confirmed, failed and unresolved signatures. This is not a funded mainnet launch test.
 - After a confirmed launch, the website generates a shareable `markets/?mint=<address>` link. A viewer on another device can inspect that Mint through the market-data provider, but this does not publish the coin into a network-wide h/monhook directory. The only automatic launch receipt is still stored in the creator's browser.
 - A writable index and secure metadata storage remain needed for built-in uploads and automatic cross-device market listing. The project's static GitHub Pages site cannot supply those by itself.
+- A Supabase migration and Edge Function now stage an on-chain-verified Pump launch directory. They are not deployed or configured on the live site. The endpoint still needs a project-owned Supabase connection, a production RPC, rate controls, and an actual cross-device transaction test. See `supabase/README.md`.
 
 The current website must keep unsupported actions clearly labeled until these gates are met. Do not point it to the disposable local program IDs in this branch.

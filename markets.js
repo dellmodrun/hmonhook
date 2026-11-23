@@ -54,14 +54,29 @@
   }
 
   async function loadRegistry() {
+    var entries = [];
     try {
       var response = await fetch(new URL("markets/registry.json", document.baseURI), { cache: "no-store" });
       if (!response.ok) throw new Error("registry unavailable");
       var data = await response.json();
-      return Array.isArray(data.launches) ? data.launches.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
+      entries = Array.isArray(data.launches) ? data.launches.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
         return Object.assign({}, item, { source: "registry", verified: true });
       }) : [];
-    } catch (_) { return []; }
+    } catch (_) { /* A published registry may still be available. */ }
+    try {
+      var configResponse = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+      var config = configResponse.ok ? await configResponse.json() : {};
+      if (config.endpoint && /^https:\/\//.test(config.endpoint)) {
+        var liveResponse = await fetch(config.endpoint, { cache: "no-store" });
+        if (!liveResponse.ok) throw new Error("verified directory unavailable");
+        var liveData = await liveResponse.json();
+        if (Array.isArray(liveData.launches)) entries = entries.concat(liveData.launches.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
+          return { mint: item.mint, signature: item.signature, creator: item.creator, name: item.name, symbol: item.symbol,
+            metadataUri: item.metadata_uri, createdAt: item.created_at, source: "verified-pump", verified: true };
+        }));
+      }
+    } catch (_) { /* Keep static and device entries visible. */ }
+    return entries;
   }
 
   function mergeLaunches(items) {
@@ -149,12 +164,12 @@
       var marketUrl = pair ? safeUrl(pair.url) : "";
       return '<article class="market-card">' +
         '<div class="market-card-head"><div class="market-token-image">' + (image ? '<img src="' + escapeHtml(image) + '" alt="" loading="lazy">' : '<span>' + escapeHtml(symbol.slice(0, 2)) + '</span>') + '</div>' +
-        '<div><div class="market-badges"><b>' + (item.source === "search" ? 'MARKET DISCOVERY' : item.official ? 'OFFICIAL TOKEN' : item.independent ? 'INDEPENDENT LAUNCH' : item.source === 'device' ? 'DEVICE RECEIPT' : 'REGISTRY ENTRY') + '</b><b class="' + (pair ? 'live' : 'pending') + '">' + (pair ? 'LIVE MARKET' : 'AWAITING INDEX') + '</b></div><h2>' + escapeHtml(name) + '</h2><p>$' + escapeHtml(symbol) + ' · ' + escapeHtml(short(item.mint)) + '</p></div></div>' +
+        '<div><div class="market-badges"><b>' + (item.source === "search" ? 'MARKET DISCOVERY' : item.source === "verified-pump" ? 'PUMP LAUNCH VERIFIED' : item.official ? 'OFFICIAL TOKEN' : item.independent ? 'INDEPENDENT LAUNCH' : item.source === 'device' ? 'DEVICE RECEIPT' : 'REGISTRY ENTRY') + '</b><b class="' + (pair ? 'live' : 'pending') + '">' + (pair ? 'LIVE MARKET' : 'AWAITING INDEX') + '</b></div><h2>' + escapeHtml(name) + '</h2><p>$' + escapeHtml(symbol) + ' · ' + escapeHtml(short(item.mint)) + '</p></div></div>' +
         '<div class="market-price"><span>PRICE USD</span><strong>' + money(pair && pair.priceUsd, false) + '</strong><em class="' + (change != null && change < 0 ? 'negative' : '') + '">' + (change == null ? 'not indexed' : signed(change) + ' / 24H') + '</em></div>' +
         '<div class="market-metrics"><div><span>MARKET CAP</span><b>' + money(pair && (pair.marketCap || pair.fdv), true) + '</b></div><div><span>LIQUIDITY</span><b>' + money(pair && pair.liquidity && pair.liquidity.usd, true) + '</b></div><div><span>VOLUME 24H</span><b>' + money(pair && pair.volume && pair.volume.h24, true) + '</b></div><div><span>' + (item.createdAt ? 'LAUNCH DATE' : 'PAIR DATE') + '</span><b>' + escapeHtml(time(item.createdAt || (pair && pair.pairCreatedAt))) + '</b></div></div>' +
         '<div class="market-ca"><span>MINT</span><code>' + escapeHtml(item.mint) + '</code><button type="button" data-copy-mint="' + escapeHtml(item.mint) + '">COPY</button></div>' +
         '<div class="market-actions"><a class="button button-solid" href="./intent/?outputMint=' + encodeURIComponent(item.mint) + '">trade with intent</a><a class="button" href="' + escapeHtml(pump) + '" target="_blank" rel="noreferrer">pump market ↗</a>' + (marketUrl ? '<a class="button" href="' + escapeHtml(marketUrl) + '" target="_blank" rel="noreferrer">live chart ↗</a>' : '') + '<a class="button" href="' + escapeHtml(explorer) + '" target="_blank" rel="noreferrer">explorer ↗</a></div>' +
-        '<p class="market-source">' + (item.official ? 'Verified official CA published by h/monhook.' : item.independent ? 'Independent mainnet launch with a finalized creation receipt; not the official h/monhook token.' : item.source === "registry" ? 'Published h/monhook registry entry.' : item.source === "device" ? 'Launch receipt saved on this device after confirmation; verify its signature independently.' : 'Mint supplied for live market discovery.') + ' Market figures are third-party indexed on-chain observations and may be delayed.</p>' +
+        '<p class="market-source">' + (item.official ? 'Verified official CA published by h/monhook.' : item.independent ? 'Independent mainnet launch with a finalized creation receipt; not the official h/monhook token.' : item.source === "verified-pump" ? 'Pump create_v2 transaction verified on-chain and submitted to the h/monhook directory; this does not certify issuer protection.' : item.source === "registry" ? 'Published h/monhook registry entry.' : item.source === "device" ? 'Launch receipt saved on this device after confirmation; verify its signature independently.' : 'Mint supplied for live market discovery.') + ' Market figures are third-party indexed on-chain observations and may be delayed.</p>' +
         '</article>';
     }).join("");
   }
@@ -168,7 +183,7 @@
     var registry = await loadRegistry();
     var searched = state.launches.filter(function (item) { return item.source === "search"; });
     if (sharedMint && !searched.some(function (item) { return item.mint === sharedMint; })) searched.push({ mint: sharedMint, source: "search" });
-    state.launches = mergeLaunches(registry.concat(loadLocal(), searched));
+    state.launches = mergeLaunches(searched.concat(loadLocal(), registry));
     await fetchPairs(state.launches.map(function (item) { return item.mint; }));
     state.loading = false;
     button.disabled = false;

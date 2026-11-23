@@ -1,0 +1,2 @@
+[functions.launch-registry]
+verify_jwt = false
