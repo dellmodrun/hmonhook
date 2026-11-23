@@ -5,11 +5,21 @@ on:
     paths:
       - "programs/**"
       - "sdk/**"
+      - "hmonhook-sdk/**"
+      - "options-client.mjs"
+      - "scripts/test-options-client.mjs"
+      - "scripts/test-options-local.mjs"
+      - "scripts/test-guard-local.mjs"
       - ".github/workflows/protocol-ci.yml"
   pull_request:
     paths:
       - "programs/**"
       - "sdk/**"
+      - "hmonhook-sdk/**"
+      - "options-client.mjs"
+      - "scripts/test-options-client.mjs"
+      - "scripts/test-options-local.mjs"
+      - "scripts/test-guard-local.mjs"
 
 jobs:
   rust:
@@ -27,6 +37,30 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Check issuer options program
         run: cargo test --manifest-path programs/hmonhook-options/Cargo.toml
+
+  hmonhook-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check h/monhook Guard program
+        run: cargo test --manifest-path programs/hmonhook-guard/Cargo.toml
+
+  hmonhook-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: hmonhook-sdk/package-lock.json
+      - name: Install
+        working-directory: hmonhook-sdk
+        run: npm ci
+      - name: Build and test h/monhook SDK
+        working-directory: hmonhook-sdk
+        run: npm test
 
   issuer-options-client:
     runs-on: ubuntu-latest

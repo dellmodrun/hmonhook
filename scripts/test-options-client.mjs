@@ -6,6 +6,7 @@ import {
   exerciseInstructions, claimDefaultInstructions, triggerDefaultInstruction,
   reclaimInstructions, decodeSeries,
   fetchVerifiedSeries,
+  listVerifiedSeriesByMint,
 } from '../options-client.mjs';
 
 const programId = Keypair.generate().publicKey;
@@ -74,4 +75,10 @@ test('remote series must be owned by the expected program and match its PDA', as
   assert.equal((await fetchVerifiedSeries(connection, programId, series)).mint.toBase58(), mint.toBase58());
   await assert.rejects(() => fetchVerifiedSeries({ getAccountInfo: async () => ({ owner: buyer, data: bytes }) }, programId, series), /not owned/);
   await assert.rejects(() => fetchVerifiedSeries(connection, programId, buyer), /does not match/);
+  const listed = await listVerifiedSeriesByMint({ getProgramAccounts: async (_, options) => {
+    assert.deepEqual(options.filters, [{ dataSize: 242 }, { memcmp: { offset: 50, bytes: mint.toBase58() } }]);
+    return [{ pubkey: series, account: { owner: programId, data: bytes } }];
+  } }, programId, mint);
+  assert.equal(listed.length, 1);
+  assert.equal(listed[0].address.toBase58(), series.toBase58());
 });

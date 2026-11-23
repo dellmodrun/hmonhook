@@ -2,12 +2,13 @@
 
 This document fixes the financial rules that were previously only marketing copy. It is a proposed implementation specification, **not a deployed contract**. No interface may label a coin protected until its deployed program, escrow balance, terms and issuer commitment are verified on-chain.
 
-The development branch contains a native Rust program under `programs/hmonhook-options` and a transaction builder in `options-client.mjs`. These are development artifacts. Unit tests do not establish that token CPIs, rent accounting and expiry behavior succeed in a real Solana runtime; full execution tests and an external review remain release gates.
+The development branch contains a native Rust program under `programs/hmonhook-options` and a transaction builder in `options-client.mjs`. These are development artifacts. A disposable local Solana validator has exercised opening, purchase, exercise, registered treasury outflow default, claim, duplicate-claim rejection, expiry and issuer reclaim with Token-2022 accounts. This is not a funded devnet test, an independent security review, or evidence that mainnet deployment is safe.
 
 ## Series and collateral
 
 - One series is identified by a token Mint, issuer wallet and unique series number. The issuer signs its creation.
 - The issuer deposits tokens into a program-controlled vault before options can be sold. The deposit is exactly 2% to 10% of the Mint supply observed at creation, measured in base units. The contract rejects a Mint whose supply can be increased by an active mint authority, and rejects a deposit below one whole token.
+- V1 accepts Token-2022 Mints only when mint/freeze authority is removed and their extensions are limited to descriptive metadata or group data. Transfer fees, transfer hooks, permanent delegates, pause authority and confidential-balance extensions are rejected because they can make the escrowed lot unavailable or underdeliver it. The program also checks the exact token amount received by the vault and buyer.
 - The vault has no issuer withdrawal instruction while active options remain. The contract records the deposited amount, Mint, issuer, price terms, sale deadline and exercise deadline immutably.
 - A series with no escrow, an invalid Mint or no verified transaction is shown as **unlocked**. A name or ticker does not make it official.
 
@@ -27,13 +28,13 @@ After a valid default, each outstanding purchased option becomes a claim to its 
 
 ## Premiums and buybacks
 
-Premiums remain in a separate program-controlled SOL vault. The earlier text promised market buybacks after all locked tokens sold, but a safe buyback needs a specific router, slippage bound, destination token account, deadline, and execution permissions. Until that route is implemented and tested, premiums cannot be advertised as automatically buying tokens. The v1 contract must not expose an unrestricted issuer withdrawal of premium escrow.
+Premiums currently remain in the series' program-controlled SOL account. **There is no release, buyback, or refund instruction for those funds. Do not use the current program with real premiums.** The earlier text promised market buybacks after all locked tokens sold, but a safe buyback needs a specific router, slippage bound, destination token account, deadline, and execution permissions. Until that route is implemented and tested, premiums cannot be advertised as automatically buying tokens. The contract must not expose an unrestricted issuer withdrawal of premium escrow.
 
 ## Release gates
 
 1. Implement the program and browser client with deterministic account derivation and tests for purchases, exercise, expiry, outflow default, double claims, account substitution and overflow.
-2. Simulate and exercise those paths on devnet with funded test wallets.
+2. Repeat the local-validator paths on devnet with funded test wallets, including supported Token-2022 metadata extensions and adversarial accounts.
 3. Arrange independent review of the program and exact economic terms before accepting mainnet collateral.
 4. Deploy a new h/monhook program whose upgrade authority is controlled by the project owner; record the program ID, SBF digest, authority and transactions.
-5. Index series from confirmed on-chain accounts. The static GitHub Pages registry is not a writeable database and cannot by itself discover every same-name Mint.
+5. Read series directly from confirmed on-chain program accounts by Mint; the client already verifies owner, PDA, vault and account layout. The static GitHub Pages registry is not a writeable database and cannot by itself discover every same-name Mint. A complete same-name search still needs an independently verifiable Mint metadata index.
 6. Enable the frontend actions only after the deployed program and required backend/indexer are verified. Privacy Rings integration is a separate release and needs a Helius integration account.

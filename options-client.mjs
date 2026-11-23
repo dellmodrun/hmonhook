@@ -100,3 +100,20 @@ export async function fetchVerifiedSeries(connection, programId, seriesAddress) 
   }
   return series;
 }
+
+export async function listVerifiedSeriesByMint(connection, programId, mint) {
+  const mintKey = key(mint);
+  const rows = await connection.getProgramAccounts(key(programId), {
+    commitment: 'confirmed',
+    filters: [{ dataSize: 242 }, { memcmp: { offset: 50, bytes: mintKey.toBase58() } }],
+  });
+  return rows.flatMap(({ pubkey, account }) => {
+    try {
+      if (!account.owner.equals(key(programId))) return [];
+      const series = decodeSeries(account.data);
+      const derived = deriveSeries(programId, series.mint, series.issuer, series.nonce);
+      if (!series.mint.equals(mintKey) || !derived.address.equals(pubkey) || !derived.vault.equals(series.vault) || derived.bump !== series.bump) return [];
+      return [{ address: pubkey, ...series }];
+    } catch (_) { return []; }
+  });
+}

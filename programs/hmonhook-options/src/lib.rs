@@ -87,10 +87,32 @@ fn treasury_breached(account: &AccountInfo, series: &Series) -> bool {
 fn mint_data(mint: &AccountInfo) -> Result<(u64, u8), ProgramError> {
     if mint.owner != &token_2022::id() { return Err(bad_account()); }
     let data = mint.try_borrow_data()?;
-    if data.len() < 82 || data.get(0..4) != Some(&[0, 0, 0, 0]) || data.get(46..50) != Some(&[0, 0, 0, 0]) || data[45] != 1 {
+    if data.len() < 82 || data.get(0..4) != Some(&[0, 0, 0, 0]) || data.get(46..50) != Some(&[0, 0, 0, 0]) || data[45] != 1 || !supported_mint_extensions(&data) {
         return Err(bad_account());
     }
     Ok((u64_at(&data, 36)?, data[44]))
+}
+
+fn supported_mint_extensions(data: &[u8]) -> bool {
+    if data.len() == 82 { return true; }
+    // Token-2022 pads extended Mints to 165 bytes, then writes the Mint
+    // account-type byte and TLV entries. Only descriptive metadata/group
+    // extensions are accepted. A permanent delegate, transfer hook, fee,
+    // confidential transfer or pause authority can defeat collateral delivery.
+    if data.len() < 166 || data[82..165].iter().any(|byte| *byte != 0) || data[165] != 1 { return false; }
+    let mut offset = 166;
+    while offset < data.len() {
+        if data[offset..].iter().all(|byte| *byte == 0) { return true; }
+        if data.len() - offset < 4 { return false; }
+        let kind = u16::from_le_bytes([data[offset], data[offset + 1]]);
+        let length = u16::from_le_bytes([data[offset + 2], data[offset + 3]]) as usize;
+        if !(18..=23).contains(&kind) || length == 0 { return false; }
+        offset = match offset.checked_add(4).and_then(|n| n.checked_add(length)) {
+            Some(end) if end <= data.len() => end,
+            _ => return false,
+        };
+    }
+    true
 }
 
 fn load_series(program_id: &Pubkey, account: &AccountInfo) -> Result<Series, ProgramError> {
@@ -378,5 +400,22 @@ mod tests {
         let system_id = solana_system_interface::program::id();
         let closed = AccountInfo::new(&treasury, false, false, &mut lamports, &mut closed_data, &system_id, false);
         assert!(treasury_breached(&closed, &series));
+    }
+
+    #[test]
+    fn rejects_extensions_that_can_break_escrow_delivery() {
+        assert!(supported_mint_extensions(&[0; 82]));
+        let mut mint = vec![0_u8; 166 + 4 + 8];
+        mint[165] = 1;
+        mint[166..168].copy_from_slice(&18_u16.to_le_bytes());
+        mint[168..170].copy_from_slice(&8_u16.to_le_bytes());
+        assert!(supported_mint_extensions(&mint));
+        for disallowed in [1_u16, 12, 14, 24, 27] {
+            mint[166..168].copy_from_slice(&disallowed.to_le_bytes());
+            assert!(!supported_mint_extensions(&mint));
+        }
+        mint[166..168].copy_from_slice(&18_u16.to_le_bytes());
+        mint[168..170].copy_from_slice(&100_u16.to_le_bytes());
+        assert!(!supported_mint_extensions(&mint));
     }
 }
