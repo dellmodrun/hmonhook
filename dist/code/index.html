@@ -247,7 +247,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <span class="page-code">RUST / TYPESCRIPT / TESTS</span>
 </div>
-<p>Inspect Jolt Guard's deployed core, the browser clients and the product-scope document that separates implemented trade protection from proposed issuer options and privacy integration.</p>
+<p>Inspect h/monhook Guard's deployed core, the browser clients and the product-scope document that separates implemented trade protection from proposed issuer options and privacy integration.</p>
+<p>The published source still uses the earlier <code>jolt-guard</code> path and <code>JOLT</code> wire markers. Those identifiers belong to the existing deployed program and its compatible SDK; changing them requires a coordinated program migration. The public product name is h/monhook.</p>
 </header>
 <section class="chapter">
 <div class="chapter-label">PUBLISHED SOURCE BROWSER</div>
@@ -259,7 +260,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </span>
 <span>TYPESCRIPT SDK<b>IMPLEMENTED</b>
 </span>
-<span>SDK TESTS<b>9 PASSING</b>
+<span>SDK TESTS<b>11 PASSING</b>
 </span>
 <span>MAINNET PROGRAM<b>6HfEuWvE…S3ENTY</b>
 </span>
@@ -372,7 +373,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <tr><td>launch-client.ts</td><td>Pump create_v2 assembly, safety checks and confirmation</td><td>coin creators</td><td>implemented</td></tr>
 <tr>
 <td>JOLT_GUARD.md</td>
-<td>JOLT V1, JHK1 and JRC1 interfaces</td>
+<td>Intent V1, JHK1 and JRC1 interfaces</td>
 <td>integrators</td>
 <td>specified</td>
 </tr>
@@ -394,7 +395,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <h2>What the repository proves—and what deployment must still prove.</h2>
 </div>
 </div>
-<div class="prose-block"><p>Source code shows which mechanism was implemented; the mainnet and devnet manifests publish executable Program IDs, ProgramData accounts and the SBF hash. They do not prove that every route adapter is free of adversarial edge cases. The issuer-option contract and Privacy Rings integration are not implemented here; <code>docs/PRODUCT_SCOPE.md</code> records their intended boundaries.</p><p>The browser assembles a supported Jupiter route with the mainnet Jolt Guard wrapper and asks the user wallet to sign the resulting versioned transaction. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. Deployment, integration and audit are different kinds of evidence.</p></div>
+<div class="prose-block"><p>Source code shows which mechanism was implemented; the mainnet and devnet manifests publish executable Program IDs, ProgramData accounts and the SBF hash. They do not prove that every route adapter is free of adversarial edge cases. The issuer-option contract and Privacy Rings integration are not implemented here; <code>docs/PRODUCT_SCOPE.md</code> records their intended boundaries.</p><p>The browser assembles a supported Jupiter route with the mainnet h/monhook Guard wrapper and asks the user wallet to sign the resulting versioned transaction. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. Deployment, integration and audit are different kinds of evidence.</p></div>
 <div class="split-panel">
 <article>
 <h3>Inspectable now</h3>
@@ -487,6 +488,12 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     try { parsed = new URL(value); } catch (error) { throw new Error("metadata uri must be a valid URL"); }
     if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("metadata uri must use http or https");
     return parsed.href;
+  }
+
+  function solanaRpcUrl(value) {
+    var url = metadataUri(value);
+    if (!url.startsWith("https:")) throw new Error("RPC endpoint must use HTTPS");
+    return url;
   }
 
   var activeProvider = null;
@@ -815,7 +822,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       localPlanHash: await sha256(canonical),
       manifest: manifest,
       liveAction: "create a Token-2022 coin through Pump create_v2 after wallet approval",
-      notIncluded: ["publish the intended Jolt policy", "create an issuer lock or option", "integrate Privacy Rings"],
+      notIncluded: ["publish the intended h/monhook policy", "create an issuer lock or option", "integrate Privacy Rings"],
       signingAuthority: walletAddress || "connect wallet before transaction assembly"
     }, null, 2);
     launchManifestReady = true;
@@ -866,7 +873,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       }, null, 2);
       try {
         var launchRecord = {
-          format: "JOLTWORK_LAUNCH_RECEIPT_V1",
+          format: "HMONHOOK_LAUNCH_RECEIPT_V1",
           network: "solana-mainnet-beta",
           mint: result.mint,
           signature: result.signature,
@@ -899,12 +906,12 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   });
 
   var latestIntentQuote = null;
-  ["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage", "intent-output-min", "intent-expiry"].forEach(function (id) {
+  ["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage", "intent-output-min", "intent-expiry", "intent-rpc"].forEach(function (id) {
     if (!byId(id)) return;
     byId(id).addEventListener("input", function () {
       intentManifestReady = false;
       if (byId("intent-submit")) byId("intent-submit").disabled = true;
-      if (["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage"].indexOf(id) !== -1) latestIntentQuote = null;
+      if (["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage", "intent-rpc"].indexOf(id) !== -1) latestIntentQuote = null;
       if (byId("intent-output")) byId("intent-output").textContent = latestIntentQuote ? "Constraints changed. Compile the preview again before signing." : "Trade changed. Get a fresh quote and compile again before signing.";
     });
   });
@@ -939,12 +946,14 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       if (!quote.outAmount || quote.errorCode) throw new Error(quote.errorMessage || quote.errorCode || "Jupiter could not build a quote");
       var minOutput = quote.otherAmountThreshold || (BigInt(quote.outAmount) * BigInt(10000 - slippage) / 10000n).toString();
       byId("intent-output-min").value = minOutput;
-      var slotResponse = await fetch("https://solana-rpc.publicnode.com", {
+      var slotResponse = await fetch(solanaRpcUrl(byId("intent-rpc").value.trim()), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getSlot", params: [{ commitment: "confirmed" }] })
       });
+      if (!slotResponse.ok) throw new Error("Solana RPC slot request failed with HTTP " + slotResponse.status);
       var slotJson = await slotResponse.json();
-      if (slotJson.result) byId("intent-expiry").value = String(Number(slotJson.result) + 150);
+      if (!Number.isSafeInteger(slotJson.result) || slotJson.result <= 0) throw new Error(slotJson.error && slotJson.error.message || "Solana RPC returned no valid slot");
+      byId("intent-expiry").value = String(slotJson.result + 150);
       latestIntentQuote = {
         requestId: quote.requestId || null, router: quote.router || "metis",
         inputMint: inputMint, outputMint: outputMint, inAmount: quote.inAmount,
@@ -970,7 +979,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     var output = byId("intent-output");
     try {
       var manifest = {
-        protocol: "jolt-guard-v1",
+        protocol: "hmonhook-intent-preview-v1",
         network: "solana-mainnet-beta",
         authority: walletAddress || "wallet-not-connected",
         routeProgram: solanaAddress(byId("intent-route").value.trim(), "route program"),
@@ -989,7 +998,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         localPreviewHash: await sha256(JSON.stringify(manifest)),
         constraints: manifest,
         quote: latestIntentQuote,
-        note: "This local JSON hash is not the on-chain JOLT intent ID. Signing assembles a fresh Jupiter route and the actual guard instruction.",
+        note: "This local JSON hash is not the on-chain intent ID. Signing assembles a fresh Jupiter route and the actual guard instruction.",
         execution: [
           "snapshot source and destination token accounts",
           "invoke PRE policy hook",
@@ -1015,7 +1024,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     if (!provider || !authority) return openWalletModal();
     if (!intentManifestReady || !latestIntentQuote) return showToast("Get a fresh quote and compile the intent first", "error");
     if (!window.JoltworkIntent || typeof window.JoltworkIntent.submitProtectedSwap !== "function") return showToast("Protected swap module is unavailable", "error");
-    if (!window.confirm("Sign a mainnet swap protected by Jolt Guard? Review the token amounts and network fee in your wallet.")) return;
+    if (!window.confirm("Sign a mainnet swap protected by h/monhook Guard? Review the token amounts and network fee in your wallet.")) return;
     intentSubmit.disabled = true;
     intentSubmit.textContent = "building protected swap…";
     try {
@@ -1023,9 +1032,10 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         provider: provider, authority: authority,
         inputMint: byId("intent-input-mint").value.trim(), outputMint: byId("intent-output-mint").value.trim(),
         amount: byId("intent-input").value.trim(), minimumOutput: byId("intent-output-min").value.trim(),
-        slippageBps: byId("intent-slippage").value.trim(), expiresAtSlot: byId("intent-expiry").value.trim()
+        slippageBps: byId("intent-slippage").value.trim(), expiresAtSlot: byId("intent-expiry").value.trim(),
+        rpcEndpoint: solanaRpcUrl(byId("intent-rpc").value.trim())
       });
-      output.textContent = JSON.stringify({ status: "confirmed", protection: "Jolt Guard mainnet", programId: "6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
+      output.textContent = JSON.stringify({ status: "confirmed", protection: "h/monhook Guard mainnet", programId: "6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
       showToast("Protected swap confirmed", "success");
     } catch (error) {
       output.textContent = "protected swap error · " + (error && error.message ? error.message : String(error));
@@ -1059,7 +1069,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       var blob = new Blob([target.textContent], { type: "application/json" });
       var link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = button.dataset.filename || "joltwork-manifest.json";
+      link.download = button.dataset.filename || "hmonhook-manifest.json";
       link.click();
       URL.revokeObjectURL(link.href);
       showToast("JSON manifest downloaded", "success");

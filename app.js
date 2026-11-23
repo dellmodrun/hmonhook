@@ -40,6 +40,12 @@
     return parsed.href;
   }
 
+  function solanaRpcUrl(value) {
+    var url = metadataUri(value);
+    if (!url.startsWith("https:")) throw new Error("RPC endpoint must use HTTPS");
+    return url;
+  }
+
   var activeProvider = null;
   var boundProviders = [];
   var walletButton = byId("connect-wallet");
@@ -366,7 +372,7 @@
       localPlanHash: await sha256(canonical),
       manifest: manifest,
       liveAction: "create a Token-2022 coin through Pump create_v2 after wallet approval",
-      notIncluded: ["publish the intended Jolt policy", "create an issuer lock or option", "integrate Privacy Rings"],
+      notIncluded: ["publish the intended h/monhook policy", "create an issuer lock or option", "integrate Privacy Rings"],
       signingAuthority: walletAddress || "connect wallet before transaction assembly"
     }, null, 2);
     launchManifestReady = true;
@@ -417,7 +423,7 @@
       }, null, 2);
       try {
         var launchRecord = {
-          format: "JOLTWORK_LAUNCH_RECEIPT_V1",
+          format: "HMONHOOK_LAUNCH_RECEIPT_V1",
           network: "solana-mainnet-beta",
           mint: result.mint,
           signature: result.signature,
@@ -450,12 +456,12 @@
   });
 
   var latestIntentQuote = null;
-  ["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage", "intent-output-min", "intent-expiry"].forEach(function (id) {
+  ["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage", "intent-output-min", "intent-expiry", "intent-rpc"].forEach(function (id) {
     if (!byId(id)) return;
     byId(id).addEventListener("input", function () {
       intentManifestReady = false;
       if (byId("intent-submit")) byId("intent-submit").disabled = true;
-      if (["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage"].indexOf(id) !== -1) latestIntentQuote = null;
+      if (["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage", "intent-rpc"].indexOf(id) !== -1) latestIntentQuote = null;
       if (byId("intent-output")) byId("intent-output").textContent = latestIntentQuote ? "Constraints changed. Compile the preview again before signing." : "Trade changed. Get a fresh quote and compile again before signing.";
     });
   });
@@ -490,12 +496,14 @@
       if (!quote.outAmount || quote.errorCode) throw new Error(quote.errorMessage || quote.errorCode || "Jupiter could not build a quote");
       var minOutput = quote.otherAmountThreshold || (BigInt(quote.outAmount) * BigInt(10000 - slippage) / 10000n).toString();
       byId("intent-output-min").value = minOutput;
-      var slotResponse = await fetch("https://solana-rpc.publicnode.com", {
+      var slotResponse = await fetch(solanaRpcUrl(byId("intent-rpc").value.trim()), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getSlot", params: [{ commitment: "confirmed" }] })
       });
+      if (!slotResponse.ok) throw new Error("Solana RPC slot request failed with HTTP " + slotResponse.status);
       var slotJson = await slotResponse.json();
-      if (slotJson.result) byId("intent-expiry").value = String(Number(slotJson.result) + 150);
+      if (!Number.isSafeInteger(slotJson.result) || slotJson.result <= 0) throw new Error(slotJson.error && slotJson.error.message || "Solana RPC returned no valid slot");
+      byId("intent-expiry").value = String(slotJson.result + 150);
       latestIntentQuote = {
         requestId: quote.requestId || null, router: quote.router || "metis",
         inputMint: inputMint, outputMint: outputMint, inAmount: quote.inAmount,
@@ -521,7 +529,7 @@
     var output = byId("intent-output");
     try {
       var manifest = {
-        protocol: "jolt-guard-v1",
+        protocol: "hmonhook-intent-preview-v1",
         network: "solana-mainnet-beta",
         authority: walletAddress || "wallet-not-connected",
         routeProgram: solanaAddress(byId("intent-route").value.trim(), "route program"),
@@ -540,7 +548,7 @@
         localPreviewHash: await sha256(JSON.stringify(manifest)),
         constraints: manifest,
         quote: latestIntentQuote,
-        note: "This local JSON hash is not the on-chain JOLT intent ID. Signing assembles a fresh Jupiter route and the actual guard instruction.",
+        note: "This local JSON hash is not the on-chain intent ID. Signing assembles a fresh Jupiter route and the actual guard instruction.",
         execution: [
           "snapshot source and destination token accounts",
           "invoke PRE policy hook",
@@ -566,7 +574,7 @@
     if (!provider || !authority) return openWalletModal();
     if (!intentManifestReady || !latestIntentQuote) return showToast("Get a fresh quote and compile the intent first", "error");
     if (!window.JoltworkIntent || typeof window.JoltworkIntent.submitProtectedSwap !== "function") return showToast("Protected swap module is unavailable", "error");
-    if (!window.confirm("Sign a mainnet swap protected by Jolt Guard? Review the token amounts and network fee in your wallet.")) return;
+    if (!window.confirm("Sign a mainnet swap protected by h/monhook Guard? Review the token amounts and network fee in your wallet.")) return;
     intentSubmit.disabled = true;
     intentSubmit.textContent = "building protected swap…";
     try {
@@ -574,9 +582,10 @@
         provider: provider, authority: authority,
         inputMint: byId("intent-input-mint").value.trim(), outputMint: byId("intent-output-mint").value.trim(),
         amount: byId("intent-input").value.trim(), minimumOutput: byId("intent-output-min").value.trim(),
-        slippageBps: byId("intent-slippage").value.trim(), expiresAtSlot: byId("intent-expiry").value.trim()
+        slippageBps: byId("intent-slippage").value.trim(), expiresAtSlot: byId("intent-expiry").value.trim(),
+        rpcEndpoint: solanaRpcUrl(byId("intent-rpc").value.trim())
       });
-      output.textContent = JSON.stringify({ status: "confirmed", protection: "Jolt Guard mainnet", programId: "6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
+      output.textContent = JSON.stringify({ status: "confirmed", protection: "h/monhook Guard mainnet", programId: "6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
       showToast("Protected swap confirmed", "success");
     } catch (error) {
       output.textContent = "protected swap error · " + (error && error.message ? error.message : String(error));
@@ -610,7 +619,7 @@
       var blob = new Blob([target.textContent], { type: "application/json" });
       var link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = button.dataset.filename || "joltwork-manifest.json";
+      link.download = button.dataset.filename || "hmonhook-manifest.json";
       link.click();
       URL.revokeObjectURL(link.href);
       showToast("JSON manifest downloaded", "success");

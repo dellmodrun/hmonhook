@@ -110,7 +110,8 @@
 </div>
 <span class="page-code">RUST / TYPESCRIPT / TESTS</span>
 </div>
-<p>Inspect Jolt Guard's deployed core, the browser clients and the product-scope document that separates implemented trade protection from proposed issuer options and privacy integration.</p>
+<p>Inspect h/monhook Guard's deployed core, the browser clients and the product-scope document that separates implemented trade protection from proposed issuer options and privacy integration.</p>
+<p>The published source still uses the earlier <code>jolt-guard</code> path and <code>JOLT</code> wire markers. Those identifiers belong to the existing deployed program and its compatible SDK; changing them requires a coordinated program migration. The public product name is h/monhook.</p>
 </header>
 <section class="chapter">
 <div class="chapter-label">PUBLISHED SOURCE BROWSER</div>
@@ -122,7 +123,7 @@
 </span>
 <span>TYPESCRIPT SDK<b>IMPLEMENTED</b>
 </span>
-<span>SDK TESTS<b>9 PASSING</b>
+<span>SDK TESTS<b>11 PASSING</b>
 </span>
 <span>MAINNET PROGRAM<b>6HfEuWvE…S3ENTY</b>
 </span>
@@ -235,7 +236,7 @@
 <tr><td>launch-client.ts</td><td>Pump create_v2 assembly, safety checks and confirmation</td><td>coin creators</td><td>implemented</td></tr>
 <tr>
 <td>JOLT_GUARD.md</td>
-<td>JOLT V1, JHK1 and JRC1 interfaces</td>
+<td>Intent V1, JHK1 and JRC1 interfaces</td>
 <td>integrators</td>
 <td>specified</td>
 </tr>
@@ -257,7 +258,7 @@
 <h2>What the repository proves—and what deployment must still prove.</h2>
 </div>
 </div>
-<div class="prose-block"><p>Source code shows which mechanism was implemented; the mainnet and devnet manifests publish executable Program IDs, ProgramData accounts and the SBF hash. They do not prove that every route adapter is free of adversarial edge cases. The issuer-option contract and Privacy Rings integration are not implemented here; <code>docs/PRODUCT_SCOPE.md</code> records their intended boundaries.</p><p>The browser assembles a supported Jupiter route with the mainnet Jolt Guard wrapper and asks the user wallet to sign the resulting versioned transaction. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. Deployment, integration and audit are different kinds of evidence.</p></div>
+<div class="prose-block"><p>Source code shows which mechanism was implemented; the mainnet and devnet manifests publish executable Program IDs, ProgramData accounts and the SBF hash. They do not prove that every route adapter is free of adversarial edge cases. The issuer-option contract and Privacy Rings integration are not implemented here; <code>docs/PRODUCT_SCOPE.md</code> records their intended boundaries.</p><p>The browser assembles a supported Jupiter route with the mainnet h/monhook Guard wrapper and asks the user wallet to sign the resulting versioned transaction. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. Deployment, integration and audit are different kinds of evidence.</p></div>
 <div class="split-panel">
 <article>
 <h3>Inspectable now</h3>

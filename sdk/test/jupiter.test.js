@@ -39,3 +39,25 @@ test("requires writable settlement accounts", () => {
   args.swapInstruction.accounts[2].isWritable = false;
   assert.throws(() => buildJupiterIntentInstruction(args), /destination token account as writable/);
 });
+
+test("allows SystemProgram in a Jupiter route when no hook is configured", () => {
+  const args = request();
+  args.joltProgramAddress = address("6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY");
+  args.swapInstruction.accounts.push({ pubkey: keys[0], isSigner: false, isWritable: false });
+  const instruction = buildJupiterIntentInstruction(args);
+  assert.equal(instruction.accounts[4].address, args.joltProgramAddress);
+  assert.ok(instruction.accounts.some((account, index) => index >= 5 && account.address === keys[0]));
+});
+
+test("keeps Jupiter's repeated program ID in the CPI data account order", () => {
+  const args = request();
+  args.joltProgramAddress = address("6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY");
+  const programId = args.swapInstruction.programId;
+  args.swapInstruction.accounts.push(
+    { pubkey: programId, isSigner: false, isWritable: false },
+    { pubkey: programId, isSigner: false, isWritable: false },
+  );
+  const instruction = buildJupiterIntentInstruction(args);
+  const positions = instruction.accounts.map((meta, index) => meta.address === programId ? index : -1).filter((index) => index >= 0);
+  assert.deepEqual(positions, [3, 5]);
+});

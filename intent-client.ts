@@ -7,7 +7,7 @@ import {
 
 const JOLT_MAINNET = new PublicKey('6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY');
 const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
-const RPC = 'https://api.mainnet-beta.solana.com';
+const DEFAULT_RPC = 'https://solana-rpc.publicnode.com';
 
 type ApiInstruction = { programId: string; accounts: Array<{ pubkey: string; isSigner: boolean; isWritable: boolean }>; data: string };
 type Provider = { signAndSendTransaction?: (tx: VersionedTransaction, options?: object) => Promise<string | { signature: string }>; signTransaction?: (tx: VersionedTransaction) => Promise<VersionedTransaction> };
@@ -38,13 +38,15 @@ function associatedToken(mint: PublicKey, owner: PublicKey, tokenProgram: Public
 
 export async function submitProtectedSwap(args: {
   provider: Provider; authority: string; inputMint: string; outputMint: string;
-  amount: string; minimumOutput: string; slippageBps: string; expiresAtSlot: string;
+  amount: string; minimumOutput: string; slippageBps: string; expiresAtSlot: string; rpcEndpoint?: string;
 }) {
   if (!args.provider) throw new Error('Connect a supported wallet first.');
   const authority = new PublicKey(args.authority);
   const inputMint = new PublicKey(args.inputMint);
   const outputMint = new PublicKey(args.outputMint);
-  const connection = new Connection(RPC, 'confirmed');
+  const rpcUrl = new URL(args.rpcEndpoint || DEFAULT_RPC);
+  if (rpcUrl.protocol !== 'https:') throw new Error('The RPC endpoint must use HTTPS.');
+  const connection = new Connection(rpcUrl.href, 'confirmed');
   const mintAccounts = await connection.getMultipleAccountsInfo([inputMint, outputMint], 'confirmed');
   if (!mintAccounts[0] || !mintAccounts[1]) throw new Error('Input or output mint does not exist on mainnet.');
   const sourceTokenAccount = associatedToken(inputMint, authority, mintAccounts[0].owner);

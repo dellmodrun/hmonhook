@@ -1,6 +1,5 @@
 import { AccountRole, mergeRoles } from "@solana/kit";
 import type { AccountMeta, Instruction } from "@solana/kit";
-import { SYSTEM_PROGRAM } from "./constants.js";
 import { computeIntentId, encodeExecuteIntent } from "./codec.js";
 import type { BuildIntentHookInstruction } from "./types.js";
 
@@ -9,7 +8,10 @@ export function dedupeInstructionAccounts(
 ): { accounts: AccountMeta[]; routeIndices: number[]; hookIndices: number[] } {
   const accounts = fixed.map((meta) => ({ ...meta }));
   const positions = new Map<string, number>();
-  accounts.forEach((meta, index) => positions.set(meta.address, index));
+  // The deployed program reserves indices 3 and 4 for CPI program accounts.
+  // A route may also list its program ID as a data account; that occurrence
+  // must be represented again at index >= 5 to preserve the route's account order.
+  accounts.forEach((meta, index) => { if (index !== 3 && index !== 4) positions.set(meta.address, index); });
   const add = (meta: AccountMeta): number => {
     const existing = positions.get(meta.address);
     if (existing !== undefined) {
@@ -26,7 +28,9 @@ export function dedupeInstructionAccounts(
 
 export function buildExecuteIntentInstruction(args: BuildIntentHookInstruction): Instruction {
   const hookAccounts = args.hookAccounts ?? [];
-  const hookProgram = args.hookProgram ?? SYSTEM_PROGRAM;
+  // With no hook, this slot is unused by the deployed program. Reuse its own
+  // executable account so Jupiter can pass SystemProgram as a CPI data account.
+  const hookProgram = args.hookProgram ?? args.programAddress;
   if (hookAccounts.length && !args.hookProgram) throw new Error("hookProgram is required when hookAccounts are supplied");
   const fixed: AccountMeta[] = [
     { address: args.authority, role: AccountRole.READONLY_SIGNER },
