@@ -4,6 +4,7 @@ import base64
 import os
 import pathlib
 import re
+import shutil
 
 ROOT = pathlib.Path(__file__).resolve().parent
 DIST = ROOT / "dist"
@@ -66,4 +67,15 @@ registry_service_output.write_text(registry_service_source.read_text(encoding="u
 metadata_service_source = ROOT / "launch" / "metadata-service.json"
 metadata_service_output = DIST / "launch" / "metadata-service.json"
 metadata_service_output.write_text(metadata_service_source.read_text(encoding="utf-8"), encoding="utf-8")
+
+# The in-site source browser fetches these paths. The packaged preview must
+# carry the same published files as a GitHub Pages deployment from repo root.
+code_map = app.split("var codePaths = {", 1)[1].split("};", 1)[0]
+for match in re.finditer(r'^\s+\w+: "([^"]+)"', code_map, re.MULTILINE):
+    source = (ROOT / match.group(1)).resolve()
+    if not source.is_relative_to(ROOT.resolve()) or not source.is_file():
+        raise ValueError(f"Missing or unsafe source browser path: {match.group(1)}")
+    output = DIST / match.group(1)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, output)
 

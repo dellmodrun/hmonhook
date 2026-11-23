@@ -253,26 +253,26 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <span class="page-code">RUST / TYPESCRIPT / TESTS</span>
 </div>
-<p>Inspect the legacy Guard currently used by h/monhook, its browser clients and the product-scope document that separates implemented trade protection from proposed issuer options and privacy integration.</p>
+<p>Inspect the new h/monhook Guard and option program source alongside the deployed legacy Guard. Both new programs remain development artifacts; the browser clients and release notes distinguish working code from live features.</p>
 <p><strong>Code lineage and deployment:</strong> h/monhook builds on the earlier Joltwork Guard implementation. The mainnet and devnet program IDs shown below are deployments of that earlier Jolt Guard binary, built from source commit <code>d1f21ed</code>; the deployment manifests record their IDs and binary digest. The <code>programs/jolt-guard</code> path, <code>sdk</code> package and <code>JOLT</code> wire marker are compatibility identifiers in that deployed protocol. The website's h/monhook name does not rename or replace those on-chain programs. A separately named h/monhook Guard is in development and has not been deployed to mainnet.</p>
 </header>
 <section class="chapter">
 <div class="chapter-label">PUBLISHED SOURCE BROWSER</div>
 <h2>Read the complete files, not decorative excerpts.</h2>
-<p class="source-summary">This browser loads each complete published file from h/monhook’s own site. The Rust program parses the signed intent, validates accounts, invokes policy and route programs through CPI, reloads token balances, enforces postconditions and returns a settlement receipt. The SDK builds the matching instruction format; the tests exercise its codec.</p>
-<div class="prose-block"><p>You do not need to read Rust to understand what is being proven. Start with <code>JOLT_GUARD.md</code> for the execution contract, then open <code>sdk/src/index.ts</code> to see how an application builds the instruction. The Rust file is the final authority: it shows which accounts are trusted, which values are checked and which errors stop settlement.</p><p>The browser displays the same source snapshot published with this site rather than decorative snippets maintained separately for marketing. Readers can inspect complete files without being redirected to a third-party code host. Tests demonstrate deterministic encoding and account assembly, but they are not a substitute for an independent security review.</p></div>
+<p class="source-summary">This browser loads complete published files from h/monhook’s own site. The new Guard checks signed intents and settlement conditions; the separate option program holds issuer collateral and tracks option positions. Both require more work and review before mainnet use. The legacy Guard remains available for comparison with the currently deployed binary.</p>
+<div class="prose-block"><p>Start with <code>docs/PRODUCT_SCOPE.md</code> for the deployment boundary, then inspect <code>programs/hmonhook-guard/src/lib.rs</code> and <code>programs/hmonhook-options/src/lib.rs</code>. The new SDK shows how applications build Guard instructions. The legacy Guard and SDK are listed separately because their mainnet identity and wire format have not changed.</p><p>The browser displays the published source files rather than marketing snippets. Local tests demonstrate parts of the behavior, but the new programs have not passed a funded devnet deployment or independent security review.</p></div>
 <div class="build-strip">
-<span>RUST PROGRAM<b>IMPLEMENTED</b>
+<span>NEW GUARD<b>DEVELOPMENT BUILD</b>
 </span>
-<span>TYPESCRIPT SDK<b>IMPLEMENTED</b>
+<span>NEW SDK<b>DEVELOPMENT BUILD</b>
 </span>
 <span>LEGACY SDK TESTS<b>11 PASSING</b>
 </span>
-<span>MAINNET PROGRAM<b>6HfEuWvE…S3ENTY</b>
+<span>LEGACY GUARD / MAINNET<b>6HfEuWvE…S3ENTY</b>
 </span>
 </div>
 <div class="repo-health" aria-label="Repository summary">
-<span><b>01</b>ON-CHAIN PROGRAM</span>
+<span><b>03</b>ON-CHAIN PROGRAMS</span>
 <span><b>06</b>SDK MODULES</span>
 <span><b>04</b>TEST SUITES</span>
 <span><b>05</b>ENGINEERING DOCS</span>
@@ -282,9 +282,16 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <aside class="code-sidebar">
 <label class="code-search"><span>FILTER FILES</span><input id="code-filter" type="search" placeholder="type a path…" autocomplete="off"></label>
 <div id="code-tree" class="code-tree">
-<div class="code-group"><b>ON-CHAIN</b>
-<button class="active" data-code="program">programs/jolt-guard/src/lib.rs</button>
-<button data-code="cargo">programs/jolt-guard/Cargo.toml</button></div>
+<div class="code-group"><b>H/MONHOOK / DEVELOPMENT</b>
+<button class="active" data-code="program">programs/hmonhook-guard/src/lib.rs</button>
+<button data-code="cargo">programs/hmonhook-guard/Cargo.toml</button>
+<button data-code="optionsProgram">programs/hmonhook-options/src/lib.rs</button>
+<button data-code="optionsCargo">programs/hmonhook-options/Cargo.toml</button>
+<button data-code="hmonhookSdk">hmonhook-sdk/src/index.ts</button>
+<button data-code="hmonhookSdkInstruction">hmonhook-sdk/src/instruction.ts</button></div>
+<div class="code-group"><b>LEGACY / DEPLOYED GUARD</b>
+<button data-code="legacyProgram">programs/jolt-guard/src/lib.rs</button>
+<button data-code="legacyCargo">programs/jolt-guard/Cargo.toml</button></div>
 <div class="code-group"><b>SDK / CORE</b>
 <button data-code="sdkIndex">sdk/src/index.ts</button>
 <button data-code="sdkConstants">sdk/src/constants.ts</button>
@@ -323,11 +330,11 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <button data-code="spec">JOLT_GUARD.md</button>
 <button data-code="contributing">CONTRIBUTING.md</button></div>
 </div>
-<div class="code-tree-foot"><span id="code-file-count">33 FILES</span><span>PUBLISHED SOURCE</span></div>
+<div class="code-tree-foot"><span id="code-file-count">39 FILES</span><span>PUBLISHED SOURCE</span></div>
 </aside>
 <div class="code-panel">
 <div class="code-toolbar">
-<div><span id="code-path" class="code-path">programs/jolt-guard/src/lib.rs</span><small id="code-meta">loading source…</small></div>
+<div><span id="code-path" class="code-path">programs/hmonhook-guard/src/lib.rs</span><small id="code-meta">loading source…</small></div>
 <div class="code-tools"><button id="code-copy" type="button">COPY</button><button id="code-download" type="button">DOWNLOAD</button></div>
 </div>
 <div id="code-view" class="code-view" aria-live="polite"><div class="code-loading">loading complete source…</div></div>
@@ -1163,8 +1170,14 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   var sourceBase = new URL("./", document.baseURI);
   var codeFiles = {};
   var codePaths = {
-    program: "programs/jolt-guard/src/lib.rs",
-    cargo: "programs/jolt-guard/Cargo.toml",
+    program: "programs/hmonhook-guard/src/lib.rs",
+    cargo: "programs/hmonhook-guard/Cargo.toml",
+    optionsProgram: "programs/hmonhook-options/src/lib.rs",
+    optionsCargo: "programs/hmonhook-options/Cargo.toml",
+    hmonhookSdk: "hmonhook-sdk/src/index.ts",
+    hmonhookSdkInstruction: "hmonhook-sdk/src/instruction.ts",
+    legacyProgram: "programs/jolt-guard/src/lib.rs",
+    legacyCargo: "programs/jolt-guard/Cargo.toml",
     sdkIndex: "sdk/src/index.ts",
     sdkConstants: "sdk/src/constants.ts",
     sdkTypes: "sdk/src/types.ts",

@@ -44,6 +44,12 @@ for (const id of ["code-view", "code-filter", "code-copy", "code-download"]) {
   assert.match(code, new RegExp(`id=["']${id}["']`), `code browser missing ${id}`);
 }
 const app = readFileSync(resolve(root, "app.js"), "utf8");
+const codeMap = app.split("var codePaths = {", 2)[1]?.split("};", 1)[0];
+assert.ok(codeMap, "published source map missing");
+for (const [, key, path] of codeMap.matchAll(/^\s+(\w+): "([^"]+)"/gm)) {
+  assert.ok(code.includes(`data-code="${key}"`), `source browser missing ${key}`);
+  assert.ok(existsSync(resolve(root, "dist", path)), `packaged source missing: ${path}`);
+}
 const marketsClient = readFileSync(resolve(root, "markets.js"), "utf8");
 assert.ok(existsSync(resolve(root, "docs/PRODUCT_SCOPE.md")), "product scope document missing");
 assert.match(app, /productScope: "docs\/PRODUCT_SCOPE\.md"/, "source browser cannot open product scope");

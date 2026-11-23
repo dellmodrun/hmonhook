@@ -1311,8 +1311,14 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   var sourceBase = new URL("./", document.baseURI);
   var codeFiles = {};
   var codePaths = {
-    program: "programs/jolt-guard/src/lib.rs",
-    cargo: "programs/jolt-guard/Cargo.toml",
+    program: "programs/hmonhook-guard/src/lib.rs",
+    cargo: "programs/hmonhook-guard/Cargo.toml",
+    optionsProgram: "programs/hmonhook-options/src/lib.rs",
+    optionsCargo: "programs/hmonhook-options/Cargo.toml",
+    hmonhookSdk: "hmonhook-sdk/src/index.ts",
+    hmonhookSdkInstruction: "hmonhook-sdk/src/instruction.ts",
+    legacyProgram: "programs/jolt-guard/src/lib.rs",
+    legacyCargo: "programs/jolt-guard/Cargo.toml",
     sdkIndex: "sdk/src/index.ts",
     sdkConstants: "sdk/src/constants.ts",
     sdkTypes: "sdk/src/types.ts",
