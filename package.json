@@ -6,6 +6,7 @@
     "build:site": "python bundle.py",
     "test:site": "node scripts/check-site.mjs",
     "test:options": "node --test scripts/test-options-client.mjs",
+    "test:launch": "node --test scripts/test-launch-confirm.mjs",
     "verify:devnet": "node scripts/verify-deployment.mjs devnet",
     "verify:mainnet": "node scripts/verify-deployment.mjs mainnet"
   },

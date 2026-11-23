@@ -19,4 +19,11 @@ The public GitHub Pages site is still using the existing deployed Guard program.
 6. Helius Privacy Rings integration requires a project Helius account, API access and production configuration. No privacy claim should be shown as live until a real transaction is verified.
 7. Wallet launch and Jupiter paths need end-to-end signed tests with the eventual project-owned Guard program and production RPC.
 
+## Launch front-end state
+
+- The website's coin creation action builds Pump `create_v2` for Solana mainnet and requires a wallet signature. It does **not** call the new Guard or create an issuer option position. Its public metadata URI must already exist; the website currently has no image/JSON hosting backend.
+- The launch client now checks that the connected wallet matches the payer and rechecks the transaction signature after an RPC confirmation timeout. Unit tests cover confirmed, failed and unresolved signatures. This is not a funded mainnet launch test.
+- After a confirmed launch, the website generates a shareable `markets/?mint=<address>` link. A viewer on another device can inspect that Mint through the market-data provider, but this does not publish the coin into a network-wide h/monhook directory. The only automatic launch receipt is still stored in the creator's browser.
+- A writable index and secure metadata storage remain needed for built-in uploads and automatic cross-device market listing. The project's static GitHub Pages site cannot supply those by itself.
+
 The current website must keep unsupported actions clearly labeled until these gates are met. Do not point it to the disposable local program IDs in this branch.

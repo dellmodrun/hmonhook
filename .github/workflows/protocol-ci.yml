@@ -7,6 +7,9 @@ on:
       - "sdk/**"
       - "hmonhook-sdk/**"
       - "options-client.mjs"
+      - "launch-client.ts"
+      - "launch-confirm.mjs"
+      - "scripts/test-launch-confirm.mjs"
       - "scripts/test-options-client.mjs"
       - "scripts/test-options-local.mjs"
       - "scripts/test-guard-local.mjs"
@@ -17,6 +20,9 @@ on:
       - "sdk/**"
       - "hmonhook-sdk/**"
       - "options-client.mjs"
+      - "launch-client.ts"
+      - "launch-confirm.mjs"
+      - "scripts/test-launch-confirm.mjs"
       - "scripts/test-options-client.mjs"
       - "scripts/test-options-local.mjs"
       - "scripts/test-guard-local.mjs"
@@ -73,6 +79,19 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run test:options
+
+  launch-confirm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run test:launch
+      - run: npm run build:client
 
   sdk:
     runs-on: ubuntu-latest

@@ -1,5 +1,6 @@
 import { PUMP_PROGRAM_ID, PUMP_SDK } from '@pump-fun/pump-sdk';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
+import { confirmPumpLaunch } from './launch-confirm.mjs';
 
 export type PumpLaunchRequest = {
   provider: {
@@ -41,6 +42,9 @@ export async function createPumpCoin(request: PumpLaunchRequest) {
   const rpcUrl = new URL(request.rpcEndpoint);
   if (rpcUrl.protocol !== 'https:') throw new Error('The RPC endpoint must use HTTPS.');
   const connection = new Connection(rpcUrl.href, 'confirmed');
+  if (request.provider.publicKey && request.provider.publicKey.toString() !== user.toBase58()) {
+    throw new Error('Connected wallet changed. Reconnect and review the launch again.');
+  }
   const latest = await connection.getLatestBlockhash('confirmed');
   const transaction = new Transaction({
     feePayer: user,
@@ -65,17 +69,17 @@ export async function createPumpCoin(request: PumpLaunchRequest) {
     throw new Error('This wallet does not expose a supported transaction signing method.');
   }
 
-  const confirmation = await connection.confirmTransaction({
-    signature,
-    blockhash: latest.blockhash,
-    lastValidBlockHeight: latest.lastValidBlockHeight,
-  }, 'confirmed');
-  if (confirmation.value.err) throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+  if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature || '')) {
+    throw new Error('Wallet did not return a valid transaction signature. Check the wallet before retrying.');
+  }
+
+  await confirmPumpLaunch(connection, signature, latest, mint.publicKey.toBase58());
 
   return {
     mint: mint.publicKey.toBase58(),
     signature,
     explorer: `https://solscan.io/tx/${signature}`,
     pump: `https://pump.fun/coin/${mint.publicKey.toBase58()}`,
+    market: `./markets/?mint=${mint.publicKey.toBase58()}`,
   };
 }

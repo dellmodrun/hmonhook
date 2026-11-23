@@ -3,6 +3,8 @@
 
   var STORAGE_KEY = "joltwork.launches.v1";
   var state = { launches: [], pairs: new Map(), filter: "all", sort: "newest", loading: false };
+  var sharedMint = new URLSearchParams(window.location.search).get("mint");
+  if (sharedMint && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedMint)) sharedMint = null;
   var byId = function (id) { return document.getElementById(id); };
   if (!byId("market-grid")) return;
 
@@ -165,6 +167,7 @@
     button.textContent = "REFRESHING…";
     var registry = await loadRegistry();
     var searched = state.launches.filter(function (item) { return item.source === "search"; });
+    if (sharedMint && !searched.some(function (item) { return item.mint === sharedMint; })) searched.push({ mint: sharedMint, source: "search" });
     state.launches = mergeLaunches(registry.concat(loadLocal(), searched));
     await fetchPairs(state.launches.map(function (item) { return item.mint; }));
     state.loading = false;
@@ -195,6 +198,10 @@
     document.querySelectorAll("[data-market-filter]").forEach(function (item) { item.classList.toggle("active", item.dataset.marketFilter === "all"); });
     render();
   });
+  if (sharedMint) {
+    byId("market-search").value = sharedMint;
+    byId("market-search-message").textContent = "Shared Mint loaded. Verify its address before trading.";
+  }
   document.addEventListener("click", async function (event) {
     var button = event.target.closest("[data-copy-mint]");
     if (!button) return;
