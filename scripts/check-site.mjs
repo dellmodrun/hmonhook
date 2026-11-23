@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const pages = ["index.html", "launch/index.html", "markets/index.html", "intent/index.html", "protocol/index.html", "code/index.html", "research/index.html"];
 for (const page of pages) assert.ok(existsSync(resolve(root, page)), `missing route: ${page}`);
-assert.equal(readFileSync(resolve(root, "CNAME"), "utf8").trim(), "joltwork.fun", "unexpected custom domain");
+assert.ok(!existsSync(resolve(root, "CNAME")), "copied site must not claim the original custom domain");
 
 for (const page of pages) {
   const html = readFileSync(resolve(root, page), "utf8");
@@ -59,4 +59,4 @@ for (const launch of marketRegistry.launches) {
 }
 assert.ok(!marketRegistry.launches.some((launch) => launch.official), "an official token remains in markets registry while CA is TBA");
 assert.ok(!marketRegistry.launches.some((launch) => launch.independent), "a removed independent launch remains in markets registry");
-console.log(`site contract: ${pages.length} routes, live markets, live quote controls, metadata gate, same-origin code browser, no GitHub links, custom domain joltwork.fun`);
+console.log(`site contract: ${pages.length} routes, live markets, live quote controls, metadata gate, same-origin code browser, no GitHub links, no custom domain`);
