@@ -892,27 +892,33 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     }
     var accepted = window.confirm("Create this coin on Solana mainnet through the official Pump program? Your wallet will show the transaction and network cost before signing.");
     if (!accepted) return;
+    var launchName = byId("coin-name").value.trim();
+    var launchSymbol = byId("coin-symbol").value.trim().toUpperCase();
+    var launchUri = verifiedMetadataUri;
+    var launchMetadata = verifiedMetadata;
+    var launchRpc = byId("coin-rpc").value.trim();
     launchSubmit.disabled = true;
     launchSubmit.textContent = "waiting for wallet…";
     try {
       var result = await window.JoltworkLaunch.createPumpCoin({
         provider: provider,
         authority: authority,
-        name: byId("coin-name").value.trim(),
-        symbol: byId("coin-symbol").value.trim().toUpperCase(),
-        uri: metadataUri(byId("coin-uri").value.trim()),
-        rpcEndpoint: metadataUri(byId("coin-rpc").value.trim())
+        name: launchName,
+        symbol: launchSymbol,
+        uri: launchUri,
+        rpcEndpoint: launchRpc
       });
+      launchManifestReady = false;
       var launchResult = {
-        status: "confirmed",
+        status: result.status,
         network: "solana-mainnet-beta",
         mint: result.mint,
         signature: result.signature,
         solscan: result.explorer,
         pump: result.pump,
         shareableMarket: new URL(result.market, document.baseURI).href,
-        directoryStatus: "not published",
-        note: "The Pump coin was created on mainnet. The local JLM1 policy plan was not published or enforced by this transaction."
+        directoryStatus: result.status === "pending" ? "awaiting on-chain confirmation" : "checking Pump creation in the directory",
+        note: result.status === "pending" ? "The transaction was submitted, but confirmation is unresolved. Do not create the coin again; check the signature and Mint first." : "The transaction was confirmed. h/monhook is verifying the Pump creation and Mint before listing it. The local JLM1 policy plan was not published or enforced."
       };
       output.textContent = JSON.stringify(launchResult, null, 2);
       var marketLink = byId("launch-market-link");
@@ -920,17 +926,18 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       try {
         var launchRecord = {
           format: "HMONHOOK_LAUNCH_RECEIPT_V1",
+          status: result.status,
           network: "solana-mainnet-beta",
           mint: result.mint,
           signature: result.signature,
           creator: authority,
-          name: byId("coin-name").value.trim(),
-          symbol: byId("coin-symbol").value.trim().toUpperCase(),
-          description: verifiedMetadata && verifiedMetadata.description || "",
-          image: verifiedMetadata && verifiedMetadata.image || "",
-          metadataUri: verifiedMetadataUri,
-          website: verifiedMetadata && verifiedMetadata.website || "",
-          twitter: verifiedMetadata && verifiedMetadata.twitter || "",
+          name: launchName,
+          symbol: launchSymbol,
+          description: launchMetadata && launchMetadata.description || "",
+          image: launchMetadata && launchMetadata.image || "",
+          metadataUri: launchUri,
+          website: launchMetadata && launchMetadata.website || "",
+          twitter: launchMetadata && launchMetadata.twitter || "",
           pump: result.pump,
           explorer: result.explorer,
           createdAt: Date.now()
@@ -955,27 +962,30 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
             if (publishResponse.ok || publishResponse.status !== 409) break;
           }
           if (!publishResponse.ok) throw new Error("Verified directory did not accept this launch yet");
+          launchResult.status = "confirmed";
           launchResult.directoryStatus = "published after on-chain verification";
+          launchResult.note = "Pump coin creation was verified on-chain. The local JLM1 policy plan was not published or enforced by this transaction.";
           output.textContent = JSON.stringify(launchResult, null, 2);
           try {
             var savedReceipts = JSON.parse(localStorage.getItem("joltwork.launches.v1") || "[]");
             if (Array.isArray(savedReceipts)) {
-              savedReceipts.forEach(function (item) { if (item && item.mint === result.mint) item.directoryPublished = true; });
+              savedReceipts.forEach(function (item) { if (item && item.mint === result.mint) { item.directoryPublished = true; item.status = "confirmed"; } });
               localStorage.setItem("joltwork.launches.v1", JSON.stringify(savedReceipts));
             }
           } catch (_) { /* Directory publication succeeded even if local storage is unavailable. */ }
         }
       } catch (_) {
-        launchResult.directoryStatus = "not published; use the shareable Mint link";
+        launchResult.directoryStatus = result.status === "pending" ? "awaiting verification; do not resubmit" : "not published; use the shareable Mint link";
+        if (result.status === "confirmed") launchResult.note = "The transaction was confirmed, but h/monhook has not verified the Pump creation and Mint. Check the signature before relying on this listing.";
         output.textContent = JSON.stringify(launchResult, null, 2);
       }
-      showToast("Coin creation confirmed on Solana", "success");
+      showToast(launchResult.directoryStatus === "published after on-chain verification" ? "Coin creation verified on Solana" : launchResult.status === "confirmed" ? "Transaction confirmed; market verification is pending." : "Transaction submitted; confirmation is pending. Do not resubmit.", launchResult.directoryStatus === "published after on-chain verification" ? "success" : "");
     } catch (error) {
       output.textContent = "creation error · " + (error && error.message ? error.message : String(error));
       showToast(error && error.message ? error.message : "Coin creation failed", "error");
     } finally {
-      launchSubmit.disabled = false;
       launchSubmit.textContent = "create coin on mainnet";
+      setWalletAddress(walletAddress, activeProvider);
     }
   });
 

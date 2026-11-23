@@ -12,7 +12,7 @@ test('market page retries a confirmed local receipt and then reads the shared di
   const signature = bs58.encode(Keypair.generate().secretKey);
   const storageKey = 'joltwork.launches.v1';
   const storage = new Map([[storageKey, JSON.stringify([{
-    mint, creator, signature, network: 'solana-mainnet-beta', name: 'Recovered coin',
+    mint, creator, signature, network: 'solana-mainnet-beta', name: 'Recovered coin', status: 'pending',
   }])]]);
   const elements = new Map();
   const element = (id) => {
@@ -40,6 +40,7 @@ test('market page retries a confirmed local receipt and then reads the shared di
       if (options.method === 'POST') {
         posts += 1;
         assert.deepEqual(JSON.parse(options.body), { mint, creator, signature });
+        await new Promise((resolve) => setTimeout(resolve, 40));
         published = true;
         return response({ launch: { mint } });
       }
@@ -56,12 +57,16 @@ test('market page retries a confirmed local receipt and then reads the shared di
     localStorage: { getItem: (key) => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
     fetch, URL, URLSearchParams, Map, Set, Intl, Date, Number, String,
   });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.match(element('market-grid').innerHTML, /CONFIRMATION PENDING/);
+  assert.equal(element('market-total').textContent, '0');
   for (let attempt = 0; attempt < 50 && (!published || directoryReads < 2); attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
   assert.equal(posts, 1);
   assert.ok(directoryReads >= 2, 'the market should reload after publication');
   assert.equal(JSON.parse(storage.get(storageKey))[0].directoryPublished, true);
+  assert.equal(JSON.parse(storage.get(storageKey))[0].status, 'confirmed');
   assert.match(element('market-grid').innerHTML, /PUMP LAUNCH VERIFIED/);
   element('market-search').value = 'Recovered coin';
   await element('market-search-form').listeners.submit({ preventDefault() {} });

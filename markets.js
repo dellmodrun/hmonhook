@@ -48,7 +48,7 @@
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       return Array.isArray(parsed) ? parsed.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
-        return Object.assign({}, item, { source: "device", verified: true });
+        return Object.assign({}, item, { source: item.status === "pending" && !item.directoryPublished ? "pending" : "device", verified: item.status !== "pending" || !!item.directoryPublished });
       }) : [];
     } catch (_) { return []; }
   }
@@ -138,7 +138,7 @@
     });
     sortLaunches(launches);
 
-    var verifiedLaunches = state.launches.filter(function (item) { return item.source !== "search"; });
+    var verifiedLaunches = state.launches.filter(function (item) { return item.source !== "search" && item.source !== "pending"; });
     var liveCount = verifiedLaunches.filter(function (item) { return state.pairs.has(item.mint); }).length;
     var volume = verifiedLaunches.reduce(function (sum, item) { var pair = state.pairs.get(item.mint); return sum + number(pair && pair.volume && pair.volume.h24); }, 0);
     var liquidity = verifiedLaunches.reduce(function (sum, item) { var pair = state.pairs.get(item.mint); return sum + number(pair && pair.liquidity && pair.liquidity.usd); }, 0);
@@ -166,12 +166,12 @@
       var marketUrl = pair ? safeUrl(pair.url) : "";
       return '<article class="market-card">' +
         '<div class="market-card-head"><div class="market-token-image">' + (image ? '<img src="' + escapeHtml(image) + '" alt="" loading="lazy">' : '<span>' + escapeHtml(symbol.slice(0, 2)) + '</span>') + '</div>' +
-        '<div><div class="market-badges"><b>' + (item.source === "search" ? 'MARKET DISCOVERY' : item.source === "verified-pump" ? 'PUMP LAUNCH VERIFIED' : item.official ? 'OFFICIAL TOKEN' : item.independent ? 'INDEPENDENT LAUNCH' : item.source === 'device' ? 'DEVICE RECEIPT' : 'REGISTRY ENTRY') + '</b><b class="' + (pair ? 'live' : 'pending') + '">' + (pair ? 'LIVE MARKET' : 'AWAITING INDEX') + '</b></div><h2>' + escapeHtml(name) + '</h2><p>$' + escapeHtml(symbol) + ' · ' + escapeHtml(short(item.mint)) + '</p></div></div>' +
+        '<div><div class="market-badges"><b>' + (item.source === "pending" ? 'CONFIRMATION PENDING' : item.source === "search" ? 'MARKET DISCOVERY' : item.source === "verified-pump" ? 'PUMP LAUNCH VERIFIED' : item.official ? 'OFFICIAL TOKEN' : item.independent ? 'INDEPENDENT LAUNCH' : item.source === 'device' ? 'DEVICE RECEIPT' : 'REGISTRY ENTRY') + '</b><b class="' + (pair ? 'live' : 'pending') + '">' + (pair ? 'LIVE MARKET' : 'AWAITING INDEX') + '</b></div><h2>' + escapeHtml(name) + '</h2><p>$' + escapeHtml(symbol) + ' · ' + escapeHtml(short(item.mint)) + '</p></div></div>' +
         '<div class="market-price"><span>PRICE USD</span><strong>' + money(pair && pair.priceUsd, false) + '</strong><em class="' + (change != null && change < 0 ? 'negative' : '') + '">' + (change == null ? 'not indexed' : signed(change) + ' / 24H') + '</em></div>' +
         '<div class="market-metrics"><div><span>MARKET CAP</span><b>' + money(pair && (pair.marketCap || pair.fdv), true) + '</b></div><div><span>LIQUIDITY</span><b>' + money(pair && pair.liquidity && pair.liquidity.usd, true) + '</b></div><div><span>VOLUME 24H</span><b>' + money(pair && pair.volume && pair.volume.h24, true) + '</b></div><div><span>' + (item.createdAt ? 'LAUNCH DATE' : 'PAIR DATE') + '</span><b>' + escapeHtml(time(item.createdAt || (pair && pair.pairCreatedAt))) + '</b></div></div>' +
         '<div class="market-ca"><span>MINT</span><code>' + escapeHtml(item.mint) + '</code><button type="button" data-copy-mint="' + escapeHtml(item.mint) + '">COPY</button></div>' +
         '<div class="market-actions"><a class="button button-solid" href="./intent/?outputMint=' + encodeURIComponent(item.mint) + '">trade with intent</a><a class="button" href="' + escapeHtml(pump) + '" target="_blank" rel="noreferrer">pump market ↗</a>' + (marketUrl ? '<a class="button" href="' + escapeHtml(marketUrl) + '" target="_blank" rel="noreferrer">live chart ↗</a>' : '') + '<a class="button" href="' + escapeHtml(explorer) + '" target="_blank" rel="noreferrer">explorer ↗</a></div>' +
-        '<p class="market-source">' + (item.official ? 'Verified official CA published by h/monhook.' : item.independent ? 'Independent mainnet launch with a finalized creation receipt; not the official h/monhook token.' : item.source === "verified-pump" ? 'Pump create_v2 transaction verified on-chain and submitted to the h/monhook directory; this does not certify issuer protection.' : item.source === "registry" ? 'Published h/monhook registry entry.' : item.source === "device" ? 'Launch receipt saved on this device after confirmation; verify its signature independently.' : 'Mint supplied for live market discovery.') + ' Market figures are third-party indexed on-chain observations and may be delayed.</p>' +
+        '<p class="market-source">' + (item.source === "pending" ? 'The launch transaction was submitted but has not been confirmed here. Do not repeat the launch. Check its signature before trusting this listing.' : item.official ? 'Verified official CA published by h/monhook.' : item.independent ? 'Independent mainnet launch with a finalized creation receipt; not the official h/monhook token.' : item.source === "verified-pump" ? 'Pump create_v2 transaction verified on-chain and submitted to the h/monhook directory; this does not certify issuer protection.' : item.source === "registry" ? 'Published h/monhook registry entry.' : item.source === "device" ? 'Launch receipt saved on this device after confirmation; verify its signature independently.' : 'Mint supplied for live market discovery.') + ' Market figures are third-party indexed on-chain observations and may be delayed.</p>' +
         '</article>';
     }).join("");
   }
@@ -199,6 +199,7 @@
           });
           if (!response.ok) continue;
           item.directoryPublished = true;
+          item.status = "confirmed";
           published = true;
         } catch (_) { /* The saved receipt remains pending for the next visit. */ }
       }
@@ -206,7 +207,7 @@
         var current = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
         if (Array.isArray(current)) {
           current.forEach(function (item) {
-            if (item && pending.some(function (receipt) { return receipt.directoryPublished && receipt.mint === item.mint; })) item.directoryPublished = true;
+            if (item && pending.some(function (receipt) { return receipt.directoryPublished && receipt.mint === item.mint; })) { item.directoryPublished = true; item.status = "confirmed"; }
           });
           localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
         }
