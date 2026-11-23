@@ -63,7 +63,10 @@ test('persistent upload and verified launch are visible across requests', async 
     }] },
   } };
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => Response.json({ result: transaction });
+  globalThis.fetch = async (_url, options) => {
+    assert.equal(JSON.parse(options.body).params[1].maxSupportedTransactionVersion, 1);
+    return Response.json({ result: transaction });
+  };
   try {
     const submitted = await api.fetch(request('/launch-registry', { method: 'POST', body: JSON.stringify({ signature,
       mint: mint.toBase58(), creator: creator.toBase58() }) }), env);
@@ -82,4 +85,24 @@ test('upload rejects other origins and does not touch storage', async () => {
     headers: { origin: 'https://other.example', 'cf-connecting-ip': '192.0.2.1' } }), env);
   assert.equal(result.status, 403);
   assert.equal(env.BUCKET.objects.size, 0);
+});
+
+test('registry tries the official RPC if the primary provider fails', async () => {
+  const env = { BUCKET: bucket() };
+  const endpoints = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    endpoints.push(url);
+    assert.equal(JSON.parse(options.body).params[1].maxSupportedTransactionVersion, 1);
+    if (endpoints.length === 1) throw new Error('Primary RPC unavailable');
+    return Response.json({ result: null });
+  };
+  try {
+    const result = await api.fetch(request('/launch-registry', { method: 'POST', body: JSON.stringify({
+      signature: bs58.encode(Keypair.generate().secretKey),
+      mint: Keypair.generate().publicKey.toBase58(), creator: Keypair.generate().publicKey.toBase58(),
+    }) }), env);
+    assert.equal(result.status, 409);
+    assert.deepEqual(endpoints, ['https://solana-rpc.publicnode.com', 'https://api.mainnet-beta.solana.com']);
+  } finally { globalThis.fetch = originalFetch; }
 });

@@ -7,6 +7,7 @@ const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const IMAGE_PATH = /^\/images\/([a-f0-9]{64})\.(png|jpg|webp)$/;
 const JSON_PATH = /^\/metadata\/([a-f0-9]{64})\.json$/;
 const RPC = 'https://solana-rpc.publicnode.com';
+const FALLBACK_RPC = 'https://api.mainnet-beta.solana.com';
 
 function response(body, status = 200, type = 'application/json; charset=utf-8', extra = {}) {
   return new Response(type.startsWith('application/json') ? JSON.stringify(body) : body, {
@@ -84,14 +85,23 @@ async function publicObject(path, env) {
 }
 
 async function rpcTransaction(env, signature) {
-  const endpoint = env.HMONHOOK_SOLANA_RPC_URL || RPC;
-  const result = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTransaction',
-      params: [signature, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 0 }] }) });
-  if (!result.ok) throw new Error('Solana RPC unavailable');
-  const payload = await result.json();
-  if (payload.error) throw new Error('Solana RPC rejected transaction lookup');
-  return payload.result;
+  const endpoints = [...new Set([env.HMONHOOK_SOLANA_RPC_URL || RPC, FALLBACK_RPC])];
+  let sawNull = false;
+  for (const endpoint of endpoints) {
+    try {
+      const result = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' },
+        signal: AbortSignal.timeout(8_000),
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTransaction',
+          params: [signature, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 1 }] }) });
+      if (!result.ok) continue;
+      const payload = await result.json();
+      if (payload.error) continue;
+      if (payload.result) return payload.result;
+      sawNull = true;
+    } catch { /* Try the next RPC. */ }
+  }
+  if (sawNull) return null;
+  throw new Error('Solana RPC unavailable');
 }
 
 async function listObjects(bucket, prefix, limit = 100) {

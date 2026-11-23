@@ -16,7 +16,7 @@ function json(value: unknown, status = 200, origin = ''): Response {
 async function rpcTransaction(rpc: string, signature: string) {
   const response = await fetch(rpc, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
     jsonrpc: '2.0', id: 1, method: 'getTransaction',
-    params: [signature, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 0 }],
+    params: [signature, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 1 }],
   }) });
   if (!response.ok) throw new Error('Solana RPC unavailable');
   const payload = await response.json();
