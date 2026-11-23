@@ -110,8 +110,13 @@
 </div>
 <span class="page-code">JLM1 / TOKEN-2022 / SOLANA</span>
 </div>
-<p>Define a Solana token launch, bind a default intent policy and export one reviewable plan before any wallet is asked to sign.</p>
+<p>Define a Solana token launch, bind a default intent policy and export one reviewable plan before any wallet is asked to sign. Issuer lock and option protection is a separate proposed layer, not part of this launch transaction.</p>
 </header>
+<section id="issuer-protection" class="section-block protection-story" aria-labelledby="issuer-protection-title">
+<div class="section-head"><div><div class="eyebrow">ISSUER ACCOUNTABILITY / DESIGN STAGE</div><h2 id="issuer-protection-title">Let buyers compare the promise before they trade.</h2></div></div>
+<div class="prose-block"><p>The proposed protection layer groups coins with the same name on one comparison page. Each listing would show its developer, verified Mint, locked share of supply, option terms and protection status. A coin without a verified lock would be marked “unlocked”, never hidden from the comparison.</p><p>Under the proposed option model, a developer could lock 2%–10% of supply and offer options with a published premium, strike and expiry. The terms would have to be visible before purchase. If a verified early sale violates the agreed commitment, an audited contract could forfeit the locked collateral to eligible option holders. If the strike is never reached, an option buyer can lose the premium. The design also proposes using option premiums for market buybacks once the locked allocation sells out; that requires a separate audited execution path. Neither a lock nor an option guarantees the token’s market value.</p></div>
+<div class="callout"><b>NOT AN ACTIVE LAUNCH FEATURE</b><p>This page currently creates a token and compiles a JLM1 intent-policy plan. It does not lock issuer supply, sell options, detect developer sales, issue forfeiture claims or route option premiums into buybacks. Those steps need a production contract, reliable violation evidence, an independently reviewed settlement path and dedicated interfaces.</p></div>
+</section>
 <section class="chapter">
 <div class="chapter-label">LAUNCH WORKBENCH</div>
 <h2>One focused path: asset, market, policy, review.</h2>
@@ -290,6 +295,10 @@
 <details>
 <summary>Who signs the launch transaction?</summary>
 <p>The connected creator wallet. h/monhook compiles the plan and exposes the exact output; it does not take custody of the creator’s signing authority.</p>
+</details>
+<details>
+<summary>Does launching here provide a developer lock or options?</summary>
+<p>No. The issuer protection model is a design proposal. The current launcher does not create a lock, option position or claim. Any future listing will show the verified contract and exact terms before a user can participate.</p>
 </details>
 </div>
 </section>

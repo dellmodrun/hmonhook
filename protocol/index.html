@@ -110,8 +110,13 @@
 </div>
 <span class="page-code">ATOMIC CPI WRAPPER / JRC1</span>
 </div>
-<p>h/monhook is an intent-bound settlement protocol for Solana. Jolt Guard is its on-chain enforcement program; JLM1, JOLT V1, JHK1 and JRC1 are the interfaces that connect issuers, wallets, routes, policies and receipts.</p>
+<p>h/monhook is an intent-bound settlement protocol for Solana. Jolt Guard is its on-chain enforcement program; JLM1, JOLT V1, JHK1 and JRC1 are the interfaces that connect issuers, wallets, routes, policies and receipts. Issuer options and optional confidential transfers are separate product directions, not features of the deployed Jolt Guard binary.</p>
 </header>
+<section id="privacy-boundary" class="section-block protection-story" aria-labelledby="privacy-title">
+<div class="section-head"><div><div class="eyebrow">OPTIONAL PRIVACY / INTEGRATION PLANNED</div><h2 id="privacy-title">Privacy belongs to the user, not to hidden issuer promises.</h2></div></div>
+<div class="prose-block"><p>Helius Privacy Rings provide a possible path for confidential transfers of eligible user assets. In the default Ring, asset and amount can be concealed while wallet addresses remain visible. h/monhook has not integrated Privacy Rings into its launcher, intent composer or Jolt Guard program.</p><p>Issuer locks, option collateral, strike and expiry terms must remain independently verifiable. A developer-sale violation cannot be treated as proven merely because a private transfer occurred, nor can a hidden flow be advertised as automatically monitored. Any future private payout or transfer path needs a design that preserves the evidence required for protection claims.</p></div>
+<div class="source-links"><a href="https://www.helius.dev/blog/solana-privacy-rings" target="_blank" rel="noreferrer"><span>EXTERNAL TECHNOLOGY / HELIUS</span><strong>Solana Privacy Rings</strong><code>Read Helius's current explanation</code></a><a href="./launch/#issuer-protection"><span>PROPOSED PRODUCT LAYER</span><strong>Issuer protection</strong><code>Lock, options and evidence requirements</code></a></div>
+</section>
 <section class="section-block">
 <div class="section-head">
 <div>

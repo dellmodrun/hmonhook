@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="h/monhook — transaction-bound intent hooks and atomic settlement for Solana.">
+<meta name="description" content="h/monhook protects Solana launches and trades: public commitments, transaction-bound settlement, and a roadmap for optional privacy.">
 <title>h/monhook — Intent Hooks for Solana</title>
 <link rel="icon" href="./hmonhook.png">
 <link rel="stylesheet" href="./styles.css">
@@ -106,6 +106,7 @@
 <div class="eyebrow">H/MONHOOK / INTENT HOOKS ON SOLANA</div>
 <h1 id="hero-title">A hook is not bound to one pool. It is bound to this transaction.</h1>
 <p>h/monhook attaches settlement rules to the user’s individual trade intent. The route can cross routers, pools and token programs; the signed conditions remain with the transaction from execution to final settlement.</p>
+<p class="hero-thesis">See the commitment. Set the terms. Control the outcome.</p>
 <div class="primary-actions">
 <a class="button button-solid" href="./launch/">launch a coin</a>
 <a class="button" href="https://x.com/Joltworkrunit" target="_blank" rel="noreferrer">follow on x</a>
@@ -121,6 +122,17 @@
 <strong id="official-ca">TBA</strong>
 </div>
 <p>The official h/monhook contract address has not been published. Do not trust unofficial addresses.</p>
+</section>
+
+    <section class="section-block protection-story" aria-labelledby="protection-title">
+<div class="section-head"><div><div class="eyebrow">ONE PROTECTION STORY / THREE MOMENTS</div><h2 id="protection-title">From a launch promise to the final result.</h2></div></div>
+<div class="prose-block compact"><p>h/monhook starts with a rule that already has an on-chain enforcement path: the trader defines an acceptable result, and Jolt Guard checks what actually settles. The next product layers extend that accountability to the issuer before a trade and give users an optional privacy path after one.</p></div>
+<div class="story-grid">
+<article><span>BEFORE A TRADE <em>DESIGN / NOT LIVE</em></span><h3>Compare the promise</h3><p>Group same-name launches so buyers can compare developers side by side. A proposed issuer protection module would show locked supply, option coverage, strike, premium, expiry and a clear “unlocked” label where no lock exists.</p><a href="./launch/#issuer-protection">Explore issuer protection</a></article>
+<article><span>DURING A TRADE <em>CORE / PROGRAM DEPLOYED</em></span><h3>Enforce the terms</h3><p>The user signs a maximum input, minimum output, route and expiry. Jolt Guard executes a supported route and rejects the entire transaction if the measured result breaks those terms. Browser and router adapters have their own release status.</p><a href="./intent/">Explore Jolt Guard</a></article>
+<article><span>AFTER A TRADE <em>INTEGRATION / PLANNED</em></span><h3>Choose privacy</h3><p>Explore optional confidential transfers for eligible user funds through Helius Privacy Rings. Public issuer commitments and any evidence used to judge a violation must stay verifiable.</p><a href="./protocol/#privacy-boundary">Read the privacy boundary</a></article>
+</div>
+<p class="story-note">These are separate release states. h/monhook does not currently offer issuer options, forfeiture claims or Privacy Rings transactions.</p>
 </section>
 
     <section class="dev-letter">
@@ -281,6 +293,8 @@
 <li>Production adapters for launchpads and routers.</li>
 <li>Independent security review and adversarial test coverage.</li>
 <li>On-chain policy registry and settlement explorer.</li>
+<li>Issuer lock and option protection, including independently reviewed violation evidence and forfeiture rules.</li>
+<li>Optional Privacy Rings integration for eligible user transfers, with public protection evidence intact.</li>
 </ul>
 </article>
 </div>
@@ -353,6 +367,10 @@
 <details>
 <summary>Where is the official token address published?</summary>
 <p>In the official contract-address box at the top of this page, in the Markets directory and through the linked h/monhook X account. Always verify the complete Mint before interacting.</p>
+</details>
+<details>
+<summary>Can buyers use issuer options or private transfers now?</summary>
+<p>No. Issuer locks, options, forfeiture claims and Helius Privacy Rings integration are proposed product layers. The verified mainnet deployment here is Jolt Guard; a deployed program alone does not mean every wallet or route is integrated.</p>
 </details>
 </div>
 </section>
