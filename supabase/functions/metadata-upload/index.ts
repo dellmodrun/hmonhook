@@ -15,9 +15,9 @@ function json(value: unknown, status: number, origin: string): Response {
 async function uploadObject(base: string, serviceKey: string, path: string, bytes: Uint8Array, mime: string) {
   const response = await fetch(`${base}/storage/v1/object/${BUCKET}/${path}`, {
     method: 'POST', headers: { apikey: serviceKey, authorization: `Bearer ${serviceKey}`,
-      'content-type': mime, 'cache-control': '31536000', 'x-upsert': 'false' }, body: bytes,
+      'content-type': mime, 'cache-control': '31536000', 'x-upsert': 'true' }, body: bytes,
   });
-  if (!response.ok && response.status !== 409) throw new Error('Metadata storage upload failed');
+  if (!response.ok) throw new Error('Metadata storage upload failed');
 }
 
 Deno.serve(async (request) => {
