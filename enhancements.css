@@ -65,10 +65,44 @@ h1,h2,h3,strong,.statement,.equation i{font-style:normal!important}
 @media(max-width:900px){.repo-health{grid-template-columns:repeat(3,1fr)}.repo-health span:nth-child(3){border-right:0}}
 @media(max-width:680px){.repo-health{grid-template-columns:1fr 1fr}.repo-health span{border-bottom:1px solid var(--line)}.repo-health span:nth-child(2n){border-right:0}.code-browser{grid-template-columns:1fr;height:auto}.code-browser>aside.code-sidebar{height:360px;border-right:0;border-bottom:1px solid var(--line)}.code-panel{height:540px}.code-toolbar{align-items:flex-start}.code-tools{gap:4px}.code-tools button,.code-tools a{padding:6px}.code-lines{padding-left:48px}}
 
-/* h/monhook: black surfaces with restrained orange accents. Button geometry stays original. */
-:root{--bg:#000;--panel:#0b0b0b;--panel-2:#070707;--line:#3d2919;--line-soft:#24180f;--good:#ff8a1c}
+/* h/monhook brand palette: pure black canvas, orange controls, warm neutral copy. */
+:root{--bg:#000;--panel:#0d0d0d;--panel-2:#080808;--text:#f0e9e0;--muted:#a9a198;--line:#49301f;--line-soft:#2c1d13;--good:#ff8a1c;--brand:#ff7900;--brand-hover:#ffa13b}
 body{background:#000;background-image:none}
-.site-rail{background:#000}
-.rail-nav a:hover,.rail-nav a.active{background:#111;color:#ff9b38}
-.eyebrow,.chapter-label{color:#e78329}
-.route-card small,.status-band .ready{color:#ff8a1c}
+.site-rail{background:#050505}
+.rail-nav a:hover,.rail-nav a.active,.rail-action:hover{background:#1c1109;color:#ff9c42}
+.rail-nav a.active{box-shadow:inset 2px 0 var(--brand)}
+.rail-action.primary,.button-solid{background:var(--brand);border-color:var(--brand);color:#100a05}
+.rail-action.primary:hover,.button-solid:hover{background:var(--brand-hover);border-color:var(--brand-hover);color:#100a05}
+.button:not(.button-solid){border-color:#765032;color:#f0e9e0}
+.button:not(.button-solid):hover{background:#25150a;border-color:var(--brand);color:#ffad58}
+.hero-banner{background:#050505}
+.ca-box,.dev-letter,.home-panel,.chapter,.route-card,.market-card,.market-command,.market-discovery,.research,.paper-origin{background:#0d0d0d}
+.route-card:hover,.market-card:hover{border-color:#b55b1a;background:#15100d}
+.eyebrow,.chapter-label,.route-card small,.status-band .ready,.market-price em,.market-ca button{color:#ff932d}
+.ca-box strong,.status-line b,.market-badges b.live{color:#ff9d38}
+.statement,.paper-origin{border-left-color:var(--brand)}
+.form-sheet input:focus,.form-sheet select:focus,.form-sheet textarea:focus,.market-search-form input:focus,.code-search input:focus{border-color:var(--brand);outline:1px solid #ff790066}
+.market-filters button:hover,.market-filters button.active,.code-browser .code-group button.active,.code-tools button:hover,.code-tools a:hover{background:#24150a;border-color:var(--brand);color:#ffac56}
+.market-badges b.live,.site-toast.success{border-color:#b85d19;color:#ff9d38}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #ff9d38;outline-offset:2px}
+
+/* Keep navigation fully visible; use a compact top grid on narrow screens. */
+:root{--rail:240px;--rail-open:240px}
+.site-rail,.site-rail:hover{width:240px;box-shadow:none}
+.menu-toggle{display:none}
+@media(max-width:900px){
+  .site-rail,.site-rail:hover,.menu-open .site-rail{position:relative;inset:auto;width:100%;height:auto;overflow:visible;transform:none;border-right:0;border-bottom:1px solid var(--line);box-shadow:none}
+  .rail-inner{width:100%;height:auto}
+  .rail-brand{height:68px;padding-left:8px}
+  .rail-brand img{width:42px;height:42px}
+  .rail-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rail-nav a{height:48px;min-width:0}
+  .rail-icon{width:38px;min-width:38px}
+  .rail-label{min-width:0;padding-left:2px;overflow:hidden;text-overflow:ellipsis;font-size:8px}
+  .rail-bottom{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:0}
+  .rail-action{width:100%;height:50px;min-width:0}
+  .rail-action .rail-icon{width:30px;min-width:30px}
+  .rail-action .rail-label{font-size:7px}
+  .menu-open:after{display:none}
+  .app-page{width:min(100% - 24px,1232px);margin:0 auto;padding-top:22px}
+}
