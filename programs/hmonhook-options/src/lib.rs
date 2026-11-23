@@ -75,6 +75,15 @@ fn token_data(account: &AccountInfo, mint: &Pubkey, authority: &Pubkey) -> Resul
     u64_at(&data, 64)
 }
 
+fn treasury_breached(account: &AccountInfo, series: &Series) -> bool {
+    // An emptied and closed registered treasury is also a breach. Requiring
+    // a valid token account here would let the issuer evade the rule by closing it.
+    match token_data(account, &series.mint, &series.issuer) {
+        Ok(amount) => amount < series.treasury_floor,
+        Err(_) => true,
+    }
+}
+
 fn mint_data(mint: &AccountInfo) -> Result<(u64, u8), ProgramError> {
     if mint.owner != &token_2022::id() { return Err(bad_account()); }
     let data = mint.try_borrow_data()?;
@@ -115,14 +124,14 @@ fn transfer_tokens<'a>(source: &AccountInfo<'a>, destination: &AccountInfo<'a>, 
 }
 
 fn create_pda<'a>(payer: &AccountInfo<'a>, target: &AccountInfo<'a>, system: &AccountInfo<'a>, program_id: &Pubkey, space: usize, seeds: &[&[u8]]) -> ProgramResult {
-    if system.key != &solana_program::system_program::id() || !payer.is_signer || !target.is_writable { return Err(bad_account()); }
+    if system.key != &solana_system_interface::program::id() || !payer.is_signer || !target.is_writable { return Err(bad_account()); }
     let lamports = Rent::get()?.minimum_balance(space);
     let ix = system_instruction::create_account(payer.key, target.key, lamports, space as u64, program_id);
     invoke_signed(&ix, &[payer.clone(), target.clone(), system.clone()], &[seeds])
 }
 
 fn transfer_sol<'a>(payer: &AccountInfo<'a>, recipient: &AccountInfo<'a>, system: &AccountInfo<'a>, amount: u64) -> ProgramResult {
-    if system.key != &solana_program::system_program::id() || !payer.is_signer { return Err(bad_account()); }
+    if system.key != &solana_system_interface::program::id() || !payer.is_signer { return Err(bad_account()); }
     let ix = system_instruction::transfer(payer.key, recipient.key, amount);
     invoke(&ix, &[payer.clone(), recipient.clone(), system.clone()])
 }
@@ -264,7 +273,7 @@ fn trigger_default(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
     if !state.is_writable { return Err(bad_account()); }
     let mut series = load_series(program_id, state)?;
     if series.status != STATUS_ACTIVE || Clock::get()?.slot > series.expiry_slot || *treasury.key != series.treasury { return Err(invalid()); }
-    if token_data(treasury, &series.mint, &series.issuer)? >= series.treasury_floor { return Err(invalid()); }
+    if !treasury_breached(treasury, &series) { return Err(invalid()); }
     series.status = STATUS_DEFAULT;
     save(state, &series)
 }
