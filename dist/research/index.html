@@ -662,6 +662,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     verifiedMetadataUri = null;
     verifiedMetadata = null;
     launchManifestReady = false;
+    if (byId("launch-market-link")) byId("launch-market-link").hidden = true;
     clearMetadataPreview();
     if (byId("metadata-state")) { byId("metadata-state").textContent = "METADATA NOT VERIFIED"; byId("metadata-state").classList.remove("ready"); }
     setWalletAddress(walletAddress, activeProvider);
@@ -672,10 +673,12 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   if (byId("coin-policy")) byId("coin-policy").addEventListener("change", function () {
     launchManifestReady = false;
     if (byId("launch-submit")) byId("launch-submit").disabled = true;
+    if (byId("launch-market-link")) byId("launch-market-link").hidden = true;
     if (byId("launch-output")) byId("launch-output").textContent = "The local policy plan changed. Compile it again before creating the coin.";
   });
   if (launchForm) launchForm.addEventListener("submit", async function (event) {
     event.preventDefault();
+    if (byId("launch-market-link")) byId("launch-market-link").hidden = true;
     var output = byId("launch-output");
     var name = byId("coin-name").value.trim();
     var symbol = byId("coin-symbol").value.trim().toUpperCase();
@@ -779,8 +782,11 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         signature: result.signature,
         solscan: result.explorer,
         pump: result.pump,
+        shareableMarket: new URL(result.market, document.baseURI).href,
         note: "The Pump coin was created on mainnet. The local JLM1 policy plan was not published or enforced by this transaction."
       }, null, 2);
+      var marketLink = byId("launch-market-link");
+      if (marketLink) { marketLink.href = result.market; marketLink.hidden = false; }
       try {
         var launchRecord = {
           format: "HMONHOOK_LAUNCH_RECEIPT_V1",
