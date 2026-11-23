@@ -347,4 +347,36 @@ mod tests {
         let invalid = Position { default_claimed_lots: 4, ..position };
         assert!(position_remaining(&invalid).is_err());
     }
+
+    #[test]
+    fn closed_registered_treasury_counts_as_an_outflow() {
+        let issuer = Pubkey::new_unique();
+        let mint = Pubkey::new_unique();
+        let treasury = Pubkey::new_unique();
+        let series = Series {
+            tag: SERIES_TAG, status: STATUS_ACTIVE, bump: 0, nonce: 0,
+            issuer, mint, vault: Pubkey::new_unique(), treasury,
+            treasury_floor: 50, supply_snapshot: 1_000, lot_size: 1,
+            total_lots: 20, sold_lots: 0, exercised_lots: 0,
+            default_claimed_lots: 0, reclaimed_lots: 0,
+            sale_deadline_slot: 10, expiry_slot: 20,
+            strike_lamports: 100, premium_lamports: 10,
+        };
+        let mut lamports = 1;
+        let mut data = [0u8; 165];
+        data[..32].copy_from_slice(mint.as_ref());
+        data[32..64].copy_from_slice(issuer.as_ref());
+        data[64..72].copy_from_slice(&50_u64.to_le_bytes());
+        data[108] = 1;
+        let token_id = token_2022::id();
+        let account = AccountInfo::new(&treasury, false, false, &mut lamports, &mut data, &token_id, false);
+        assert!(!treasury_breached(&account, &series));
+        account.try_borrow_mut_data().unwrap()[64..72].copy_from_slice(&49_u64.to_le_bytes());
+        assert!(treasury_breached(&account, &series));
+        drop(account);
+        let mut closed_data = [];
+        let system_id = solana_system_interface::program::id();
+        let closed = AccountInfo::new(&treasury, false, false, &mut lamports, &mut closed_data, &system_id, false);
+        assert!(treasury_breached(&closed, &series));
+    }
 }
