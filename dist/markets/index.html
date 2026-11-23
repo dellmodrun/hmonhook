@@ -238,7 +238,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   function metadataUri(value) {
     var parsed;
     try { parsed = new URL(value); } catch (error) { throw new Error("metadata uri must be a valid URL"); }
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("metadata uri must use http or https");
+    if (parsed.protocol !== "https:") throw new Error("metadata uri must use https");
     return parsed.href;
   }
 
@@ -504,6 +504,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     verifiedMetadataUri = null;
     verifiedMetadata = null;
     launchManifestReady = false;
+    if (byId("launch-market-link")) byId("launch-market-link").hidden = true;
     clearMetadataPreview();
     if (byId("metadata-state")) { byId("metadata-state").textContent = "METADATA NOT VERIFIED"; byId("metadata-state").classList.remove("ready"); }
     setWalletAddress(walletAddress, activeProvider);
@@ -514,10 +515,12 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   if (byId("coin-policy")) byId("coin-policy").addEventListener("change", function () {
     launchManifestReady = false;
     if (byId("launch-submit")) byId("launch-submit").disabled = true;
+    if (byId("launch-market-link")) byId("launch-market-link").hidden = true;
     if (byId("launch-output")) byId("launch-output").textContent = "The local policy plan changed. Compile it again before creating the coin.";
   });
   if (launchForm) launchForm.addEventListener("submit", async function (event) {
     event.preventDefault();
+    if (byId("launch-market-link")) byId("launch-market-link").hidden = true;
     var output = byId("launch-output");
     var name = byId("coin-name").value.trim();
     var symbol = byId("coin-symbol").value.trim().toUpperCase();
@@ -614,15 +617,20 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         uri: metadataUri(byId("coin-uri").value.trim()),
         rpcEndpoint: metadataUri(byId("coin-rpc").value.trim())
       });
-      output.textContent = JSON.stringify({
+      var launchResult = {
         status: "confirmed",
         network: "solana-mainnet-beta",
         mint: result.mint,
         signature: result.signature,
         solscan: result.explorer,
         pump: result.pump,
+        shareableMarket: new URL(result.market, document.baseURI).href,
+        directoryStatus: "not published",
         note: "The Pump coin was created on mainnet. The local JLM1 policy plan was not published or enforced by this transaction."
-      }, null, 2);
+      };
+      output.textContent = JSON.stringify(launchResult, null, 2);
+      var marketLink = byId("launch-market-link");
+      if (marketLink) { marketLink.href = result.market; marketLink.hidden = false; }
       try {
         var launchRecord = {
           format: "HMONHOOK_LAUNCH_RECEIPT_V1",
@@ -647,6 +655,22 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         storedLaunches.unshift(launchRecord);
         localStorage.setItem("joltwork.launches.v1", JSON.stringify(storedLaunches.slice(0, 100)));
       } catch (_) { /* A confirmed launch remains valid if local storage is unavailable. */ }
+      try {
+        var serviceResponse = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+        var serviceConfig = serviceResponse.ok ? await serviceResponse.json() : {};
+        if (serviceConfig.endpoint && /^https:\/\//.test(serviceConfig.endpoint)) {
+          var publishResponse = await fetch(serviceConfig.endpoint, {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ signature: result.signature, mint: result.mint, creator: authority })
+          });
+          if (!publishResponse.ok) throw new Error("Verified directory did not accept this launch yet");
+          launchResult.directoryStatus = "published after on-chain verification";
+          output.textContent = JSON.stringify(launchResult, null, 2);
+        }
+      } catch (_) {
+        launchResult.directoryStatus = "not published; use the shareable Mint link";
+        output.textContent = JSON.stringify(launchResult, null, 2);
+      }
       showToast("Coin creation confirmed on Solana", "success");
     } catch (error) {
       output.textContent = "creation error · " + (error && error.message ? error.message : String(error));
@@ -983,6 +1007,8 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
 
   var STORAGE_KEY = "joltwork.launches.v1";
   var state = { launches: [], pairs: new Map(), filter: "all", sort: "newest", loading: false };
+  var sharedMint = new URLSearchParams(window.location.search).get("mint");
+  if (sharedMint && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedMint)) sharedMint = null;
   var byId = function (id) { return document.getElementById(id); };
   if (!byId("market-grid")) return;
 
@@ -1032,14 +1058,29 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   }
 
   async function loadRegistry() {
+    var entries = [];
     try {
       var response = await fetch(new URL("markets/registry.json", document.baseURI), { cache: "no-store" });
       if (!response.ok) throw new Error("registry unavailable");
       var data = await response.json();
-      return Array.isArray(data.launches) ? data.launches.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
+      entries = Array.isArray(data.launches) ? data.launches.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
         return Object.assign({}, item, { source: "registry", verified: true });
       }) : [];
-    } catch (_) { return []; }
+    } catch (_) { /* A published registry may still be available. */ }
+    try {
+      var configResponse = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+      var config = configResponse.ok ? await configResponse.json() : {};
+      if (config.endpoint && /^https:\/\//.test(config.endpoint)) {
+        var liveResponse = await fetch(config.endpoint, { cache: "no-store" });
+        if (!liveResponse.ok) throw new Error("verified directory unavailable");
+        var liveData = await liveResponse.json();
+        if (Array.isArray(liveData.launches)) entries = entries.concat(liveData.launches.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
+          return { mint: item.mint, signature: item.signature, creator: item.creator, name: item.name, symbol: item.symbol,
+            metadataUri: item.metadata_uri, createdAt: item.created_at, source: "verified-pump", verified: true };
+        }));
+      }
+    } catch (_) { /* Keep static and device entries visible. */ }
+    return entries;
   }
 
   function mergeLaunches(items) {
@@ -1127,12 +1168,12 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       var marketUrl = pair ? safeUrl(pair.url) : "";
       return '<article class="market-card">' +
         '<div class="market-card-head"><div class="market-token-image">' + (image ? '<img src="' + escapeHtml(image) + '" alt="" loading="lazy">' : '<span>' + escapeHtml(symbol.slice(0, 2)) + '</span>') + '</div>' +
-        '<div><div class="market-badges"><b>' + (item.source === "search" ? 'MARKET DISCOVERY' : item.official ? 'OFFICIAL TOKEN' : item.independent ? 'INDEPENDENT LAUNCH' : item.source === 'device' ? 'DEVICE RECEIPT' : 'REGISTRY ENTRY') + '</b><b class="' + (pair ? 'live' : 'pending') + '">' + (pair ? 'LIVE MARKET' : 'AWAITING INDEX') + '</b></div><h2>' + escapeHtml(name) + '</h2><p>$' + escapeHtml(symbol) + ' · ' + escapeHtml(short(item.mint)) + '</p></div></div>' +
+        '<div><div class="market-badges"><b>' + (item.source === "search" ? 'MARKET DISCOVERY' : item.source === "verified-pump" ? 'PUMP LAUNCH VERIFIED' : item.official ? 'OFFICIAL TOKEN' : item.independent ? 'INDEPENDENT LAUNCH' : item.source === 'device' ? 'DEVICE RECEIPT' : 'REGISTRY ENTRY') + '</b><b class="' + (pair ? 'live' : 'pending') + '">' + (pair ? 'LIVE MARKET' : 'AWAITING INDEX') + '</b></div><h2>' + escapeHtml(name) + '</h2><p>$' + escapeHtml(symbol) + ' · ' + escapeHtml(short(item.mint)) + '</p></div></div>' +
         '<div class="market-price"><span>PRICE USD</span><strong>' + money(pair && pair.priceUsd, false) + '</strong><em class="' + (change != null && change < 0 ? 'negative' : '') + '">' + (change == null ? 'not indexed' : signed(change) + ' / 24H') + '</em></div>' +
         '<div class="market-metrics"><div><span>MARKET CAP</span><b>' + money(pair && (pair.marketCap || pair.fdv), true) + '</b></div><div><span>LIQUIDITY</span><b>' + money(pair && pair.liquidity && pair.liquidity.usd, true) + '</b></div><div><span>VOLUME 24H</span><b>' + money(pair && pair.volume && pair.volume.h24, true) + '</b></div><div><span>' + (item.createdAt ? 'LAUNCH DATE' : 'PAIR DATE') + '</span><b>' + escapeHtml(time(item.createdAt || (pair && pair.pairCreatedAt))) + '</b></div></div>' +
         '<div class="market-ca"><span>MINT</span><code>' + escapeHtml(item.mint) + '</code><button type="button" data-copy-mint="' + escapeHtml(item.mint) + '">COPY</button></div>' +
         '<div class="market-actions"><a class="button button-solid" href="./intent/?outputMint=' + encodeURIComponent(item.mint) + '">trade with intent</a><a class="button" href="' + escapeHtml(pump) + '" target="_blank" rel="noreferrer">pump market ↗</a>' + (marketUrl ? '<a class="button" href="' + escapeHtml(marketUrl) + '" target="_blank" rel="noreferrer">live chart ↗</a>' : '') + '<a class="button" href="' + escapeHtml(explorer) + '" target="_blank" rel="noreferrer">explorer ↗</a></div>' +
-        '<p class="market-source">' + (item.official ? 'Verified official CA published by h/monhook.' : item.independent ? 'Independent mainnet launch with a finalized creation receipt; not the official h/monhook token.' : item.source === "registry" ? 'Published h/monhook registry entry.' : item.source === "device" ? 'Launch receipt saved on this device after confirmation; verify its signature independently.' : 'Mint supplied for live market discovery.') + ' Market figures are third-party indexed on-chain observations and may be delayed.</p>' +
+        '<p class="market-source">' + (item.official ? 'Verified official CA published by h/monhook.' : item.independent ? 'Independent mainnet launch with a finalized creation receipt; not the official h/monhook token.' : item.source === "verified-pump" ? 'Pump create_v2 transaction verified on-chain and submitted to the h/monhook directory; this does not certify issuer protection.' : item.source === "registry" ? 'Published h/monhook registry entry.' : item.source === "device" ? 'Launch receipt saved on this device after confirmation; verify its signature independently.' : 'Mint supplied for live market discovery.') + ' Market figures are third-party indexed on-chain observations and may be delayed.</p>' +
         '</article>';
     }).join("");
   }
@@ -1145,7 +1186,8 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     button.textContent = "REFRESHING…";
     var registry = await loadRegistry();
     var searched = state.launches.filter(function (item) { return item.source === "search"; });
-    state.launches = mergeLaunches(registry.concat(loadLocal(), searched));
+    if (sharedMint && !searched.some(function (item) { return item.mint === sharedMint; })) searched.push({ mint: sharedMint, source: "search" });
+    state.launches = mergeLaunches(searched.concat(loadLocal(), registry));
     await fetchPairs(state.launches.map(function (item) { return item.mint; }));
     state.loading = false;
     button.disabled = false;
@@ -1175,6 +1217,10 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     document.querySelectorAll("[data-market-filter]").forEach(function (item) { item.classList.toggle("active", item.dataset.marketFilter === "all"); });
     render();
   });
+  if (sharedMint) {
+    byId("market-search").value = sharedMint;
+    byId("market-search-message").textContent = "Shared Mint loaded. Verify its address before trading.";
+  }
   document.addEventListener("click", async function (event) {
     var button = event.target.closest("[data-copy-mint]");
     if (!button) return;
