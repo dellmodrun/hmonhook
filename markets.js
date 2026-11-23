@@ -2,7 +2,7 @@
   "use strict";
 
   var STORAGE_KEY = "joltwork.launches.v1";
-  var state = { launches: [], pairs: new Map(), filter: "all", sort: "newest", loading: false };
+  var state = { launches: [], pairs: new Map(), filter: "all", sort: "newest", loading: false, publishing: false };
   var sharedMint = new URLSearchParams(window.location.search).get("mint");
   if (sharedMint && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedMint)) sharedMint = null;
   var byId = function (id) { return document.getElementById(id); };
@@ -174,6 +174,46 @@
     }).join("");
   }
 
+  async function retryPendingReceipts() {
+    if (state.publishing) return;
+    state.publishing = true;
+    try {
+      var configResponse = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+      var config = configResponse.ok ? await configResponse.json() : {};
+      if (!config.endpoint || !/^https:\/\//.test(config.endpoint)) return;
+      var receipts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      if (!Array.isArray(receipts)) return;
+      var pending = receipts.filter(function (item) {
+        return item && item.network === "solana-mainnet-beta" && !item.directoryPublished && validMint(item.mint) &&
+          /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(item.signature || "") && validMint(item.creator);
+      }).slice(0, 5);
+      var published = false;
+      for (var index = 0; index < pending.length; index += 1) {
+        var item = pending[index];
+        try {
+          var response = await fetch(config.endpoint, {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ signature: item.signature, mint: item.mint, creator: item.creator })
+          });
+          if (!response.ok) continue;
+          item.directoryPublished = true;
+          published = true;
+        } catch (_) { /* The saved receipt remains pending for the next visit. */ }
+      }
+      if (published) {
+        var current = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        if (Array.isArray(current)) {
+          current.forEach(function (item) {
+            if (item && pending.some(function (receipt) { return receipt.directoryPublished && receipt.mint === item.mint; })) item.directoryPublished = true;
+          });
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+        }
+        await refresh();
+      }
+    } catch (_) { /* Local receipts and shareable Mint links remain available. */ }
+    finally { state.publishing = false; }
+  }
+
   async function refresh() {
     if (state.loading) return;
     state.loading = true;
@@ -189,6 +229,7 @@
     button.disabled = false;
     button.textContent = "REFRESH DATA";
     render();
+    void retryPendingReceipts();
   }
 
   byId("market-refresh").addEventListener("click", refresh);

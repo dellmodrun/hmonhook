@@ -907,13 +907,25 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         var serviceResponse = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
         var serviceConfig = serviceResponse.ok ? await serviceResponse.json() : {};
         if (serviceConfig.endpoint && /^https:\/\//.test(serviceConfig.endpoint)) {
-          var publishResponse = await fetch(serviceConfig.endpoint, {
-            method: "POST", headers: { "content-type": "application/json" },
-            body: JSON.stringify({ signature: result.signature, mint: result.mint, creator: authority })
-          });
+          var publishResponse;
+          for (var publishAttempt = 0; publishAttempt < 4; publishAttempt += 1) {
+            if (publishAttempt) await new Promise(function (resolve) { setTimeout(resolve, 750 * Math.pow(2, publishAttempt - 1)); });
+            publishResponse = await fetch(serviceConfig.endpoint, {
+              method: "POST", headers: { "content-type": "application/json" },
+              body: JSON.stringify({ signature: result.signature, mint: result.mint, creator: authority })
+            });
+            if (publishResponse.ok || publishResponse.status !== 409) break;
+          }
           if (!publishResponse.ok) throw new Error("Verified directory did not accept this launch yet");
           launchResult.directoryStatus = "published after on-chain verification";
           output.textContent = JSON.stringify(launchResult, null, 2);
+          try {
+            var savedReceipts = JSON.parse(localStorage.getItem("joltwork.launches.v1") || "[]");
+            if (Array.isArray(savedReceipts)) {
+              savedReceipts.forEach(function (item) { if (item && item.mint === result.mint) item.directoryPublished = true; });
+              localStorage.setItem("joltwork.launches.v1", JSON.stringify(savedReceipts));
+            }
+          } catch (_) { /* Directory publication succeeded even if local storage is unavailable. */ }
         }
       } catch (_) {
         launchResult.directoryStatus = "not published; use the shareable Mint link";

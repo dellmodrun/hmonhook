@@ -9,6 +9,8 @@ This is the first writable cross-device launch directory for h/monhook. It is st
 3. The function reads the confirmed transaction from Solana RPC. It verifies the Pump program, `create_v2` discriminator, Mint account, payer, creator bytes and metadata fields before writing a row with its server-side database key.
 4. The market page loads the bounded public directory and labels rows `PUMP LAUNCH VERIFIED`. A row proves the specified Pump creation transaction, not an issuer lock, option protection, a h/monhook Guard policy, or that the coin was created through the h/monhook website.
 
+RPC indexing can lag transaction confirmation. The launch page retries a temporary `409` response briefly; a confirmed receipt that remains unpublished is retried from that browser's market page on later visits. The Mint link remains usable throughout. This recovery requires the Edge Function endpoint to be configured and does not replace a deployed directory or a server-side backfill.
+
 ## Deployment inputs
 
 - A project-controlled Supabase project and a production Solana RPC endpoint with `getTransaction` history are required.
