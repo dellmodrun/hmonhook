@@ -29,6 +29,16 @@ for (const page of pages) {
 }
 
 const code = readFileSync(resolve(root, "code/index.html"), "utf8");
+const protocol = readFileSync(resolve(root, "protocol/index.html"), "utf8");
+const legacySdkTests = ["codec", "instruction", "jupiter", "receipt"].reduce((count, name) => {
+  const source = readFileSync(resolve(root, `sdk/test/${name}.test.js`), "utf8");
+  return count + [...source.matchAll(/^test\(/gm)].length;
+}, 0);
+assert.ok(legacySdkTests > 0, "legacy SDK test count was not found");
+assert.ok(code.includes(`LEGACY SDK TESTS<b>${legacySdkTests} PASSING`), "Source Code SDK test count differs from the test files");
+assert.ok(protocol.includes(`LEGACY GUARD / ${legacySdkTests} SDK TESTS PASSING`), "Protocol SDK test count differs from the test files");
+assert.match(code, /Code lineage and deployment:/, "Source Code does not explain the Jolt inheritance");
+assert.match(protocol, /currently deployed Guard is the earlier Jolt Guard/, "Protocol does not identify the deployed legacy program");
 for (const id of ["code-view", "code-filter", "code-copy", "code-download"]) {
   assert.match(code, new RegExp(`id=["']${id}["']`), `code browser missing ${id}`);
 }

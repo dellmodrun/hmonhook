@@ -247,8 +247,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <span class="page-code">RUST / TYPESCRIPT / TESTS</span>
 </div>
-<p>Inspect h/monhook Guard's deployed core, the browser clients and the product-scope document that separates implemented trade protection from proposed issuer options and privacy integration.</p>
-<p>The published source still uses the earlier <code>jolt-guard</code> path and <code>JOLT</code> wire markers. Those identifiers belong to the existing deployed program and its compatible SDK; changing them requires a coordinated program migration. The public product name is h/monhook.</p>
+<p>Inspect the legacy Guard currently used by h/monhook, its browser clients and the product-scope document that separates implemented trade protection from proposed issuer options and privacy integration.</p>
+<p><strong>Code lineage and deployment:</strong> h/monhook builds on the earlier Joltwork Guard implementation. The mainnet and devnet program IDs shown below are deployments of that earlier Jolt Guard binary, built from source commit <code>d1f21ed</code>; the deployment manifests record their IDs and binary digest. The <code>programs/jolt-guard</code> path, <code>sdk</code> package and <code>JOLT</code> wire marker are compatibility identifiers in that deployed protocol. The website's h/monhook name does not rename or replace those on-chain programs. A separately named h/monhook Guard is in development and has not been deployed to mainnet.</p>
 </header>
 <section class="chapter">
 <div class="chapter-label">PUBLISHED SOURCE BROWSER</div>
@@ -260,7 +260,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </span>
 <span>TYPESCRIPT SDK<b>IMPLEMENTED</b>
 </span>
-<span>SDK TESTS<b>11 PASSING</b>
+<span>LEGACY SDK TESTS<b>11 PASSING</b>
 </span>
 <span>MAINNET PROGRAM<b>6HfEuWvE…S3ENTY</b>
 </span>
@@ -420,8 +420,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </article>
 </div>
 <div class="callout">
-<b>PUBLIC TEST DEPLOYMENT, CLEAR PRODUCTION GATE</b>
-<p>The mainnet and devnet programs are real and independently inspectable. Published manifests bind their identities to the same reproducible SBF digest; audit and production monitoring remain separate evidence.</p>
+<b>LEGACY JOLT GUARD DEPLOYMENTS</b>
+<p>The legacy Jolt Guard mainnet and devnet programs are independently inspectable. Published manifests bind their identities to the same SBF digest. The separately named h/monhook Guard remains in development; audit and production monitoring remain separate evidence.</p>
 </div>
 </section>
 <section class="cta-panel">
