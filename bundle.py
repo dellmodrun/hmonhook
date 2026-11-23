@@ -63,6 +63,10 @@ registry_service_source = ROOT / "markets" / "registry-service.json"
 registry_service_output = DIST / "markets" / "registry-service.json"
 registry_service_output.write_text(registry_service_source.read_text(encoding="utf-8"), encoding="utf-8")
 
+metadata_service_source = ROOT / "launch" / "metadata-service.json"
+metadata_service_output = DIST / "launch" / "metadata-service.json"
+metadata_service_output.write_text(metadata_service_source.read_text(encoding="utf-8"), encoding="utf-8")
+
 test_metadata_source = ROOT / "markets" / "test-token" / "metadata.json"
 test_metadata_output = DIST / "markets" / "test-token" / "metadata.json"
 test_metadata_output.parent.mkdir(parents=True, exist_ok=True)

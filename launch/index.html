@@ -144,6 +144,13 @@
 <label>TELEGRAM / FROM METADATA<input id="coin-telegram" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
 </div>
 <label>METADATA JSON URI<input id="coin-uri" type="url" placeholder="https://ipfs.io/ipfs/…" required></label>
+<div class="metadata-upload">
+<div class="field-pair"><label>UPLOAD ARTWORK<input id="coin-upload-image" type="file" accept="image/png,image/jpeg,image/webp"></label><label>DESCRIPTION FOR UPLOAD<textarea id="coin-upload-description" maxlength="500" placeholder="Describe the coin shown in its public metadata"></textarea></label></div>
+<div class="field-pair"><label>WEBSITE / OPTIONAL<input id="coin-upload-website" type="url" placeholder="https://…"></label><label>X / OPTIONAL<input id="coin-upload-twitter" type="url" placeholder="https://x.com/…"></label></div>
+<label>TELEGRAM / OPTIONAL<input id="coin-upload-telegram" type="url" placeholder="https://t.me/…"></label>
+<button type="button" id="metadata-upload" class="button">upload image + metadata</button>
+<small>The upload service is available after production storage and abuse controls are configured. You can still provide an existing public metadata JSON URI.</small>
+</div>
 <div class="metadata-review"><img id="coin-image-preview" alt="Coin artwork preview" hidden><div><b id="metadata-state">METADATA NOT VERIFIED</b><p>The JSON must contain matching name, symbol, description and a public image URL.</p></div><button type="button" id="metadata-check" class="button">verify metadata</button></div>
 <div class="field-pair">
 <label>QUOTE ASSET / LIVE ROUTE<select id="coin-quote">
