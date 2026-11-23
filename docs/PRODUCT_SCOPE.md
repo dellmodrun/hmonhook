@@ -2,6 +2,10 @@
 
 h/monhook connects three decisions across a token's lifecycle: what an issuer commits to before trading, what outcome a trader authorizes during a supported route, and whether a later user transfer should be confidential. These decisions have different contracts, evidence and release states. They are not one automatic protection switch.
 
+## Code lineage and deployment identity
+
+h/monhook reuses the earlier Joltwork Guard implementation for its currently deployed trade path. The `programs/jolt-guard` source, `sdk` package, `JOLT` wire marker and `JRC1` receipt format belong to that earlier protocol. The existing mainnet and devnet Program IDs in `deployments/mainnet.json` and `deployments/devnet.json` identify Jolt Guard deployments built from source commit `d1f21ed424a880479d11417a5ccce27de47d7fc8`. Publishing the h/monhook site did not change those binaries, addresses or their upgrade authorities. The new `programs/hmonhook-guard` and `hmonhook-sdk` in the development branch use h/monhook's own wire marker and are not mainnet deployments. The legacy SDK's four test suites currently contain 11 passing tests; the new SDK is tested separately.
+
 ## Current release
 
 Jolt Guard is the implemented settlement core. Its Solana program is deployed on mainnet and devnet. It binds a signer, route, expiry, maximum input and minimum output to a JOLT V1 instruction. A supported route is invoked through CPI; the guard reloads token accounts and rejects a result outside the signed bounds. The SDK includes a Jupiter adapter, and the browser provides a Jupiter quote and protected-swap assembly path. Deployment and integration do not replace an independent audit or production monitoring.

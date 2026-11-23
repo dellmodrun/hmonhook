@@ -247,7 +247,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <span class="page-code">ATOMIC CPI WRAPPER / JRC1</span>
 </div>
-<p>h/monhook is an intent-bound settlement protocol for Solana. h/monhook Guard is its on-chain enforcement program; JLM1, Intent V1, JHK1 and JRC1 are the interfaces that connect issuers, wallets, routes, policies and receipts. Issuer options and optional confidential transfers are separate product directions, not features of the deployed h/monhook Guard binary.</p>
+<p>h/monhook is an intent-bound settlement protocol for Solana. The currently deployed Guard is the earlier Jolt Guard implementation used by h/monhook; its JOLT wire format remains for compatibility. A separately named h/monhook Guard is in development and is not deployed to mainnet. JLM1, Intent V1, JHK1 and JRC1 connect issuers, wallets, routes, policies and receipts. Issuer options and optional confidential transfers are separate product directions, not features of the deployed Jolt Guard binary.</p>
 </header>
 
 <section class="section-block">
@@ -298,7 +298,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <div>
 <span>PROGRAM + SDK</span>
-<b class="ready">IMPLEMENTED / 9 SDK TESTS PASSING</b>
+<b class="ready">LEGACY GUARD / 11 SDK TESTS PASSING</b>
 </div>
 <div>
 <span>DEVNET PROGRAM ID</span>
@@ -310,8 +310,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 </div>
 <div class="callout">
-<b>VERIFIED MAINNET + DEVNET DEPLOYMENTS</b>
-<p>h/monhook Guard is executable on <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer">Solana mainnet at <code>6HfEu…S3ENTY</code> ↗</a> and on <a href="https://explorer.solana.com/address/3gAqr1U9CzYhZBoqDJeEQFtphjVGvr24h4znUK2knfVG?cluster=devnet" target="_blank" rel="noreferrer">devnet at <code>3gAqr…K2knfVG</code> ↗</a>. Both ProgramData accounts match SBF SHA-256 <code>469ab222…124ebdd</code>; the deployment manifests publish their exact identities and authorities.</p>
+<b>VERIFIED LEGACY JOLT GUARD DEPLOYMENTS</b>
+<p>The legacy Jolt Guard used by this site is executable on <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer">Solana mainnet at <code>6HfEu…S3ENTY</code> ↗</a> and on <a href="https://explorer.solana.com/address/3gAqr1U9CzYhZBoqDJeEQFtphjVGvr24h4znUK2knfVG?cluster=devnet" target="_blank" rel="noreferrer">devnet at <code>3gAqr…K2knfVG</code> ↗</a>. Both ProgramData accounts match SBF SHA-256 <code>469ab222…124ebdd</code>; the deployment manifests publish their exact identities and authorities. Neither address is the new h/monhook Guard.</p>
 </div>
 </section>
 <section id="privacy-boundary" class="section-block protection-story" aria-labelledby="privacy-title">
