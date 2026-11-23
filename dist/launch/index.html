@@ -292,7 +292,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="field-pair"><label>WEBSITE / OPTIONAL<input id="coin-upload-website" type="url" placeholder="https://…"></label><label>X / OPTIONAL<input id="coin-upload-twitter" type="url" placeholder="https://x.com/…"></label></div>
 <label>TELEGRAM / OPTIONAL<input id="coin-upload-telegram" type="url" placeholder="https://t.me/…"></label>
 <button type="button" id="metadata-upload" class="button">upload image + metadata</button>
-<small>The upload service is available after production storage and abuse controls are configured. You can still provide an existing public metadata JSON URI.</small>
+<small>Upload artwork and metadata here, then verify the public JSON before compiling the launch plan. You can also provide an existing public metadata JSON URI.</small>
 </div>
 <div class="metadata-review"><img id="coin-image-preview" alt="Coin artwork preview" hidden><div><b id="metadata-state">METADATA NOT VERIFIED</b><p>The JSON must contain matching name, symbol, description and a public image URL.</p></div><button type="button" id="metadata-check" class="button">verify metadata</button></div>
 <div class="field-pair">
@@ -769,6 +769,7 @@ pako/dist/pako.esm.mjs:
   var verifiedMetadataUri = null;
   var verifiedMetadata = null;
   var launchManifestReady = false;
+  var compiledLaunchAuthority = null;
   var intentManifestReady = false;
 
   function byId(id) {
@@ -842,8 +843,15 @@ pako/dist/pako.esm.mjs:
   }
 
   function setWalletAddress(address, providerObject) {
+    var previousAddress = walletAddress;
     walletAddress = address ? String(address) : null;
     activeProvider = providerObject || null;
+    if (previousAddress !== walletAddress && launchManifestReady && compiledLaunchAuthority !== walletAddress) {
+      launchManifestReady = false;
+      compiledLaunchAuthority = null;
+      var launchOutput = byId("launch-output");
+      if (launchOutput) launchOutput.textContent = "The signing wallet changed. Compile the launch plan again before creating the coin.";
+    }
     if (walletAddress) sessionStorage.setItem("joltwork-wallet", walletAddress);
     else sessionStorage.removeItem("joltwork-wallet");
     var label = walletButton && walletButton.querySelector(".rail-label");
@@ -1174,6 +1182,7 @@ pako/dist/pako.esm.mjs:
       signingAuthority: walletAddress || "connect wallet before transaction assembly"
     }, null, 2);
     launchManifestReady = true;
+    compiledLaunchAuthority = walletAddress;
     var launchSubmit = byId("launch-submit");
     if (launchSubmit) launchSubmit.disabled = !walletAddress;
     showToast("JLM1 launch manifest compiled", "success");

@@ -6,6 +6,7 @@
   var verifiedMetadataUri = null;
   var verifiedMetadata = null;
   var launchManifestReady = false;
+  var compiledLaunchAuthority = null;
   var intentManifestReady = false;
 
   function byId(id) {
@@ -79,8 +80,15 @@
   }
 
   function setWalletAddress(address, providerObject) {
+    var previousAddress = walletAddress;
     walletAddress = address ? String(address) : null;
     activeProvider = providerObject || null;
+    if (previousAddress !== walletAddress && launchManifestReady && compiledLaunchAuthority !== walletAddress) {
+      launchManifestReady = false;
+      compiledLaunchAuthority = null;
+      var launchOutput = byId("launch-output");
+      if (launchOutput) launchOutput.textContent = "The signing wallet changed. Compile the launch plan again before creating the coin.";
+    }
     if (walletAddress) sessionStorage.setItem("joltwork-wallet", walletAddress);
     else sessionStorage.removeItem("joltwork-wallet");
     var label = walletButton && walletButton.querySelector(".rail-label");
@@ -411,6 +419,7 @@
       signingAuthority: walletAddress || "connect wallet before transaction assembly"
     }, null, 2);
     launchManifestReady = true;
+    compiledLaunchAuthority = walletAddress;
     var launchSubmit = byId("launch-submit");
     if (launchSubmit) launchSubmit.disabled = !walletAddress;
     showToast("JLM1 launch manifest compiled", "success");
