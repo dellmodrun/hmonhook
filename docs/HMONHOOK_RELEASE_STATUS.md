@@ -6,7 +6,7 @@ The public GitHub Pages site is still using the existing deployed Guard program.
 
 - `programs/hmonhook-guard` builds to SBF. Its own wire marker is `HMON`, and `hmonhook-sdk` builds matching instructions and receipts.
 - A disposable local validator executed a Token-2022 transfer routed through the new Guard; the SDK's exact max-input rule rejected a second transfer and reverted its token movement. Run `node scripts/test-guard-local.mjs <local-guard-program-id>` after deploying the SBF program to a local validator.
-- `programs/hmonhook-options` builds to SBF. The disposable local validator exercised series creation, purchase, exercise, registered-treasury default, default claim, duplicate-claim rejection, expiry, and reclaim. Run `node scripts/test-options-local.mjs <local-options-program-id>` after deploying the SBF program to a local validator.
+- `programs/hmonhook-options` builds to SBF. The disposable local validator exercised series creation, purchase, exercise, registered-treasury default, default claim, duplicate-claim rejection, early reclaim of unsold collateral while sold lots remained exercisable, expiry, and final reclaim. Run `node scripts/test-options-local.mjs <local-options-program-id>` after deploying the SBF program to a local validator.
 - CI checks both Rust programs, both SDKs, and the options client. Local-validator tests need a running Solana validator and remain manual.
 
 ## Release blockers

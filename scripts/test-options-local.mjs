@@ -75,16 +75,22 @@ const expiryStart = await connection.getSlot('confirmed');
 const expiring = openSeriesInstructions({
   programId, issuer: issuer.publicKey, mint, source, treasury, nonce: 8n,
   deposit: BigInt(50 * unit), strikeLamports: 1_000n,
-  saleDeadlineSlot: BigInt(expiryStart + 8), expirySlot: BigInt(expiryStart + 16),
+  saleDeadlineSlot: BigInt(expiryStart + 10), expirySlot: BigInt(expiryStart + 50),
   treasuryFloor: BigInt(99 * unit),
 });
 await send(expiring.instructions, [issuer]);
-await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, lots: 1n })], [buyer]);
-while ((await connection.getSlot('confirmed')) <= expiryStart + 16) await new Promise((resolve) => setTimeout(resolve, 350));
+await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, lots: 2n })], [buyer]);
+while ((await connection.getSlot('confirmed')) <= expiryStart + 10) await new Promise((resolve) => setTimeout(resolve, 350));
 const reclaim = reclaimInstructions({ programId, issuer: issuer.publicKey, series: expiring.series.address, mint, vault: expiring.series.vault });
+const earlyReclaimSignature = await send(reclaim.instructions, [issuer]);
+assert.equal((await getAccount(connection, expiring.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(2 * unit));
+await send(exerciseInstructions({ programId, series: expiring.series.address, mint, vault: expiring.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n }).instructions, [buyer]);
+assert.equal((await getAccount(connection, expiring.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(unit));
+while ((await connection.getSlot('confirmed')) <= expiryStart + 50) await new Promise((resolve) => setTimeout(resolve, 350));
 const reclaimSignature = await send(reclaim.instructions, [issuer]);
 const expiringState = await fetchVerifiedSeries(connection, programId, expiring.series.address);
 assert.equal(expiringState.status, 2);
+assert.equal(expiringState.reclaimedLots, 49n);
 assert.equal((await getAccount(connection, expiring.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, 0n);
 let expiredExerciseRejected = false;
 try { await send(exerciseInstructions({ programId, series: expiring.series.address, mint, vault: expiring.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n }).instructions, [buyer]); }
@@ -94,5 +100,5 @@ assert.ok(expiredExerciseRejected, 'exercise after expiry must fail');
 console.log(JSON.stringify({
   network: endpoint, programId: programId.toBase58(), series: opened.series.address.toBase58(),
   openSignature, buySignature, exerciseSignature, defaultSignature, claimSignature,
-  duplicateClaimRejected, reclaimSignature, expiredExerciseRejected,
+  duplicateClaimRejected, earlyReclaimSignature, reclaimSignature, expiredExerciseRejected,
 }, null, 2));

@@ -310,11 +310,13 @@ fn reclaim(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let token_program = next_account_info(&mut it)?;
     if !issuer.is_signer || !state.is_writable || !vault.is_writable || !destination.is_writable { return Err(bad_account()); }
     let mut series = load_series(program_id, state)?;
-    if *issuer.key != series.issuer || *mint.key != series.mint || *vault.key != series.vault || Clock::get()?.slot <= series.expiry_slot || series.status == STATUS_CLOSED { return Err(invalid()); }
+    let slot = Clock::get()?.slot;
+    if *issuer.key != series.issuer || *mint.key != series.mint || *vault.key != series.vault || slot <= series.sale_deadline_slot || series.status == STATUS_CLOSED { return Err(invalid()); }
     token_data(vault, mint.key, state.key)?;
     token_data(destination, mint.key, issuer.key)?;
     let (_, decimals) = mint_data(mint)?;
-    let lots = if series.status == STATUS_DEFAULT {
+    let expired = slot > series.expiry_slot;
+    let lots = if series.status == STATUS_DEFAULT || !expired {
         series.total_lots.checked_sub(series.sold_lots).and_then(|v| v.checked_sub(series.reclaimed_lots)).ok_or_else(overflow)?
     } else {
         series.total_lots.checked_sub(series.exercised_lots).and_then(|v| v.checked_sub(series.reclaimed_lots)).ok_or_else(overflow)?
@@ -326,7 +328,7 @@ fn reclaim(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let seeds = [b"series".as_ref(), series.mint.as_ref(), series.issuer.as_ref(), nonce.as_ref(), bump.as_ref()];
     transfer_tokens(vault, destination, mint, state, token_program, amount, decimals, Some(&seeds))?;
     series.reclaimed_lots = series.reclaimed_lots.checked_add(lots).ok_or_else(overflow)?;
-    if series.status != STATUS_DEFAULT { series.status = STATUS_CLOSED; }
+    if expired && series.status != STATUS_DEFAULT { series.status = STATUS_CLOSED; }
     save(state, &series)
 }
 

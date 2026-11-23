@@ -2,7 +2,7 @@
 
 This document fixes the financial rules that were previously only marketing copy. It is a proposed implementation specification, **not a deployed contract**. No interface may label a coin protected until its deployed program, escrow balance, terms and issuer commitment are verified on-chain.
 
-The development branch contains a native Rust program under `programs/hmonhook-options` and a transaction builder in `options-client.mjs`. These are development artifacts. A disposable local Solana validator has exercised opening, purchase, exercise, registered treasury outflow default, claim, duplicate-claim rejection, expiry and issuer reclaim with Token-2022 accounts. This is not a funded devnet test, an independent security review, or evidence that mainnet deployment is safe.
+The development branch contains a native Rust program under `programs/hmonhook-options` and a transaction builder in `options-client.mjs`. These are development artifacts. A disposable local Solana validator has exercised opening, purchase, exercise, registered treasury outflow default, claim, duplicate-claim rejection, early reclaim of unsold lots, continued exercise of sold lots, expiry and final issuer reclaim with Token-2022 accounts. This is not a funded devnet test, an independent security review, or evidence that mainnet deployment is safe.
 
 ## Series and collateral
 
