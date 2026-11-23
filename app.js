@@ -740,6 +740,7 @@
     checkSite: "scripts/check-site.mjs",
     readme: "README.md",
     productScope: "docs/PRODUCT_SCOPE.md",
+    premiumSpec: "docs/OPTIONS_PREMIUM_EXECUTION.md",
     architecture: "docs/ARCHITECTURE.md",
     integration: "docs/INTEGRATION.md",
     security: "docs/SECURITY.md",
