@@ -1,6 +1,8 @@
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
+import { PUMP_PROGRAM_ID, PUMP_SDK } from '@pump-fun/pump-sdk';
+import BN from 'bn.js';
 import {
-  TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync,
+  NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync,
   createAssociatedTokenAccountIdempotentInstruction,
 } from '@solana/spl-token';
 import { fetchPumpStrikeSuggestion } from './options-strike.mjs';
@@ -32,6 +34,49 @@ export function deriveSeries(programId, mint, issuer, nonce) {
 
 export function derivePosition(programId, series, buyer) {
   return PublicKey.findProgramAddressSync([encoder.encode('position'), key(series).toBuffer(), key(buyer).toBuffer()], key(programId))[0];
+}
+
+export function deriveBuybackVault(programId, series, mint) {
+  const [authority, bump] = PublicKey.findProgramAddressSync([
+    encoder.encode('buyback'), key(series).toBuffer(),
+  ], key(programId));
+  return {
+    authority, bump,
+    baseVault: getAssociatedTokenAddressSync(key(mint), authority, true, TOKEN_2022_PROGRAM_ID),
+    quoteVault: getAssociatedTokenAddressSync(NATIVE_MINT, authority, true, TOKEN_PROGRAM_ID),
+  };
+}
+
+export function buybackVaultPrepInstructions({ programId, series, mint, payer }) {
+  const vault = deriveBuybackVault(programId, series, mint);
+  return { vault, instructions: [
+    createAssociatedTokenAccountIdempotentInstruction(key(payer), vault.baseVault, vault.authority, key(mint), TOKEN_2022_PROGRAM_ID),
+    createAssociatedTokenAccountIdempotentInstruction(key(payer), vault.quoteVault, vault.authority, NATIVE_MINT, TOKEN_PROGRAM_ID),
+  ] };
+}
+
+// This is the Pump CPI payload for the development program, not a standalone
+// wallet transaction. The PDA can sign only inside h/monhook's own instruction.
+export async function buildPumpBuybackRoute({ programId, series, mint, spendableQuoteIn, minTokensOut }) {
+  u64(spendableQuoteIn);
+  u64(minTokensOut);
+  if (BigInt(spendableQuoteIn) === 0n || BigInt(minTokensOut) === 0n) throw new RangeError('Buyback input and minimum output must be positive.');
+  const vault = deriveBuybackVault(programId, series, mint);
+  const route = await PUMP_SDK.getBuyExactQuoteInV3InstructionRaw({
+    user: vault.authority, mint: key(mint),
+    spendableQuoteIn: new BN(String(spendableQuoteIn)),
+    minTokensOut: new BN(String(minTokensOut)),
+  });
+  const expected = [
+    [1, key(mint)], [2, NATIVE_MINT], [3, TOKEN_2022_PROGRAM_ID],
+    [4, TOKEN_PROGRAM_ID], [8, vault.authority], [9, vault.baseVault], [10, vault.quoteVault],
+  ];
+  if (!route.programId.equals(PUMP_PROGRAM_ID) || route.keys.length !== 17 ||
+    Buffer.from(route.data).subarray(0, 8).toString('hex') !== 'e1f7501ed5b38488' ||
+    expected.some(([index, address]) => !route.keys[index].pubkey.equals(address))) {
+    throw new Error('Pump buyback route no longer matches the reviewed program and vault layout.');
+  }
+  return { vault, route };
 }
 
 export function openSeriesInstructions({ programId, issuer, mint, source, treasury, nonce, deposit, strikeLamports, saleDeadlineSlot, expirySlot, treasuryFloor }) {

@@ -7,6 +7,7 @@ import {
   reclaimInstructions, refundPremiumInstruction, decodeSeries,
   fetchVerifiedSeries,
   listVerifiedSeriesByMint,
+  deriveBuybackVault, buybackVaultPrepInstructions, buildPumpBuybackRoute,
 } from '../options-client.mjs';
 
 const programId = Keypair.generate().publicKey;
@@ -29,6 +30,24 @@ test('opening cannot use a different unmonitored collateral source', () => {
     nonce, deposit: 20n, strikeLamports: 100n, saleDeadlineSlot: 200n,
     expirySlot: 300n, treasuryFloor: 40n,
   }), /collateral source must be the monitored issuer treasury/);
+});
+
+test('Pump buyback route targets a separate program-owned vault', async () => {
+  const buyback = deriveBuybackVault(programId, series, mint);
+  assert.notEqual(buyback.baseVault.toBase58(), vault.toBase58());
+  const prep = buybackVaultPrepInstructions({ programId, series, mint, payer: issuer });
+  assert.equal(prep.instructions.length, 2);
+  assert.equal(prep.instructions[0].keys[1].pubkey.toBase58(), buyback.baseVault.toBase58());
+  assert.equal(prep.instructions[1].keys[1].pubkey.toBase58(), buyback.quoteVault.toBase58());
+  const { route } = await buildPumpBuybackRoute({
+    programId, series, mint, spendableQuoteIn: 1_000_000n, minTokensOut: 1_000n,
+  });
+  assert.equal(route.keys[8].pubkey.toBase58(), buyback.authority.toBase58());
+  assert.equal(route.keys[9].pubkey.toBase58(), buyback.baseVault.toBase58());
+  assert.equal(route.keys[10].pubkey.toBase58(), buyback.quoteVault.toBase58());
+  await assert.rejects(() => buildPumpBuybackRoute({
+    programId, series, mint, spendableQuoteIn: 0n, minTokensOut: 1n,
+  }), /positive/);
 });
 
 test('all option actions target the chosen new program with exact account order', () => {
