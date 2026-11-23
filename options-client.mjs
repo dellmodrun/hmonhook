@@ -3,6 +3,9 @@ import {
   TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync,
   createAssociatedTokenAccountIdempotentInstruction,
 } from '@solana/spl-token';
+import { fetchPumpStrikeSuggestion } from './options-strike.mjs';
+
+export { fetchPumpStrikeSuggestion } from './options-strike.mjs';
 
 const encoder = new TextEncoder();
 const MAX_U64 = (1n << 64n) - 1n;
@@ -39,6 +42,12 @@ export function openSeriesInstructions({ programId, issuer, mint, source, treasu
     meta(treasury), meta(series.address, false, true), meta(TOKEN_2022_PROGRAM_ID), meta(SystemProgram.programId),
   ], nonce, deposit, strikeLamports, saleDeadlineSlot, expirySlot, treasuryFloor);
   return { series, instructions: [createVault, initialize] };
+}
+
+export async function openSeriesFromPumpCurve(connection, args) {
+  const strikeSnapshot = await fetchPumpStrikeSuggestion(connection, args.mint);
+  const opened = openSeriesInstructions({ ...args, strikeLamports: strikeSnapshot.strikeLamports });
+  return { ...opened, strikeSnapshot };
 }
 
 export function buyOptionsInstruction({ programId, series, buyer, lots }) {
