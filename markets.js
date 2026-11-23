@@ -151,7 +151,7 @@
     byId("market-updated").textContent = "UPDATED " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     if (!launches.length) {
-      grid.innerHTML = '<div class="market-empty"><span>NO MATCHING MARKETS</span><h2>No fabricated listings.</h2><p>Launch a coin through h/monhook on this device, or search a Solana Mint address above. Device receipts appear here after a confirmed launch; live price fields depend on third-party pool indexing.</p><a class="button button-solid" href="./launch/">launch a coin</a></div>';
+      grid.innerHTML = '<div class="market-empty"><span>NO MATCHING MARKETS</span><h2>No fabricated listings.</h2><p>Launch a coin through h/monhook or search a Solana Mint address above. Confirmed launches verified by the directory can appear across devices; pending receipts stay on the creator\'s device. Live price fields depend on third-party pool indexing.</p><a class="button button-solid" href="./launch/">launch a coin</a></div>';
       return;
     }
 

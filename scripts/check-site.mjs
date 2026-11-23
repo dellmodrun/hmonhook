@@ -6,6 +6,7 @@ const root = resolve(import.meta.dirname, "..");
 const pages = ["index.html", "launch/index.html", "markets/index.html", "intent/index.html", "protocol/index.html", "code/index.html", "research/index.html"];
 for (const page of pages) assert.ok(existsSync(resolve(root, page)), `missing route: ${page}`);
 assert.ok(!existsSync(resolve(root, "CNAME")), "copied site must not claim the original custom domain");
+assert.ok(!existsSync(resolve(root, "dist/markets/test-token/metadata.json")), "legacy test-token metadata must not be published");
 
 for (const page of pages) {
   const html = readFileSync(resolve(root, page), "utf8");
@@ -89,7 +90,7 @@ const marketRegistry = JSON.parse(readFileSync(resolve(root, "markets/registry.j
 const registryService = JSON.parse(readFileSync(resolve(root, "markets/registry-service.json"), "utf8"));
 assert.equal(typeof registryService.endpoint, "string", "launch registry endpoint configuration missing");
 if (existsSync(resolve(root, "dist"))) assert.ok(existsSync(resolve(root, "dist/markets/registry-service.json")), "bundled site misses registry configuration");
-assert.equal(marketRegistry.format, "JOLTWORK_MARKETS_V1", "unexpected markets registry format");
+assert.equal(marketRegistry.format, "HMONHOOK_MARKETS_V1", "unexpected markets registry format");
 for (const launch of marketRegistry.launches) {
   assert.match(launch.mint, /^[1-9A-HJ-NP-Za-km-z]{32,44}$/, "registry contains an invalid Solana Mint");
   if (launch.signature) assert.match(launch.signature, /^[1-9A-HJ-NP-Za-km-z]{64,88}$/, "registry contains an invalid transaction signature");
