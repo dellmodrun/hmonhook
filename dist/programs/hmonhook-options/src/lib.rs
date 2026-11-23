@@ -15,8 +15,8 @@ mod token_2022 {
     solana_program::declare_id!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
 }
 
-const SERIES_TAG: [u8; 8] = *b"HMONOPT1";
-const POSITION_TAG: [u8; 8] = *b"HMONPOS1";
+const SERIES_TAG: [u8; 8] = *b"HMONOPT2";
+const POSITION_TAG: [u8; 8] = *b"HMONPOS2";
 const STATUS_ACTIVE: u8 = 0;
 const STATUS_DEFAULT: u8 = 1;
 const STATUS_CLOSED: u8 = 2;
@@ -43,6 +43,9 @@ pub struct Series {
     pub expiry_slot: u64,
     pub strike_lamports: u64,
     pub premium_lamports: u64,
+    pub premium_spent_lamports: u64,
+    pub premium_refunded_lamports: u64,
+    pub premium_refund_claimed_lots: u64,
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, PartialEq, Eq)]
@@ -54,6 +57,7 @@ pub struct Position {
     pub bought_lots: u64,
     pub exercised_lots: u64,
     pub default_claimed_lots: u64,
+    pub premium_refunded: u8,
 }
 
 fn invalid() -> ProgramError { ProgramError::InvalidInstructionData }
@@ -207,7 +211,7 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let (expected, bump) = Pubkey::find_program_address(&[b"series", mint.key.as_ref(), issuer.key.as_ref(), &nonce.to_le_bytes()], program_id);
     if expected != *state.key { return Err(bad_account()); }
     let premium = strike / 10 + u64::from(strike % 10 != 0);
-    let series = Series { tag: SERIES_TAG, status: STATUS_ACTIVE, bump, nonce, issuer: *issuer.key, mint: *mint.key, vault: *vault.key, treasury: *treasury.key, treasury_floor: floor, supply_snapshot: supply, lot_size, total_lots: deposit / lot_size, sold_lots: 0, exercised_lots: 0, default_claimed_lots: 0, reclaimed_lots: 0, sale_deadline_slot: sale_deadline, expiry_slot: expiry, strike_lamports: strike, premium_lamports: premium };
+    let series = Series { tag: SERIES_TAG, status: STATUS_ACTIVE, bump, nonce, issuer: *issuer.key, mint: *mint.key, vault: *vault.key, treasury: *treasury.key, treasury_floor: floor, supply_snapshot: supply, lot_size, total_lots: deposit / lot_size, sold_lots: 0, exercised_lots: 0, default_claimed_lots: 0, reclaimed_lots: 0, sale_deadline_slot: sale_deadline, expiry_slot: expiry, strike_lamports: strike, premium_lamports: premium, premium_spent_lamports: 0, premium_refunded_lamports: 0, premium_refund_claimed_lots: 0 };
     let size = borsh::to_vec(&series).map_err(|_| invalid())?.len();
     let seeds = [b"series".as_ref(), mint.key.as_ref(), issuer.key.as_ref(), &nonce.to_le_bytes(), &[bump]];
     create_pda(issuer, state, system, program_id, size, &seeds)?;
@@ -240,13 +244,13 @@ fn buy(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramRes
     let mut position = if position_account.owner == program_id {
         Position::try_from_slice(&position_account.try_borrow_data()?).map_err(|_| bad_account())?
     } else {
-        let value = Position { tag: POSITION_TAG, bump, series: *state.key, buyer: *buyer.key, bought_lots: 0, exercised_lots: 0, default_claimed_lots: 0 };
+        let value = Position { tag: POSITION_TAG, bump, series: *state.key, buyer: *buyer.key, bought_lots: 0, exercised_lots: 0, default_claimed_lots: 0, premium_refunded: 0 };
         let size = borsh::to_vec(&value).map_err(|_| invalid())?.len();
         let seeds = [b"position".as_ref(), state.key.as_ref(), buyer.key.as_ref(), &[bump]];
         create_pda(buyer, position_account, system, program_id, size, &seeds)?;
         value
     };
-    if position.tag != POSITION_TAG || position.series != *state.key || position.buyer != *buyer.key || position.bump != bump { return Err(bad_account()); }
+    if position.tag != POSITION_TAG || position.series != *state.key || position.buyer != *buyer.key || position.bump != bump || position.premium_refunded != 0 { return Err(bad_account()); }
     let premium = lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
     transfer_sol(buyer, state, system, premium)?;
     position.bought_lots = position.bought_lots.checked_add(lots).ok_or_else(overflow)?;
@@ -350,6 +354,55 @@ fn reclaim(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     save(state, &series)
 }
 
+fn refund_entitlement(series: &Series, position: &Position) -> Result<(u64, u64), ProgramError> {
+    if series.sold_lots == 0 || position.bought_lots == 0 || position.premium_refunded != 0 {
+        return Err(invalid());
+    }
+    let claimed_lots = series.premium_refund_claimed_lots.checked_add(position.bought_lots).ok_or_else(overflow)?;
+    if claimed_lots > series.sold_lots { return Err(invalid()); }
+    let total = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
+    let remaining = total.checked_sub(series.premium_spent_lamports).ok_or_else(overflow)?;
+    let unrefunded = remaining.checked_sub(series.premium_refunded_lamports).ok_or_else(overflow)?;
+    let amount = if claimed_lots == series.sold_lots {
+        unrefunded
+    } else {
+        u64::try_from((remaining as u128) * (position.bought_lots as u128) / (series.sold_lots as u128)).map_err(|_| overflow())?
+    };
+    if amount > unrefunded { return Err(invalid()); }
+    Ok((amount, claimed_lots))
+}
+
+fn claim_premium_refund(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let mut it = accounts.iter();
+    let buyer = next_account_info(&mut it)?;
+    let state = next_account_info(&mut it)?;
+    let position_account = next_account_info(&mut it)?;
+    if !buyer.is_signer || !buyer.is_writable || !state.is_writable || !position_account.is_writable {
+        return Err(bad_account());
+    }
+    let mut series = load_series(program_id, state)?;
+    if Clock::get()?.slot <= series.expiry_slot { return Err(invalid()); }
+    let mut position = load_position(program_id, position_account, state, buyer)?;
+    let (amount, claimed_lots) = refund_entitlement(&series, &position)?;
+    if amount == 0 { return Err(invalid()); }
+    let total = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
+    let unspent = total.checked_sub(series.premium_spent_lamports).ok_or_else(overflow)?;
+    let due = unspent.checked_sub(series.premium_refunded_lamports).ok_or_else(overflow)?;
+    let minimum = Rent::get()?.minimum_balance(state.data_len());
+    let before = state.lamports();
+    if before < minimum.checked_add(due).ok_or_else(overflow)? { return Err(bad_account()); }
+    let after = before.checked_sub(amount).ok_or_else(overflow)?;
+    let buyer_after = buyer.lamports().checked_add(amount).ok_or_else(overflow)?;
+    series.premium_refund_claimed_lots = claimed_lots;
+    series.premium_refunded_lamports = series.premium_refunded_lamports.checked_add(amount).ok_or_else(overflow)?;
+    position.premium_refunded = 1;
+    save(position_account, &position)?;
+    save(state, &series)?;
+    **state.try_borrow_mut_lamports()? = after;
+    **buyer.try_borrow_mut_lamports()? = buyer_after;
+    Ok(())
+}
+
 pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
     let (&op, payload) = data.split_first().ok_or_else(invalid)?;
     match op {
@@ -359,6 +412,7 @@ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], data: 
         3 if payload.is_empty() => trigger_default(program_id, accounts),
         4 => settle(program_id, accounts, payload, true),
         5 if payload.is_empty() => reclaim(program_id, accounts),
+        6 if payload.is_empty() => claim_premium_refund(program_id, accounts),
         _ => Err(invalid()),
     }
 }
@@ -384,7 +438,7 @@ mod tests {
 
     #[test]
     fn positions_cannot_claim_the_same_lot_twice() {
-        let position = Position { tag: POSITION_TAG, bump: 1, series: Pubkey::new_unique(), buyer: Pubkey::new_unique(), bought_lots: 5, exercised_lots: 2, default_claimed_lots: 1 };
+        let position = Position { tag: POSITION_TAG, bump: 1, series: Pubkey::new_unique(), buyer: Pubkey::new_unique(), bought_lots: 5, exercised_lots: 2, default_claimed_lots: 1, premium_refunded: 0 };
         assert_eq!(position_remaining(&position).unwrap(), 2);
         let invalid = Position { default_claimed_lots: 4, ..position };
         assert!(position_remaining(&invalid).is_err());
@@ -403,6 +457,7 @@ mod tests {
             default_claimed_lots: 0, reclaimed_lots: 0,
             sale_deadline_slot: 10, expiry_slot: 20,
             strike_lamports: 100, premium_lamports: 10,
+            premium_spent_lamports: 0, premium_refunded_lamports: 0, premium_refund_claimed_lots: 0,
         };
         let mut lamports = 1;
         let mut data = [0u8; 165];
@@ -457,5 +512,42 @@ mod tests {
         mint[166..168].copy_from_slice(&18_u16.to_le_bytes());
         mint[168..170].copy_from_slice(&100_u16.to_le_bytes());
         assert!(!supported_mint_extensions(&mint));
+    }
+
+    #[test]
+    fn premium_refund_rounding_preserves_the_remaining_pool() {
+        let mut series = Series {
+            tag: SERIES_TAG, status: STATUS_CLOSED, bump: 0, nonce: 0,
+            issuer: Pubkey::new_unique(), mint: Pubkey::new_unique(),
+            vault: Pubkey::new_unique(), treasury: Pubkey::new_unique(),
+            treasury_floor: 1, supply_snapshot: 100, lot_size: 1,
+            total_lots: 4, sold_lots: 4, exercised_lots: 0,
+            default_claimed_lots: 0, reclaimed_lots: 4,
+            sale_deadline_slot: 10, expiry_slot: 20,
+            strike_lamports: 100, premium_lamports: 10,
+            premium_spent_lamports: 6, premium_refunded_lamports: 0,
+            premium_refund_claimed_lots: 0,
+        };
+        let mut position = Position {
+            tag: POSITION_TAG, bump: 0, series: Pubkey::new_unique(),
+            buyer: Pubkey::new_unique(), bought_lots: 2,
+            exercised_lots: 1, default_claimed_lots: 0, premium_refunded: 0,
+        };
+        let (first, lots) = refund_entitlement(&series, &position).unwrap();
+        assert_eq!(first, 17);
+        series.premium_refunded_lamports += first;
+        series.premium_refund_claimed_lots = lots;
+        position.premium_refunded = 1;
+        assert!(refund_entitlement(&series, &position).is_err());
+        position.premium_refunded = 0;
+        position.bought_lots = 1;
+        let (second, lots) = refund_entitlement(&series, &position).unwrap();
+        assert_eq!(second, 8);
+        series.premium_refunded_lamports += second;
+        series.premium_refund_claimed_lots = lots;
+        let (last, final_lots) = refund_entitlement(&series, &position).unwrap();
+        assert_eq!(last, 9);
+        assert_eq!(first + second + last, 34);
+        assert_eq!(final_lots, series.sold_lots);
     }
 }

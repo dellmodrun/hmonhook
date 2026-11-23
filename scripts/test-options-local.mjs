@@ -11,6 +11,7 @@ import {
   openSeriesInstructions, buyOptionsInstruction, exerciseInstructions,
   triggerDefaultInstruction, claimDefaultInstructions, fetchVerifiedSeries,
   reclaimInstructions,
+  refundPremiumInstruction,
   listVerifiedSeriesByMint,
 } from '../options-client.mjs';
 
@@ -108,6 +109,10 @@ const expiring = openSeriesInstructions({
 });
 await send(expiring.instructions, [issuer]);
 await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, treasury, lots: 2n })], [buyer]);
+const refund = refundPremiumInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey });
+let prematureRefundRejected = false;
+try { await send([refund], [buyer]); } catch (_) { prematureRefundRejected = true; }
+assert.ok(prematureRefundRejected, 'premium refunds cannot precede expiry');
 while ((await connection.getSlot('confirmed')) <= expiryStart + 10) await new Promise((resolve) => setTimeout(resolve, 350));
 let expiredSaleRejected = false;
 try { await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, treasury, lots: 1n })], [buyer]); }
@@ -133,10 +138,20 @@ let expiredExerciseRejected = false;
 try { await send(exerciseInstructions({ programId, series: expiring.series.address, mint, vault: expiring.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n }).instructions, [buyer]); }
 catch (_) { expiredExerciseRejected = true; }
 assert.ok(expiredExerciseRejected, 'exercise after expiry must fail');
+const premiumBalanceBeforeRefund = await connection.getBalance(expiring.series.address, 'confirmed');
+const refundSignature = await send([refund], [buyer]);
+const refundedState = await fetchVerifiedSeries(connection, programId, expiring.series.address);
+assert.equal(refundedState.premiumRefundedLamports, 200n);
+assert.equal(refundedState.premiumRefundClaimedLots, 2n);
+assert.equal(premiumBalanceBeforeRefund - await connection.getBalance(expiring.series.address, 'confirmed'), 200);
+let duplicateRefundRejected = false;
+try { await send([refund], [buyer]); } catch (_) { duplicateRefundRejected = true; }
+assert.ok(duplicateRefundRejected, 'the same position cannot claim a premium refund twice');
 
 console.log(JSON.stringify({
   network: endpoint, programId: programId.toBase58(), series: opened.series.address.toBase58(),
   openSignature, buySignature, exerciseSignature, defaultSignature, claimSignature,
   prematureDefaultRejected, unmonitoredSourceRejected, postBreachPurchaseRejected, divertedExerciseRejected, expiredSaleRejected, unauthorizedReclaimRejected,
   duplicateClaimRejected, earlyReclaimSignature, reclaimSignature, expiredExerciseRejected,
+  prematureRefundRejected, refundSignature, duplicateRefundRejected,
 }, null, 2));

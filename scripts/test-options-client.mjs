@@ -4,7 +4,7 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import {
   deriveSeries, derivePosition, openSeriesInstructions, buyOptionsInstruction,
   exerciseInstructions, claimDefaultInstructions, triggerDefaultInstruction,
-  reclaimInstructions, decodeSeries,
+  reclaimInstructions, refundPremiumInstruction, decodeSeries,
   fetchVerifiedSeries,
   listVerifiedSeriesByMint,
 } from '../options-client.mjs';
@@ -50,11 +50,14 @@ test('all option actions target the chosen new program with exact account order'
   }
   assert.equal(triggerDefaultInstruction({ programId, series, treasury }).data[0], 3);
   assert.equal(reclaimInstructions({ programId, issuer, series, mint, vault }).instructions[1].data[0], 5);
+  const refund = refundPremiumInstruction({ programId, series, buyer });
+  assert.equal(refund.data[0], 6);
+  assert.equal(refund.keys[2].pubkey.toBase58(), derivePosition(programId, series, buyer).toBase58());
 });
 
 test('series decoder rejects unrelated bytes and preserves base-unit terms', () => {
-  const bytes = Buffer.alloc(242);
-  bytes.write('HMONOPT1', 0);
+  const bytes = Buffer.alloc(266);
+  bytes.write('HMONOPT2', 0);
   bytes[8] = 1;
   bytes[9] = 255;
   bytes.writeBigUInt64LE(7n, 10);
@@ -63,20 +66,22 @@ test('series decoder rejects unrelated bytes and preserves base-unit terms', () 
   }
   bytes.writeBigUInt64LE(100n, 146);
   bytes.writeBigUInt64LE(25n, 234);
+  bytes.writeBigUInt64LE(5n, 242);
   const decoded = decodeSeries(bytes);
   assert.equal(decoded.status, 1);
   assert.equal(decoded.nonce, 7n);
   assert.equal(decoded.issuer.toBase58(), issuer.toBase58());
   assert.equal(decoded.treasuryFloor, 100n);
   assert.equal(decoded.premiumLamports, 25n);
-  assert.throws(() => decodeSeries(Buffer.alloc(242)), /Invalid h\/monhook/);
-  assert.throws(() => decodeSeries(Buffer.alloc(241)), /Invalid h\/monhook/);
+  assert.equal(decoded.premiumSpentLamports, 5n);
+  assert.throws(() => decodeSeries(Buffer.alloc(266)), /Invalid h\/monhook/);
+  assert.throws(() => decodeSeries(Buffer.alloc(265)), /Invalid h\/monhook/);
   assert.ok(decoded.mint instanceof PublicKey);
 });
 
 test('remote series must be owned by the expected program and match its PDA', async () => {
-  const bytes = Buffer.alloc(242);
-  bytes.write('HMONOPT1', 0);
+  const bytes = Buffer.alloc(266);
+  bytes.write('HMONOPT2', 0);
   bytes[9] = deriveSeries(programId, mint, issuer, nonce).bump;
   bytes.writeBigUInt64LE(nonce, 10);
   for (let index = 0; index < 4; index++) bytes.set([issuer, mint, vault, treasury][index].toBuffer(), 18 + index * 32);
@@ -85,7 +90,7 @@ test('remote series must be owned by the expected program and match its PDA', as
   await assert.rejects(() => fetchVerifiedSeries({ getAccountInfo: async () => ({ owner: buyer, data: bytes }) }, programId, series), /not owned/);
   await assert.rejects(() => fetchVerifiedSeries(connection, programId, buyer), /does not match/);
   const listed = await listVerifiedSeriesByMint({ getProgramAccounts: async (_, options) => {
-    assert.deepEqual(options.filters, [{ dataSize: 242 }, { memcmp: { offset: 50, bytes: mint.toBase58() } }]);
+    assert.deepEqual(options.filters, [{ dataSize: 266 }, { memcmp: { offset: 50, bytes: mint.toBase58() } }]);
     return [{ pubkey: series, account: { owner: programId, data: bytes } }];
   } }, programId, mint);
   assert.equal(listed.length, 1);

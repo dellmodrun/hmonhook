@@ -91,14 +91,21 @@ export function reclaimInstructions({ programId, issuer, series, mint, vault }) 
   };
 }
 
+export function refundPremiumInstruction({ programId, series, buyer }) {
+  const position = derivePosition(programId, series, buyer);
+  return instruction(programId, 6, [
+    meta(buyer, true, true), meta(series, false, true), meta(position, false, true),
+  ]);
+}
+
 export function decodeSeries(data) {
   const bytes = Buffer.from(data);
-  if (bytes.length !== 242 || bytes.subarray(0, 8).toString() !== 'HMONOPT1') throw new Error('Invalid h/monhook option series account');
+  if (bytes.length !== 266 || bytes.subarray(0, 8).toString() !== 'HMONOPT2') throw new Error('Invalid h/monhook option series account');
   let offset = 10;
   const readU64 = () => { const value = bytes.readBigUInt64LE(offset); offset += 8; return value; };
   const readKey = () => { const value = new PublicKey(bytes.subarray(offset, offset + 32)); offset += 32; return value; };
   const result = { status: bytes[8], bump: bytes[9], nonce: readU64(), issuer: readKey(), mint: readKey(), vault: readKey(), treasury: readKey() };
-  for (const name of ['treasuryFloor', 'supplySnapshot', 'lotSize', 'totalLots', 'soldLots', 'exercisedLots', 'defaultClaimedLots', 'reclaimedLots', 'saleDeadlineSlot', 'expirySlot', 'strikeLamports', 'premiumLamports']) result[name] = readU64();
+  for (const name of ['treasuryFloor', 'supplySnapshot', 'lotSize', 'totalLots', 'soldLots', 'exercisedLots', 'defaultClaimedLots', 'reclaimedLots', 'saleDeadlineSlot', 'expirySlot', 'strikeLamports', 'premiumLamports', 'premiumSpentLamports', 'premiumRefundedLamports', 'premiumRefundClaimedLots']) result[name] = readU64();
   return result;
 }
 
@@ -117,7 +124,7 @@ export async function listVerifiedSeriesByMint(connection, programId, mint) {
   const mintKey = key(mint);
   const rows = await connection.getProgramAccounts(key(programId), {
     commitment: 'confirmed',
-    filters: [{ dataSize: 242 }, { memcmp: { offset: 50, bytes: mintKey.toBase58() } }],
+    filters: [{ dataSize: 266 }, { memcmp: { offset: 50, bytes: mintKey.toBase58() } }],
   });
   return rows.flatMap(({ pubkey, account }) => {
     try {
