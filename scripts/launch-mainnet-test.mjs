@@ -2,21 +2,21 @@ import { readFileSync } from "node:fs";
 import { PUMP_PROGRAM_ID, PUMP_SDK } from "@pump-fun/pump-sdk";
 import { Connection, Keypair, Transaction } from "@solana/web3.js";
 
-const shouldSend = process.argv.includes("--send");
-const keypairPath = process.env.JOLTWORK_KEYPAIR_PATH;
-if (!keypairPath) throw new Error("Set JOLTWORK_KEYPAIR_PATH to the protected deployer keypair file.");
+if (process.argv.includes("--send")) throw new Error("Mainnet sending is disabled until the unified h/monhook release is approved.");
+const keypairPath = process.env.HMONHOOK_KEYPAIR_PATH;
+if (!keypairPath) throw new Error("Set HMONHOOK_KEYPAIR_PATH to a protected simulation wallet keypair file.");
 
 const secret = Uint8Array.from(JSON.parse(readFileSync(keypairPath, "utf8")));
 const payer = Keypair.fromSecretKey(secret);
 const mint = Keypair.generate();
 const rpc = process.env.SOLANA_RPC_URL || "https://solana-rpc.publicnode.com";
-const metadataUri = "https://dellmodrun.github.io/Joltwork/markets/test-token/metadata.json";
+const metadataUri = process.env.HMONHOOK_TEST_METADATA_URI || "https://hmonhook-launch-api.zaunmanx.chatgpt.site/metadata/75216601136c79f3ba6138f5b08c058ef7029afb6d90950d248a31a7151b78c1.json";
 const connection = new Connection(rpc, "confirmed");
 
 const instruction = await PUMP_SDK.createV2Instruction({
   mint: mint.publicKey,
-  name: "Joltwork Test",
-  symbol: "JOLTTEST",
+  name: "Hmonhook API Test",
+  symbol: "APITEST",
   uri: metadataUri,
   creator: payer.publicKey,
   user: payer.publicKey,
@@ -41,7 +41,7 @@ const [balance, fee, simulation] = await Promise.all([
 ]);
 
 const report = {
-  mode: shouldSend ? "send" : "simulation-only",
+  mode: "simulation-only",
   network: "solana-mainnet-beta",
   payer: payer.publicKey.toBase58(),
   payerBalanceSol: balance / 1_000_000_000,
@@ -52,7 +52,7 @@ const report = {
   accountCount: instruction.keys.length,
   simulationError: simulation.value.err,
   simulationUnits: simulation.value.unitsConsumed,
-  simulationLogs: shouldSend ? undefined : simulation.value.logs,
+  simulationLogs: simulation.value.logs,
 };
 
 if (simulation.value.err) {
@@ -60,33 +60,4 @@ if (simulation.value.err) {
   throw new Error("Mainnet simulation failed; transaction was not sent.");
 }
 
-if (!shouldSend) {
-  console.log(JSON.stringify(report, null, 2));
-  process.exit(0);
-}
-
-const signature = await connection.sendRawTransaction(transaction.serialize(), {
-  preflightCommitment: "confirmed",
-  maxRetries: 4,
-});
-let confirmation;
-try {
-  confirmation = await connection.confirmTransaction({
-    signature,
-    blockhash: latest.blockhash,
-    lastValidBlockHeight: latest.lastValidBlockHeight,
-  }, "confirmed");
-} catch (error) {
-  const recovered = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
-  if (!recovered.value || recovered.value.err) throw error;
-  confirmation = { value: { err: null } };
-}
-if (confirmation.value.err) throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
-
-console.log(JSON.stringify({
-  ...report,
-  status: "confirmed",
-  signature,
-  explorer: `https://explorer.solana.com/tx/${signature}`,
-  pump: `https://pump.fun/coin/${mint.publicKey.toBase58()}`,
-}, null, 2));
+console.log(JSON.stringify(report, null, 2));
