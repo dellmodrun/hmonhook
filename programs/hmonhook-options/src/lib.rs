@@ -196,10 +196,14 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let (supply, decimals) = mint_data(mint)?;
     let lot_size = 10_u64.checked_pow(decimals as u32).ok_or_else(overflow)?;
     if supply == 0 || deposit == 0 || deposit % lot_size != 0 || (deposit as u128) * 100 < (supply as u128) * 2 || (deposit as u128) * 100 > (supply as u128) * 10 { return Err(invalid()); }
-    token_data(source, mint.key, issuer.key)?;
+    // The same account must supply collateral and remain under observation.
+    // Otherwise the issuer could sell from the unmonitored source while the
+    // registered treasury stays above its floor.
+    if source.key != treasury.key { return Err(invalid()); }
+    let source_amount = token_data(source, mint.key, issuer.key)?;
     if vault_token_data(vault, mint.key, state.key)? != 0 { return Err(bad_account()); }
-    let treasury_amount = token_data(treasury, mint.key, issuer.key)?;
-    if floor == 0 || floor > treasury_amount || treasury.key == source.key { return Err(invalid()); }
+    let expected_remaining = source_amount.checked_sub(deposit).ok_or_else(invalid)?;
+    if floor == 0 || floor > expected_remaining { return Err(invalid()); }
     let (expected, bump) = Pubkey::find_program_address(&[b"series", mint.key.as_ref(), issuer.key.as_ref(), &nonce.to_le_bytes()], program_id);
     if expected != *state.key { return Err(bad_account()); }
     let premium = strike / 10 + u64::from(strike % 10 != 0);
@@ -211,6 +215,7 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     transfer_tokens(source, vault, mint, issuer, token_program, deposit, decimals, None)?;
     let received = vault_token_data(vault, mint.key, state.key)?.checked_sub(before).ok_or_else(overflow)?;
     if received != deposit { return Err(bad_account()); }
+    if token_data(treasury, mint.key, issuer.key)? != expected_remaining { return Err(bad_account()); }
     save(state, &series)
 }
 

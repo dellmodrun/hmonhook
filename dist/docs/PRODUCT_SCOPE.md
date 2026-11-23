@@ -22,6 +22,8 @@ The proposed terms allow a developer to lock 2%–10% of supply and sell options
 
 This module is not deployed through h/monhook. No current market card, launch transaction or Jolt Guard receipt proves an issuer lock, option position, sale violation or claim. A production version needs audited contracts, an independently reviewable evidence and attestation path, an indexer and an explicit user interface for each right and risk.
 
+The development options contract now binds the collateral source to one monitored issuer treasury. A fall below that account's committed balance can be checked on-chain. It does not identify every wallet controlled by a developer or prove a historical sale after a balance is restored. The planned premium buyback must send acquired tokens to an unwithdrawable vault; the current contract still has no executable premium route and must not accept real option purchases.
+
 ## Optional user privacy: integration planned
 
 Helius Privacy Rings are an external technology that may support confidential transfers for eligible user assets. According to Helius's [Privacy Rings explanation](https://www.helius.dev/blog/solana-privacy-rings), the default Ring can conceal asset and amount while wallet addresses remain visible. h/monhook has not integrated these transfers into the launcher, intent composer or Jolt Guard program.

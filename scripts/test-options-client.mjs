@@ -14,13 +14,21 @@ const issuer = Keypair.generate().publicKey;
 const buyer = Keypair.generate().publicKey;
 const mint = Keypair.generate().publicKey;
 const source = Keypair.generate().publicKey;
-const treasury = Keypair.generate().publicKey;
+const treasury = source;
 const nonce = 7n;
 const { address: series, vault } = deriveSeries(programId, mint, issuer, nonce);
 
 test('series and position PDAs bind mint, issuer and buyer', () => {
   assert.notEqual(series.toBase58(), deriveSeries(programId, mint, buyer, nonce).address.toBase58());
   assert.notEqual(derivePosition(programId, series, buyer).toBase58(), derivePosition(programId, series, issuer).toBase58());
+});
+
+test('opening cannot use a different unmonitored collateral source', () => {
+  assert.throws(() => openSeriesInstructions({
+    programId, issuer, mint, source, treasury: Keypair.generate().publicKey,
+    nonce, deposit: 20n, strikeLamports: 100n, saleDeadlineSlot: 200n,
+    expirySlot: 300n, treasuryFloor: 40n,
+  }), /collateral source must be the monitored issuer treasury/);
 });
 
 test('all option actions target the chosen new program with exact account order', () => {

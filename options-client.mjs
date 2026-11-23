@@ -35,6 +35,9 @@ export function derivePosition(programId, series, buyer) {
 }
 
 export function openSeriesInstructions({ programId, issuer, mint, source, treasury, nonce, deposit, strikeLamports, saleDeadlineSlot, expirySlot, treasuryFloor }) {
+  if (!key(source).equals(key(treasury))) {
+    throw new Error('The collateral source must be the monitored issuer treasury.');
+  }
   const series = deriveSeries(programId, mint, issuer, nonce);
   const createVault = createAssociatedTokenAccountIdempotentInstruction(key(issuer), series.vault, series.address, key(mint), TOKEN_2022_PROGRAM_ID);
   const initialize = instruction(programId, 0, [
