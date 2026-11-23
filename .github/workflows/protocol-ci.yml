@@ -28,6 +28,18 @@ jobs:
       - name: Check issuer options program
         run: cargo test --manifest-path programs/hmonhook-options/Cargo.toml
 
+  issuer-options-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run test:options
+
   sdk:
     runs-on: ubuntu-latest
     steps:

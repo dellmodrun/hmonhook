@@ -2,6 +2,8 @@
 
 This document fixes the financial rules that were previously only marketing copy. It is a proposed implementation specification, **not a deployed contract**. No interface may label a coin protected until its deployed program, escrow balance, terms and issuer commitment are verified on-chain.
 
+The development branch contains a native Rust program under `programs/hmonhook-options` and a transaction builder in `options-client.mjs`. These are development artifacts. Unit tests do not establish that token CPIs, rent accounting and expiry behavior succeed in a real Solana runtime; full execution tests and an external review remain release gates.
+
 ## Series and collateral
 
 - One series is identified by a token Mint, issuer wallet and unique series number. The issuer signs its creation.
