@@ -32,13 +32,17 @@ async function rateLimit(request, env, route, max) {
   if (!ip) return false;
   const day = new Date().toISOString().slice(0, 10);
   const key = `limits/${route}/${day}/${await sha256(new TextEncoder().encode(ip))}`;
-  const current = await env.BUCKET.get(key);
-  const count = current ? Number(await current.text()) : 0;
-  if (!Number.isSafeInteger(count) || count >= max) return false;
-  // The bucket check is best-effort concurrency control; Cloudflare's own
-  // request limits should be configured before accepting high volume traffic.
-  await env.BUCKET.put(key, String(count + 1));
-  return true;
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const current = await env.BUCKET.get(key);
+    const count = current ? Number(await current.text()) : 0;
+    if (!Number.isSafeInteger(count) || count >= max) return false;
+    const condition = new Headers(current ? { 'if-match': current.httpEtag } : { 'if-none-match': '*' });
+    // Conditional puts compare against the committed R2 object atomically.
+    // A concurrent writer makes this return null, so read and try again.
+    const stored = await env.BUCKET.put(key, String(count + 1), { onlyIf: condition });
+    if (stored) return true;
+  }
+  return false;
 }
 
 function normalizedName(name) {

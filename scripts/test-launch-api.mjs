@@ -12,15 +12,26 @@ const png = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAA
 
 function bucket() {
   const objects = new Map();
+  let version = 0;
   const object = key => {
-    const bytes = objects.get(key);
-    return bytes && { body: new Response(bytes).body, text: async () => new TextDecoder().decode(bytes), httpEtag: '"test"' };
+    const stored = objects.get(key);
+    return stored && { body: new Response(stored.bytes).body,
+      text: async () => new TextDecoder().decode(stored.bytes),
+      etag: stored.etag, httpEtag: `"${stored.etag}"` };
   };
   return {
     objects,
     head: async key => object(key),
     get: async key => object(key),
-    put: async (key, data) => objects.set(key, typeof data === 'string' ? new TextEncoder().encode(data) : data),
+    put: async (key, data, options = {}) => {
+      const current = objects.get(key);
+      const onlyIf = options.onlyIf;
+      if (onlyIf?.get('if-none-match') === '*' && current) return null;
+      if (onlyIf?.has('if-match') && (!current || onlyIf.get('if-match') !== `"${current.etag}"`)) return null;
+      const etag = String(++version);
+      objects.set(key, { bytes: typeof data === 'string' ? new TextEncoder().encode(data) : data, etag });
+      return { etag, httpEtag: `"${etag}"` };
+    },
     list: async ({ prefix, limit }) => ({ objects: [...objects.keys()].filter(key => key.startsWith(prefix)).sort().slice(0, limit).map(key => ({ key })), truncated: false }),
   };
 }
@@ -87,6 +98,18 @@ test('upload rejects other origins and does not touch storage', async () => {
     headers: { origin: 'https://other.example', 'cf-connecting-ip': '192.0.2.1' } }), env);
   assert.equal(result.status, 403);
   assert.equal(env.BUCKET.objects.size, 0);
+});
+
+test('concurrent upload requests cannot exceed the per-IP daily cap', async () => {
+  const env = { BUCKET: bucket() };
+  const results = await Promise.all(Array.from({ length: 30 }, () => api.fetch(request('/metadata-upload', {
+    method: 'POST', body: 'invalid multipart body',
+  }), env)));
+  const admitted = results.filter(result => result.status === 400).length;
+  assert.ok(admitted <= 20);
+  assert.ok(results.some(result => result.status === 429));
+  const counter = [...env.BUCKET.objects.entries()].find(([key]) => key.startsWith('limits/metadata/'));
+  assert.equal(Number(new TextDecoder().decode(counter[1].bytes)), admitted);
 });
 
 test('registry tries the official RPC if the primary provider fails', async () => {
