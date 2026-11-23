@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createRequire } from 'node:module';
 import bs58 from 'bs58';
-import { PUMP_SDK, PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { Keypair } from '@solana/web3.js';
 import { verifiedLaunch } from '../supabase/functions/launch-registry/verify-launch.mjs';
+
+// Pump's published package exposes a CommonJS build; Node 22 cannot load one
+// of its optional ESM dependencies consistently in the CI runner.
+const { PUMP_SDK, PUMP_PROGRAM_ID } = createRequire(import.meta.url)('@pump-fun/pump-sdk');
 
 const creator = Keypair.generate().publicKey;
 const mint = Keypair.generate().publicKey;
