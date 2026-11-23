@@ -1,0 +1,21 @@
+[package]
+name = "hmonhook-options"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+
+[dependencies]
+borsh = { version = "1.8", features = ["derive"] }
+solana-program = "4.0"
+solana-system-interface = { version = "3.3", features = ["bincode"] }
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1

@@ -20,6 +20,14 @@ jobs:
       - name: Test Jolt Guard
         run: cargo test --manifest-path programs/jolt-guard/Cargo.toml
 
+  issuer-options:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check issuer options program
+        run: cargo test --manifest-path programs/hmonhook-options/Cargo.toml
+
   sdk:
     runs-on: ubuntu-latest
     steps:
