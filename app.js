@@ -240,6 +240,15 @@
 
   var launchForm = byId("launch-form");
   var metadataCheck = byId("metadata-check");
+  function clearMetadataPreview() {
+    ["coin-description", "coin-image", "coin-website", "coin-twitter", "coin-telegram"].forEach(function (id) {
+      if (byId(id)) byId(id).value = "";
+    });
+    if (byId("coin-image-preview")) {
+      byId("coin-image-preview").removeAttribute("src");
+      byId("coin-image-preview").hidden = true;
+    }
+  }
   if (metadataCheck) metadataCheck.addEventListener("click", async function () {
     var state = byId("metadata-state");
     var preview = byId("coin-image-preview");
@@ -248,6 +257,7 @@
     verifiedMetadataUri = null;
     verifiedMetadata = null;
     launchManifestReady = false;
+    clearMetadataPreview();
     try {
       var uri = metadataUri(byId("coin-uri").value.trim());
       if (uri.length > 200) throw new Error("Pump metadata URI must not exceed 200 characters");
@@ -261,9 +271,9 @@
       var image = metadataUri(metadata.image);
       byId("coin-description").value = metadata.description;
       byId("coin-image").value = image;
-      if (metadata.website) byId("coin-website").value = metadata.website;
-      if (metadata.twitter) byId("coin-twitter").value = metadata.twitter;
-      if (metadata.telegram) byId("coin-telegram").value = metadata.telegram;
+      byId("coin-website").value = metadata.website || "";
+      byId("coin-twitter").value = metadata.twitter || "";
+      byId("coin-telegram").value = metadata.telegram || "";
       preview.src = image;
       preview.hidden = false;
       verifiedMetadataUri = uri;
@@ -286,11 +296,17 @@
     verifiedMetadataUri = null;
     verifiedMetadata = null;
     launchManifestReady = false;
+    clearMetadataPreview();
     if (byId("metadata-state")) { byId("metadata-state").textContent = "METADATA NOT VERIFIED"; byId("metadata-state").classList.remove("ready"); }
     setWalletAddress(walletAddress, activeProvider);
   }
   ["coin-uri", "coin-name", "coin-symbol"].forEach(function (id) {
     if (byId(id)) byId(id).addEventListener("input", invalidateMetadata);
+  });
+  if (byId("coin-policy")) byId("coin-policy").addEventListener("change", function () {
+    launchManifestReady = false;
+    if (byId("launch-submit")) byId("launch-submit").disabled = true;
+    if (byId("launch-output")) byId("launch-output").textContent = "The local policy plan changed. Compile it again before creating the coin.";
   });
   if (launchForm) launchForm.addEventListener("submit", async function (event) {
     event.preventDefault();
@@ -342,19 +358,15 @@
       },
       defaultIntentPolicy: {
         type: byId("coin-policy").value,
-        enforcement: "jolt-guard-route-wrapper"
+        status: "local-proposal-not-published"
       }
     };
     var canonical = JSON.stringify(manifest);
     output.textContent = JSON.stringify({
-      launchManifestId: await sha256(canonical),
+      localPlanHash: await sha256(canonical),
       manifest: manifest,
-      transactionPlan: [
-        "create Token-2022 mint and metadata",
-        "create bonding curve or native market",
-        "publish default Jolt intent policy",
-        "bind trading interface to Jolt Guard"
-      ],
+      liveAction: "create a Token-2022 coin through Pump create_v2 after wallet approval",
+      notIncluded: ["publish the intended Jolt policy", "create an issuer lock or option", "integrate Privacy Rings"],
       signingAuthority: walletAddress || "connect wallet before transaction assembly"
     }, null, 2);
     launchManifestReady = true;
@@ -401,7 +413,7 @@
         signature: result.signature,
         solscan: result.explorer,
         pump: result.pump,
-        note: "The token is live on mainnet and its policy references Jolt Guard program 6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY."
+        note: "The Pump coin was created on mainnet. The local JLM1 policy plan was not published or enforced by this transaction."
       }, null, 2);
       try {
         var launchRecord = {
@@ -438,6 +450,15 @@
   });
 
   var latestIntentQuote = null;
+  ["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage", "intent-output-min", "intent-expiry"].forEach(function (id) {
+    if (!byId(id)) return;
+    byId(id).addEventListener("input", function () {
+      intentManifestReady = false;
+      if (byId("intent-submit")) byId("intent-submit").disabled = true;
+      if (["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage"].indexOf(id) !== -1) latestIntentQuote = null;
+      if (byId("intent-output")) byId("intent-output").textContent = latestIntentQuote ? "Constraints changed. Compile the preview again before signing." : "Trade changed. Get a fresh quote and compile again before signing.";
+    });
+  });
   if (byId("intent-output-mint")) {
     try {
       var requestedOutputMint = new URLSearchParams(window.location.search).get("outputMint");
@@ -516,9 +537,10 @@
         throw new Error("request a fresh quote after changing the trade fields");
       }
       output.textContent = JSON.stringify({
-        intentId: await sha256(JSON.stringify(manifest)),
+        localPreviewHash: await sha256(JSON.stringify(manifest)),
         constraints: manifest,
         quote: latestIntentQuote,
+        note: "This local JSON hash is not the on-chain JOLT intent ID. Signing assembles a fresh Jupiter route and the actual guard instruction.",
         execution: [
           "snapshot source and destination token accounts",
           "invoke PRE policy hook",
@@ -529,7 +551,7 @@
       }, null, 2);
       intentManifestReady = true;
       if (byId("intent-submit")) byId("intent-submit").disabled = !walletAddress;
-      showToast("JOLT V1 intent compiled", "success");
+      showToast("Trade preview compiled", "success");
     } catch (error) {
       output.textContent = "error · " + error.message;
       showToast(error.message, "error");
@@ -624,6 +646,7 @@
     verifyDeployment: "scripts/verify-deployment.mjs",
     checkSite: "scripts/check-site.mjs",
     readme: "README.md",
+    productScope: "docs/PRODUCT_SCOPE.md",
     architecture: "docs/ARCHITECTURE.md",
     integration: "docs/INTEGRATION.md",
     security: "docs/SECURITY.md",
@@ -679,7 +702,11 @@
       showCode(button.dataset.code, button);
     });
   });
-  if (byId("code-view")) showCode("program", document.querySelector('[data-code="program"]'));
+  if (byId("code-view")) {
+    var requestedCode = new URLSearchParams(window.location.search).get("file") || "program";
+    if (!codePaths[requestedCode]) requestedCode = "program";
+    showCode(requestedCode, document.querySelector('[data-code="' + requestedCode + '"]'));
+  }
 
   if (byId("code-filter")) byId("code-filter").addEventListener("input", function () {
     var query = byId("code-filter").value.trim().toLowerCase();
@@ -717,7 +744,7 @@
     var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = path.split("/").pop() || "joltwork-source.txt";
+    link.download = path.split("/").pop() || "hmonhook-source.txt";
     link.click();
     URL.revokeObjectURL(link.href);
     showToast("Source file downloaded", "success");

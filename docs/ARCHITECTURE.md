@@ -1,6 +1,6 @@
-# Joltwork architecture
+# h/monhook architecture
 
-Joltwork places a settlement guard around one user-authorized transaction. Unlike a pool hook, the guard is not owned by one liquidity pool. It binds the signer, ordered accounts, route instruction, optional policy hook, expiry, maximum input and minimum output into one intent identifier.
+h/monhook places a settlement guard around one user-authorized transaction. Unlike a pool hook, the guard is not owned by one liquidity pool. It binds the signer, ordered accounts, route instruction, optional policy hook, expiry, maximum input and minimum output into one intent identifier. The proposed issuer-option and Privacy Rings layers are documented separately in [product scope](PRODUCT_SCOPE.md); they are not instructions in the deployed guard program.
 
 ## Execution boundary
 

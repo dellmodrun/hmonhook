@@ -9,6 +9,8 @@ assert.ok(!existsSync(resolve(root, "CNAME")), "copied site must not claim the o
 
 for (const page of pages) {
   const html = readFileSync(resolve(root, page), "utf8");
+  assert.ok(html.includes('href="https://x.com/hmonhook"'), `current X account missing in ${page}`);
+  assert.ok(!html.includes("x.com/Joltworkrunit"), `old X account remains in ${page}`);
   const baseAtRoot = /<base\s+href=["']\.\.\/["']/i.test(html);
   for (const match of html.matchAll(/href=["']([^"']+)["']/gi)) {
     const href = match[1];
@@ -18,6 +20,11 @@ for (const page of pages) {
     const target = baseAtRoot ? resolve(root, clean) : resolve(dirname(resolve(root, page)), clean);
     const fileTarget = clean.endsWith("/") ? resolve(target, "index.html") : target;
     assert.ok(existsSync(fileTarget), `broken local link in ${page}: ${href}`);
+    const fragment = href.split("#")[1];
+    if (fragment) {
+      const targetHtml = readFileSync(fileTarget, "utf8");
+      assert.ok(targetHtml.includes(`id="${decodeURIComponent(fragment)}"`), `broken section link in ${page}: ${href}`);
+    }
   }
 }
 
@@ -27,6 +34,11 @@ for (const id of ["code-view", "code-filter", "code-copy", "code-download"]) {
 }
 const app = readFileSync(resolve(root, "app.js"), "utf8");
 const marketsClient = readFileSync(resolve(root, "markets.js"), "utf8");
+assert.ok(existsSync(resolve(root, "docs/PRODUCT_SCOPE.md")), "product scope document missing");
+assert.match(app, /productScope: "docs\/PRODUCT_SCOPE\.md"/, "source browser cannot open product scope");
+assert.match(app, /local-proposal-not-published/, "launcher must mark the policy plan as local");
+assert.match(app, /localPreviewHash/, "trade preview must not use the on-chain intent ID label");
+assert.match(app, /Trade changed\. Get a fresh quote/, "editing a trade must invalidate the signing preview");
 assert.match(app, /3gAqr1U9CzYhZBoqDJeEQFtphjVGvr24h4znUK2knfVG|codePaths/);
 const home = readFileSync(resolve(root, "index.html"), "utf8");
 assert.match(home, /id=["']official-ca["']>TBA</, "official CA placeholder missing from home page");
@@ -45,11 +57,15 @@ const launch = readFileSync(resolve(root, "launch/index.html"), "utf8");
 for (const id of ["coin-description", "coin-image", "coin-uri", "metadata-check", "launch-submit"]) {
   assert.match(launch, new RegExp(`id=["']${id}["']`), `launch workbench missing ${id}`);
 }
+assert.ok(!launch.includes('<option value="USDC">') && !launch.includes('<option value="PUMP_COIN">'), "launcher offers unsupported live quote assets");
+assert.match(launch, /INTENDED POLICY \/ LOCAL PLAN/, "launcher policy status is unclear");
+assert.match(launch, /id="issuer-protection"/, "issuer concept missing from launch page");
 const markets = readFileSync(resolve(root, "markets/index.html"), "utf8");
 for (const id of ["market-grid", "market-search", "market-refresh", "market-sort", "market-total"]) {
   assert.match(markets, new RegExp(`id=["']${id}["']`), `markets page missing ${id}`);
 }
 assert.match(marketsClient, /api\.dexscreener\.com\/tokens\/v1\/solana/, "markets must resolve live Solana market data");
+assert.ok(!marketsClient.includes('source: "search", createdAt: Date.now()'), "market search must not invent a launch date");
 assert.match(app, /joltwork\.launches\.v1/, "confirmed launches must be persisted for market discovery");
 const marketRegistry = JSON.parse(readFileSync(resolve(root, "markets/registry.json"), "utf8"));
 assert.equal(marketRegistry.format, "JOLTWORK_MARKETS_V1", "unexpected markets registry format");

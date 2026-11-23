@@ -73,7 +73,7 @@
 </a>
     </nav>
     <div class="rail-bottom">
-      <a class="rail-action" href="https://x.com/Joltworkrunit" target="_blank" rel="noreferrer">
+      <a class="rail-action" href="https://x.com/hmonhook" target="_blank" rel="noreferrer">
 <span class="rail-icon">
 <svg class="fill-icon" viewBox="0 0 24 24">
 <path d="M18.9 2H22l-6.8 7.8L23 22h-6.1l-4.8-6.3L6.6 22H3.5l7.1-8.1L3.1 2h6.3l4.4 5.8L18.9 2Zm-1.1 17.9h1.7L8.5 4H6.7l11.1 15.9Z"/>
@@ -109,7 +109,7 @@
 <p class="hero-thesis">See the commitment. Set the terms. Control the outcome.</p>
 <div class="primary-actions">
 <a class="button button-solid" href="./launch/">launch a coin</a>
-<a class="button" href="https://x.com/Joltworkrunit" target="_blank" rel="noreferrer">follow on x</a>
+<a class="button" href="https://x.com/hmonhook" target="_blank" rel="noreferrer">follow on x</a>
 </div>
 </div>
       <div class="hero-logo">
@@ -140,6 +140,7 @@
 <h2>Why I am building h/monhook.</h2>
 <p>I started h/monhook with a simple frustration: a trader can carefully choose a route, set slippage and sign a transaction, yet the promise they saw in the interface is still separate from the result that finally settles on-chain. Most tools explain the trade before it happens or analyse it after it happens. I want the promise itself to become executable.</p>
 <p>That is why the hook in h/monhook does not belong to one pool. It belongs to one transaction. The user signs the outcome they are willing to accept—how much may leave, how much must arrive, which route may execute, when the intent expires, and which extra policy must pass. Jolt Guard surrounds the route, measures what actually changed, and lets Solana commit the transaction only when those conditions hold.</p>
+<p>The same question starts before a trade: what did a developer promise, and can a buyer verify it? I want same-name launches to be compared by Mint, developer, locked supply and option terms instead of a familiar ticker alone. After settlement, users should also have a choice of private transfer where it is compatible with that public evidence. Those issuer and privacy layers are designs I am working toward; Jolt Guard is the deployed core.</p>
 <p>I do not want h/monhook to be another dashboard wearing protocol language. I am building the program, SDK, manifest formats and product surfaces together so the idea can be used by token creators, wallets, routers and ordinary traders. I am publishing the work as it develops because the mechanism should be inspectable, testable and improved in public.</p>
 <p class="dev-signature">— The h/monhook developer<br>
 <span>Building intent-bound settlement on Solana.</span>
@@ -246,7 +247,7 @@
 <a class="route-card" href="./launch/">
 <span class="card-icon">L</span>
 <h3>Launch Coin</h3>
-<p>Create a Token-2022 asset and compile the default intent policy traders will see.</p>
+<p>Create a Token-2022 coin through Pump and export a separate, local JLM1 policy plan.</p>
 <small>OPEN LAUNCHER →</small>
 </a>
 <a class="route-card" href="./intent/">
@@ -279,7 +280,8 @@
 <ul class="check-list">
 <li>Rust Jolt Guard program with pre, execute and post phases.</li>
 <li>TypeScript instruction builder and account indexing SDK.</li>
-<li>JLM1 launch and JOLT V1 intent compilers.</li>
+<li>JLM1 local launch-plan preview and JOLT V1 SDK encoder.</li>
+<li>Browser route assembly for a supported Jupiter protected swap.</li>
 <li>JHK1 policy and JRC1 receipt specifications.</li>
 <li>Protocol CI, SDK tests and inspectable source.</li>
 <li>Verified Jolt Guard mainnet and devnet deployments with public Program IDs.</li>
@@ -289,7 +291,7 @@
 <h3>Shipping next</h3>
 <ul class="check-list warn">
 <li>Independent audit of the published mainnet binary and adapters.</li>
-<li>Wallet-side transaction assembly and signing flow.</li>
+<li>Broader wallet and route integrations with production monitoring.</li>
 <li>Production adapters for launchpads and routers.</li>
 <li>Independent security review and adversarial test coverage.</li>
 <li>On-chain policy registry and settlement explorer.</li>
@@ -308,7 +310,7 @@
 </div>
 </div>
 <div class="prose-block compact">
-<p>The same intent has different value at each layer. A trader gets a real limit; a wallet gets something precise to explain; a router keeps freedom to search for liquidity; a token creator can publish a baseline policy; and an indexer receives a compact record of what actually settled.</p>
+<p>The same intent has different value at each layer. A trader gets a real limit; a wallet gets something precise to explain; a router keeps freedom to search for liquidity; a token creator can draft a baseline policy; and an indexer receives a compact record of what actually settled.</p>
 </div>
 <div class="fact-grid">
 <article>
@@ -318,8 +320,8 @@
 </article>
 <article>
 <b>COIN CREATORS</b>
-<strong>Publish a baseline</strong>
-<p>Launch an asset with a default policy that interfaces can explain and strengthen.</p>
+<strong>Draft a baseline</strong>
+<p>Create a coin and export a local policy plan for a future publisher or wallet integration.</p>
 </article>
 <article>
 <b>WALLETS</b>

@@ -1,8 +1,8 @@
-# Joltwork
+# h/monhook
 
-Intent-level hooks and verifiable settlement for Solana.
+Public issuer commitments, transaction-bound settlement and an optional privacy direction for Solana. The implemented core is Jolt Guard; the issuer-option and Privacy Rings layers are design and integration work, respectively. See [product scope](docs/PRODUCT_SCOPE.md) for the exact boundary.
 
-Joltwork is not a block explorer. Jolt Guard changes whether a route is allowed
+h/monhook is not a block explorer. Jolt Guard changes whether a supported route is allowed
 to settle. A user signs maximum-input, minimum-output and expiry constraints;
 the program executes the route through CPI and atomically rejects settlement if
 the realized token-account deltas violate the intent.
@@ -28,7 +28,7 @@ instruction, and wraps the exact route bytes in a canonical JOLT intent.
 
 ## Web product
 
-- index.html and app.js: public Joltwork interface.
+- index.html and app.js: public h/monhook interface.
 - dist/index.html: single-file build with embedded visual assets.
 - bundle.py: regenerates the single-file build.
 

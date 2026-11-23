@@ -76,6 +76,10 @@ h1,h2,h3,strong,.statement,.equation i{font-style:normal!important}
 .story-grid a{align-self:flex-start;margin-top:auto;padding-top:22px;color:var(--good);font:12px/1.5 "JetBrains Mono",monospace;text-decoration:none;border-bottom:1px solid currentColor}
 .story-grid a:hover{color:var(--brand-hover)}
 .story-note{margin:13px 0 0;color:var(--muted);font-size:14px;line-height:1.6}
+.form-note{margin:14px 0 0;color:#d6b798;font-size:14px;line-height:1.65}
+.form-sheet input[readonly],.form-sheet textarea[readonly]{background:#15100d;color:#c9b9aa;cursor:default}
+.table-scroll{max-width:100%;overflow-x:auto}
+.table-scroll .integration-table{min-width:580px;margin:0}
 @media(max-width:1000px){.story-grid{grid-template-columns:1fr}.story-grid article{padding:22px}.story-grid a{margin-top:8px}}
 :root{--bg:#000;--panel:#0d0d0d;--panel-2:#080808;--text:#f0e9e0;--muted:#a9a198;--line:#49301f;--line-soft:#2c1d13;--good:#ff8a1c;--brand:#ff7900;--brand-hover:#ffa13b}
 body{background:#000;background-image:none}

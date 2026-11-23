@@ -99,6 +99,10 @@ h1,h2,h3,strong,.statement,.equation i{font-style:normal!important}
 .story-grid a{align-self:flex-start;margin-top:auto;padding-top:22px;color:var(--good);font:12px/1.5 "JetBrains Mono",monospace;text-decoration:none;border-bottom:1px solid currentColor}
 .story-grid a:hover{color:var(--brand-hover)}
 .story-note{margin:13px 0 0;color:var(--muted);font-size:14px;line-height:1.6}
+.form-note{margin:14px 0 0;color:#d6b798;font-size:14px;line-height:1.65}
+.form-sheet input[readonly],.form-sheet textarea[readonly]{background:#15100d;color:#c9b9aa;cursor:default}
+.table-scroll{max-width:100%;overflow-x:auto}
+.table-scroll .integration-table{min-width:580px;margin:0}
 @media(max-width:1000px){.story-grid{grid-template-columns:1fr}.story-grid article{padding:22px}.story-grid a{margin-top:8px}}
 :root{--bg:#000;--panel:#0d0d0d;--panel-2:#080808;--text:#f0e9e0;--muted:#a9a198;--line:#49301f;--line-soft:#2c1d13;--good:#ff8a1c;--brand:#ff7900;--brand-hover:#ffa13b}
 body{background:#000;background-image:none}
@@ -206,7 +210,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </a>
     </nav>
     <div class="rail-bottom">
-      <a class="rail-action" href="https://x.com/Joltworkrunit" target="_blank" rel="noreferrer">
+      <a class="rail-action" href="https://x.com/hmonhook" target="_blank" rel="noreferrer">
 <span class="rail-icon">
 <svg class="fill-icon" viewBox="0 0 24 24">
 <path d="M18.9 2H22l-6.8 7.8L23 22h-6.1l-4.8-6.3L6.6 22H3.5l7.1-8.1L3.1 2h6.3l4.4 5.8L18.9 2Zm-1.1 17.9h1.7L8.5 4H6.7l11.1 15.9Z"/>
@@ -242,7 +246,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <p class="hero-thesis">See the commitment. Set the terms. Control the outcome.</p>
 <div class="primary-actions">
 <a class="button button-solid" href="./launch/">launch a coin</a>
-<a class="button" href="https://x.com/Joltworkrunit" target="_blank" rel="noreferrer">follow on x</a>
+<a class="button" href="https://x.com/hmonhook" target="_blank" rel="noreferrer">follow on x</a>
 </div>
 </div>
       <div class="hero-logo">
@@ -273,6 +277,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <h2>Why I am building h/monhook.</h2>
 <p>I started h/monhook with a simple frustration: a trader can carefully choose a route, set slippage and sign a transaction, yet the promise they saw in the interface is still separate from the result that finally settles on-chain. Most tools explain the trade before it happens or analyse it after it happens. I want the promise itself to become executable.</p>
 <p>That is why the hook in h/monhook does not belong to one pool. It belongs to one transaction. The user signs the outcome they are willing to accept—how much may leave, how much must arrive, which route may execute, when the intent expires, and which extra policy must pass. Jolt Guard surrounds the route, measures what actually changed, and lets Solana commit the transaction only when those conditions hold.</p>
+<p>The same question starts before a trade: what did a developer promise, and can a buyer verify it? I want same-name launches to be compared by Mint, developer, locked supply and option terms instead of a familiar ticker alone. After settlement, users should also have a choice of private transfer where it is compatible with that public evidence. Those issuer and privacy layers are designs I am working toward; Jolt Guard is the deployed core.</p>
 <p>I do not want h/monhook to be another dashboard wearing protocol language. I am building the program, SDK, manifest formats and product surfaces together so the idea can be used by token creators, wallets, routers and ordinary traders. I am publishing the work as it develops because the mechanism should be inspectable, testable and improved in public.</p>
 <p class="dev-signature">— The h/monhook developer<br>
 <span>Building intent-bound settlement on Solana.</span>
@@ -379,7 +384,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <a class="route-card" href="./launch/">
 <span class="card-icon">L</span>
 <h3>Launch Coin</h3>
-<p>Create a Token-2022 asset and compile the default intent policy traders will see.</p>
+<p>Create a Token-2022 coin through Pump and export a separate, local JLM1 policy plan.</p>
 <small>OPEN LAUNCHER →</small>
 </a>
 <a class="route-card" href="./intent/">
@@ -412,7 +417,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <ul class="check-list">
 <li>Rust Jolt Guard program with pre, execute and post phases.</li>
 <li>TypeScript instruction builder and account indexing SDK.</li>
-<li>JLM1 launch and JOLT V1 intent compilers.</li>
+<li>JLM1 local launch-plan preview and JOLT V1 SDK encoder.</li>
+<li>Browser route assembly for a supported Jupiter protected swap.</li>
 <li>JHK1 policy and JRC1 receipt specifications.</li>
 <li>Protocol CI, SDK tests and inspectable source.</li>
 <li>Verified Jolt Guard mainnet and devnet deployments with public Program IDs.</li>
@@ -422,7 +428,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <h3>Shipping next</h3>
 <ul class="check-list warn">
 <li>Independent audit of the published mainnet binary and adapters.</li>
-<li>Wallet-side transaction assembly and signing flow.</li>
+<li>Broader wallet and route integrations with production monitoring.</li>
 <li>Production adapters for launchpads and routers.</li>
 <li>Independent security review and adversarial test coverage.</li>
 <li>On-chain policy registry and settlement explorer.</li>
@@ -441,7 +447,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 </div>
 <div class="prose-block compact">
-<p>The same intent has different value at each layer. A trader gets a real limit; a wallet gets something precise to explain; a router keeps freedom to search for liquidity; a token creator can publish a baseline policy; and an indexer receives a compact record of what actually settled.</p>
+<p>The same intent has different value at each layer. A trader gets a real limit; a wallet gets something precise to explain; a router keeps freedom to search for liquidity; a token creator can draft a baseline policy; and an indexer receives a compact record of what actually settled.</p>
 </div>
 <div class="fact-grid">
 <article>
@@ -451,8 +457,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </article>
 <article>
 <b>COIN CREATORS</b>
-<strong>Publish a baseline</strong>
-<p>Launch an asset with a default policy that interfaces can explain and strengthen.</p>
+<strong>Draft a baseline</strong>
+<p>Create a coin and export a local policy plan for a future publisher or wallet integration.</p>
 </article>
 <article>
 <b>WALLETS</b>
@@ -777,6 +783,15 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
 
   var launchForm = byId("launch-form");
   var metadataCheck = byId("metadata-check");
+  function clearMetadataPreview() {
+    ["coin-description", "coin-image", "coin-website", "coin-twitter", "coin-telegram"].forEach(function (id) {
+      if (byId(id)) byId(id).value = "";
+    });
+    if (byId("coin-image-preview")) {
+      byId("coin-image-preview").removeAttribute("src");
+      byId("coin-image-preview").hidden = true;
+    }
+  }
   if (metadataCheck) metadataCheck.addEventListener("click", async function () {
     var state = byId("metadata-state");
     var preview = byId("coin-image-preview");
@@ -785,6 +800,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     verifiedMetadataUri = null;
     verifiedMetadata = null;
     launchManifestReady = false;
+    clearMetadataPreview();
     try {
       var uri = metadataUri(byId("coin-uri").value.trim());
       if (uri.length > 200) throw new Error("Pump metadata URI must not exceed 200 characters");
@@ -798,9 +814,9 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       var image = metadataUri(metadata.image);
       byId("coin-description").value = metadata.description;
       byId("coin-image").value = image;
-      if (metadata.website) byId("coin-website").value = metadata.website;
-      if (metadata.twitter) byId("coin-twitter").value = metadata.twitter;
-      if (metadata.telegram) byId("coin-telegram").value = metadata.telegram;
+      byId("coin-website").value = metadata.website || "";
+      byId("coin-twitter").value = metadata.twitter || "";
+      byId("coin-telegram").value = metadata.telegram || "";
       preview.src = image;
       preview.hidden = false;
       verifiedMetadataUri = uri;
@@ -823,11 +839,17 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     verifiedMetadataUri = null;
     verifiedMetadata = null;
     launchManifestReady = false;
+    clearMetadataPreview();
     if (byId("metadata-state")) { byId("metadata-state").textContent = "METADATA NOT VERIFIED"; byId("metadata-state").classList.remove("ready"); }
     setWalletAddress(walletAddress, activeProvider);
   }
   ["coin-uri", "coin-name", "coin-symbol"].forEach(function (id) {
     if (byId(id)) byId(id).addEventListener("input", invalidateMetadata);
+  });
+  if (byId("coin-policy")) byId("coin-policy").addEventListener("change", function () {
+    launchManifestReady = false;
+    if (byId("launch-submit")) byId("launch-submit").disabled = true;
+    if (byId("launch-output")) byId("launch-output").textContent = "The local policy plan changed. Compile it again before creating the coin.";
   });
   if (launchForm) launchForm.addEventListener("submit", async function (event) {
     event.preventDefault();
@@ -879,19 +901,15 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       },
       defaultIntentPolicy: {
         type: byId("coin-policy").value,
-        enforcement: "jolt-guard-route-wrapper"
+        status: "local-proposal-not-published"
       }
     };
     var canonical = JSON.stringify(manifest);
     output.textContent = JSON.stringify({
-      launchManifestId: await sha256(canonical),
+      localPlanHash: await sha256(canonical),
       manifest: manifest,
-      transactionPlan: [
-        "create Token-2022 mint and metadata",
-        "create bonding curve or native market",
-        "publish default Jolt intent policy",
-        "bind trading interface to Jolt Guard"
-      ],
+      liveAction: "create a Token-2022 coin through Pump create_v2 after wallet approval",
+      notIncluded: ["publish the intended Jolt policy", "create an issuer lock or option", "integrate Privacy Rings"],
       signingAuthority: walletAddress || "connect wallet before transaction assembly"
     }, null, 2);
     launchManifestReady = true;
@@ -938,7 +956,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         signature: result.signature,
         solscan: result.explorer,
         pump: result.pump,
-        note: "The token is live on mainnet and its policy references Jolt Guard program 6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY."
+        note: "The Pump coin was created on mainnet. The local JLM1 policy plan was not published or enforced by this transaction."
       }, null, 2);
       try {
         var launchRecord = {
@@ -975,6 +993,15 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   });
 
   var latestIntentQuote = null;
+  ["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage", "intent-output-min", "intent-expiry"].forEach(function (id) {
+    if (!byId(id)) return;
+    byId(id).addEventListener("input", function () {
+      intentManifestReady = false;
+      if (byId("intent-submit")) byId("intent-submit").disabled = true;
+      if (["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage"].indexOf(id) !== -1) latestIntentQuote = null;
+      if (byId("intent-output")) byId("intent-output").textContent = latestIntentQuote ? "Constraints changed. Compile the preview again before signing." : "Trade changed. Get a fresh quote and compile again before signing.";
+    });
+  });
   if (byId("intent-output-mint")) {
     try {
       var requestedOutputMint = new URLSearchParams(window.location.search).get("outputMint");
@@ -1053,9 +1080,10 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         throw new Error("request a fresh quote after changing the trade fields");
       }
       output.textContent = JSON.stringify({
-        intentId: await sha256(JSON.stringify(manifest)),
+        localPreviewHash: await sha256(JSON.stringify(manifest)),
         constraints: manifest,
         quote: latestIntentQuote,
+        note: "This local JSON hash is not the on-chain JOLT intent ID. Signing assembles a fresh Jupiter route and the actual guard instruction.",
         execution: [
           "snapshot source and destination token accounts",
           "invoke PRE policy hook",
@@ -1066,7 +1094,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       }, null, 2);
       intentManifestReady = true;
       if (byId("intent-submit")) byId("intent-submit").disabled = !walletAddress;
-      showToast("JOLT V1 intent compiled", "success");
+      showToast("Trade preview compiled", "success");
     } catch (error) {
       output.textContent = "error · " + error.message;
       showToast(error.message, "error");
@@ -1161,6 +1189,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     verifyDeployment: "scripts/verify-deployment.mjs",
     checkSite: "scripts/check-site.mjs",
     readme: "README.md",
+    productScope: "docs/PRODUCT_SCOPE.md",
     architecture: "docs/ARCHITECTURE.md",
     integration: "docs/INTEGRATION.md",
     security: "docs/SECURITY.md",
@@ -1216,7 +1245,11 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       showCode(button.dataset.code, button);
     });
   });
-  if (byId("code-view")) showCode("program", document.querySelector('[data-code="program"]'));
+  if (byId("code-view")) {
+    var requestedCode = new URLSearchParams(window.location.search).get("file") || "program";
+    if (!codePaths[requestedCode]) requestedCode = "program";
+    showCode(requestedCode, document.querySelector('[data-code="' + requestedCode + '"]'));
+  }
 
   if (byId("code-filter")) byId("code-filter").addEventListener("input", function () {
     var query = byId("code-filter").value.trim().toLowerCase();
@@ -1254,7 +1287,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = path.split("/").pop() || "joltwork-source.txt";
+    link.download = path.split("/").pop() || "hmonhook-source.txt";
     link.click();
     URL.revokeObjectURL(link.href);
     showToast("Source file downloaded", "success");

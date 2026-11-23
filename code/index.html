@@ -74,7 +74,7 @@
 </a>
 </nav>
 <div class="rail-bottom">
-<a class="rail-action" href="https://x.com/Joltworkrunit" target="_blank" rel="noreferrer">
+<a class="rail-action" href="https://x.com/hmonhook" target="_blank" rel="noreferrer">
 <span class="rail-icon">
 <svg class="fill-icon" viewBox="0 0 24 24">
 <path d="M18.9 2H22l-6.8 7.8L23 22h-6.1l-4.8-6.3L6.6 22H3.5l7.1-8.1L3.1 2h6.3l4.4 5.8L18.9 2Zm-1.1 17.9h1.7L8.5 4H6.7l11.1 15.9Z"/>
@@ -110,7 +110,7 @@
 </div>
 <span class="page-code">RUST / TYPESCRIPT / TESTS</span>
 </div>
-<p>The published implementation behind Jolt Guard: an on-chain program, instruction-building SDK, codec tests, protocol specification and deployment records.</p>
+<p>Inspect Jolt Guard's deployed core, the browser clients and the product-scope document that separates implemented trade protection from proposed issuer options and privacy integration.</p>
 </header>
 <section class="chapter">
 <div class="chapter-label">PUBLISHED SOURCE BROWSER</div>
@@ -122,7 +122,7 @@
 </span>
 <span>TYPESCRIPT SDK<b>IMPLEMENTED</b>
 </span>
-<span>RUST + SDK TESTS<b>14 PASSING</b>
+<span>SDK TESTS<b>9 PASSING</b>
 </span>
 <span>MAINNET PROGRAM<b>6HfEuWvE…S3ENTY</b>
 </span>
@@ -171,6 +171,7 @@
 <button data-code="checkSite">scripts/check-site.mjs</button></div>
 <div class="code-group"><b>DOCUMENTATION</b>
 <button data-code="readme">README.md</button>
+<button data-code="productScope">docs/PRODUCT_SCOPE.md</button>
 <button data-code="architecture">docs/ARCHITECTURE.md</button>
 <button data-code="integration">docs/INTEGRATION.md</button>
 <button data-code="security">docs/SECURITY.md</button>
@@ -178,7 +179,7 @@
 <button data-code="spec">JOLT_GUARD.md</button>
 <button data-code="contributing">CONTRIBUTING.md</button></div>
 </div>
-<div class="code-tree-foot"><span id="code-file-count">32 FILES</span><span>PUBLISHED SOURCE</span></div>
+<div class="code-tree-foot"><span id="code-file-count">33 FILES</span><span>PUBLISHED SOURCE</span></div>
 </aside>
 <div class="code-panel">
 <div class="code-toolbar">
@@ -203,7 +204,7 @@
 <p>The interface formats and implementation are separated so wallets, routers, launchers and indexers can integrate only the layer they need.</p>
 </div>
 <div class="prose-block compact"><p>Think of the repository as three layers. The specification names the promises. The SDK translates those promises into bytes and ordered accounts. The Solana program enforces them. CI then repeats the available tests whenever implementation files change. The table is a map of those layers, not a claim that every production dependency has already shipped.</p></div>
-<table class="integration-table">
+<div class="table-scroll"><table class="integration-table">
 <thead>
 <tr>
 <th>path</th>
@@ -244,10 +245,10 @@
 <td>contributors</td>
 <td>active</td>
 </tr>
-<tr><td>docs</td><td>architecture, integration, security and operations runbooks</td><td>integrators / operators</td><td>maintained</td></tr>
+<tr><td>docs</td><td>product scope, architecture, integration, security and operations</td><td>users / integrators / operators</td><td>maintained</td></tr>
 <tr><td>scripts</td><td>site contract and deployed-byte verification</td><td>release engineering</td><td>active</td></tr>
 </tbody>
-</table>
+</table></div>
 </section>
 <section class="section-block">
 <div class="section-head">
@@ -256,7 +257,7 @@
 <h2>What the repository proves—and what deployment must still prove.</h2>
 </div>
 </div>
-<div class="prose-block"><p>Source code proves which mechanism was implemented; the mainnet and devnet manifests publish executable Program IDs, ProgramData accounts and the reproducible SBF hash. They do not prove that every route adapter is free of adversarial edge cases, which still requires integration coverage and independent review.</p><p>The browser now connects Jupiter Swap API V2 raw instructions to the mainnet Jolt Guard wrapper and asks the user wallet to sign the resulting versioned transaction. Deployment, integration and audit remain separate evidence, so each is presented explicitly.</p></div>
+<div class="prose-block"><p>Source code shows which mechanism was implemented; the mainnet and devnet manifests publish executable Program IDs, ProgramData accounts and the SBF hash. They do not prove that every route adapter is free of adversarial edge cases. The issuer-option contract and Privacy Rings integration are not implemented here; <code>docs/PRODUCT_SCOPE.md</code> records their intended boundaries.</p><p>The browser assembles a supported Jupiter route with the mainnet Jolt Guard wrapper and asks the user wallet to sign the resulting versioned transaction. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. Deployment, integration and audit are different kinds of evidence.</p></div>
 <div class="split-panel">
 <article>
 <h3>Inspectable now</h3>

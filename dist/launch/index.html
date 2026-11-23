@@ -100,6 +100,10 @@ h1,h2,h3,strong,.statement,.equation i{font-style:normal!important}
 .story-grid a{align-self:flex-start;margin-top:auto;padding-top:22px;color:var(--good);font:12px/1.5 "JetBrains Mono",monospace;text-decoration:none;border-bottom:1px solid currentColor}
 .story-grid a:hover{color:var(--brand-hover)}
 .story-note{margin:13px 0 0;color:var(--muted);font-size:14px;line-height:1.6}
+.form-note{margin:14px 0 0;color:#d6b798;font-size:14px;line-height:1.65}
+.form-sheet input[readonly],.form-sheet textarea[readonly]{background:#15100d;color:#c9b9aa;cursor:default}
+.table-scroll{max-width:100%;overflow-x:auto}
+.table-scroll .integration-table{min-width:580px;margin:0}
 @media(max-width:1000px){.story-grid{grid-template-columns:1fr}.story-grid article{padding:22px}.story-grid a{margin-top:8px}}
 :root{--bg:#000;--panel:#0d0d0d;--panel-2:#080808;--text:#f0e9e0;--muted:#a9a198;--line:#49301f;--line-soft:#2c1d13;--good:#ff8a1c;--brand:#ff7900;--brand-hover:#ffa13b}
 body{background:#000;background-image:none}
@@ -207,7 +211,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </a>
 </nav>
 <div class="rail-bottom">
-<a class="rail-action" href="https://x.com/Joltworkrunit" target="_blank" rel="noreferrer">
+<a class="rail-action" href="https://x.com/hmonhook" target="_blank" rel="noreferrer">
 <span class="rail-icon">
 <svg class="fill-icon" viewBox="0 0 24 24">
 <path d="M18.9 2H22l-6.8 7.8L23 22h-6.1l-4.8-6.3L6.6 22H3.5l7.1-8.1L3.1 2h6.3l4.4 5.8L18.9 2Zm-1.1 17.9h1.7L8.5 4H6.7l11.1 15.9Z"/>
@@ -243,17 +247,13 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <span class="page-code">JLM1 / TOKEN-2022 / SOLANA</span>
 </div>
-<p>Define a Solana token launch, bind a default intent policy and export one reviewable plan before any wallet is asked to sign. Issuer lock and option protection is a separate proposed layer, not part of this launch transaction.</p>
+<p>Create a Solana token through Pump's mainnet route and review a separate JLM1 policy plan. The plan is local until a supported publisher or wallet integrates it; issuer lock and option protection are still in design.</p>
 </header>
-<section id="issuer-protection" class="section-block protection-story" aria-labelledby="issuer-protection-title">
-<div class="section-head"><div><div class="eyebrow">ISSUER ACCOUNTABILITY / DESIGN STAGE</div><h2 id="issuer-protection-title">Let buyers compare the promise before they trade.</h2></div></div>
-<div class="prose-block"><p>The proposed protection layer groups coins with the same name on one comparison page. Each listing would show its developer, verified Mint, locked share of supply, option terms and protection status. A coin without a verified lock would be marked “unlocked”, never hidden from the comparison.</p><p>Under the proposed option model, a developer could lock 2%–10% of supply and offer options with a published premium, strike and expiry. The terms would have to be visible before purchase. If a verified early sale violates the agreed commitment, an audited contract could forfeit the locked collateral to eligible option holders. If the strike is never reached, an option buyer can lose the premium. The design also proposes using option premiums for market buybacks once the locked allocation sells out; that requires a separate audited execution path. Neither a lock nor an option guarantees the token’s market value.</p></div>
-<div class="callout"><b>NOT AN ACTIVE LAUNCH FEATURE</b><p>This page currently creates a token and compiles a JLM1 intent-policy plan. It does not lock issuer supply, sell options, detect developer sales, issue forfeiture claims or route option premiums into buybacks. Those steps need a production contract, reliable violation evidence, an independently reviewed settlement path and dedicated interfaces.</p></div>
-</section>
+
 <section class="chapter">
 <div class="chapter-label">LAUNCH WORKBENCH</div>
 <h2>One focused path: asset, market, policy, review.</h2>
-<div class="prose-block"><p>A token launch has two different layers. The first creates the asset and its market: the name, symbol, metadata and launch venue. The second tells future trading interfaces what protection the issuer recommends when people trade that asset. h/monhook keeps those layers visible instead of hiding them behind one “launch” button.</p><p>The form below does not take custody of a creator’s wallet and it does not silently broadcast a transaction. It creates a deterministic JLM1 plan that can be reviewed, copied and downloaded. That plan becomes the input for a production launch adapter, where the wallet will see the exact Solana instructions before approving them.</p></div>
+<div class="prose-block"><p>The live path creates a Token-2022 coin through Pump. The JLM1 output beside it is a local review plan for token metadata, route and an intended trading policy. Creating the coin does not publish that policy or enroll the issuer in option protection.</p><p>First verify public metadata and compile the plan. The separate mainnet button then builds Pump's <code>create_v2</code> instruction and asks the connected wallet to sign. Nothing is sent without wallet approval; the wallet pays the network and creation costs.</p></div>
 <div class="wallet-context">
 <span>SIGNING AUTHORITY</span>
 <b data-wallet-state>not connected</b>
@@ -266,27 +266,25 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <span>JLM1</span>
 </div>
 <div class="field-pair">
-<label>COIN NAME<input id="coin-name" maxlength="32" value="h/monhook Coin" required>
+<label>COIN NAME<input id="coin-name" maxlength="32" placeholder="Your coin name" required>
 </label>
-<label>SYMBOL<input id="coin-symbol" maxlength="13" value="JOLT" required>
+<label>SYMBOL<input id="coin-symbol" maxlength="13" placeholder="TICKER" required>
 </label>
 </div>
-<label>DESCRIPTION<textarea id="coin-description" maxlength="500" placeholder="What the token represents and why it exists" required></textarea></label>
+<label>DESCRIPTION / FROM METADATA<textarea id="coin-description" maxlength="500" placeholder="Loaded from verified metadata JSON" readonly required></textarea></label>
 <div class="field-pair">
-<label>IMAGE URL<input id="coin-image" type="url" placeholder="https://…/coin.png" required></label>
-<label>WEBSITE<input id="coin-website" type="url" placeholder="https://your-project.example"></label>
+<label>IMAGE URL / FROM METADATA<input id="coin-image" type="url" placeholder="Loaded from verified metadata JSON" readonly required></label>
+<label>WEBSITE / FROM METADATA<input id="coin-website" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
 </div>
 <div class="field-pair">
-<label>X / TWITTER<input id="coin-twitter" type="url" value="https://x.com/Joltworkrunit"></label>
-<label>TELEGRAM<input id="coin-telegram" type="url" placeholder="https://t.me/…"></label>
+<label>X / FROM METADATA<input id="coin-twitter" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
+<label>TELEGRAM / FROM METADATA<input id="coin-telegram" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
 </div>
 <label>METADATA JSON URI<input id="coin-uri" type="url" placeholder="https://ipfs.io/ipfs/…" required></label>
 <div class="metadata-review"><img id="coin-image-preview" alt="Coin artwork preview" hidden><div><b id="metadata-state">METADATA NOT VERIFIED</b><p>The JSON must contain matching name, symbol, description and a public image URL.</p></div><button type="button" id="metadata-check" class="button">verify metadata</button></div>
 <div class="field-pair">
-<label>QUOTE ASSET<select id="coin-quote">
+<label>QUOTE ASSET / LIVE ROUTE<select id="coin-quote">
 <option value="SOL">SOL</option>
-<option value="USDC">USDC</option>
-<option value="PUMP_COIN">PUMP COIN</option>
 </select>
 </label>
 <label>LAUNCH ROUTE<select id="coin-route">
@@ -295,7 +293,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </label>
 </div>
 <div class="field-pair">
-<label>DEFAULT POLICY<select id="coin-policy">
+<label>INTENDED POLICY / LOCAL PLAN<select id="coin-policy">
 <option value="max-cost">MAXIMUM TOTAL COST</option>
 <option value="allowed-route">ALLOWED ROUTE</option>
 <option value="token-fee-cap">TOKEN FEE CEILING</option>
@@ -305,6 +303,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <label>NETWORK<select id="coin-network"><option value="solana-mainnet-beta">SOLANA MAINNET</option></select></label>
 </div>
 <label>RPC ENDPOINT<input id="coin-rpc" type="url" value="https://solana-rpc.publicnode.com" required></label>
+<p class="form-note">The verified metadata JSON supplies the description, image and social links above. Change those fields at the metadata source, then verify again. The selected policy is exported in the JLM1 plan; the Pump creation transaction does not publish or enforce it.</p>
 <div class="form-actions">
 <button type="button" class="button" data-wallet-connect>connect wallet</button>
 <button type="submit" class="button button-solid">compile launch plan</button>
@@ -316,17 +315,23 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <span>COMPILED OUTPUT</span>
 <span class="output-tools">
 <button class="text-button" data-copy="launch-output">copy</button>
-<button class="text-button" data-download="launch-output" data-filename="joltwork-launch-manifest.json">download</button>
+<button class="text-button" data-download="launch-output" data-filename="hmonhook-launch-manifest.json">download</button>
 </span>
 </div>
-<pre id="launch-output">Complete the launch manifest to derive its deterministic policy identity.</pre>
+<pre id="launch-output">Verify the public metadata and compile a local JLM1 plan before signing.</pre>
 </div>
 </div>
 <div class="callout">
 <b>SIGNING BOUNDARY</b>
-<p>Verify the public metadata JSON, compile the manifest, then use the separate mainnet action. h/monhook assembles Pump’s official create_v2 instruction, generates the new Mint signer in this browser and asks the connected wallet to review and pay for the transaction. Nothing is submitted without explicit approval. The default intent policy references the verified mainnet Jolt Guard Program ID <code>6HfEu…S3ENTY</code>.</p>
+<p>Verify the public metadata JSON, compile the plan, then use the separate mainnet action. h/monhook assembles Pump's official <code>create_v2</code> instruction, generates the new Mint signer in this browser and asks the connected wallet to review and pay. The transaction creates the coin only; Jolt Guard policy publication and issuer options require separate integrations.</p>
 </div>
 <div class="callout"><b>RPC AND PRIVACY</b><p>The default browser-compatible RPC is operated by PublicNode, not h/monhook or Solana. It receives ordinary RPC requests and the signed transaction when submitted. Production operators should replace it with their own trusted Solana RPC endpoint before launch.</p></div>
+</section>
+<section id="issuer-protection" class="section-block protection-story" aria-labelledby="issuer-protection-title">
+<div class="section-head"><div><div class="eyebrow">ISSUER ACCOUNTABILITY / DESIGN STAGE</div><h2 id="issuer-protection-title">Let buyers compare the promise before they trade.</h2></div></div>
+<div class="prose-block"><p>The issuer layer adapts the Vamend protection design to h/monhook launches. It compares same-name Mints and makes a developer's collateral and option terms inspectable before anyone relies on a protection label.</p><p>These are conditional rights, not a price guarantee. A buyer can lose the premium. A developer-sale violation needs independently verifiable evidence and a reviewed forfeiture rule; a lock by itself does not make the market safe.</p></div>
+<div class="story-grid"><article><span>01 / COMPARE <em>PROPOSED</em></span><h3>One name, every Mint</h3><p>Keep same-name launches together. Show developer identity, Mint, lock percentage and the exact option terms so a familiar name cannot stand in for verified provenance.</p></article><article><span>02 / COMMIT <em>PROPOSED</em></span><h3>Lock and price the option</h3><p>A developer would lock 2%–10% of supply. The proposed premium is 10% of the strike price per option; the strike follows a published Pump-style bonding-curve rule. Both formula and expiry need to be fixed before sale.</p></article><article><span>03 / SETTLE <em>PROPOSED</em></span><h3>Exercise or claim</h3><p>If the market exceeds the strike, an eligible holder could exercise at the strike. A verified early developer sale could trigger collateral forfeiture. If the strike is not reached, the buyer risks the premium. Buybacks from premiums after the locked allocation sells out require a separate execution path.</p></article></div>
+<div class="callout"><b>NOT AN ACTIVE LAUNCH FEATURE</b><p>This page currently creates a token and compiles a JLM1 intent-policy plan. It does not lock issuer supply, sell options, detect developer sales, issue forfeiture claims or route option premiums into buybacks. Those steps need a production contract, reliable violation evidence, an independently reviewed settlement path and dedicated interfaces.</p></div>
 </section>
 <section class="home-panel">
 <div class="eyebrow">WHAT GETS CREATED</div>
@@ -334,18 +339,18 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="module-grid">
 <article>
 <b>01 / TOKEN-2022 MINT</b>
-<p>The asset, metadata and authority configuration.</p>
+<p>The asset and metadata created through the supported Pump route.</p>
 </article>
 <article>
 <b>02 / MARKET ROUTE</b>
-<p>An explicit Pump create_v2 route plan—no fictional Jolt-native exchange.</p>
+<p>The Pump <code>create_v2</code> creation path, using SOL as the supported quote asset.</p>
 </article>
 <article>
 <b>03 / DEFAULT INTENT POLICY</b>
-<p>A discoverable baseline that wallets may strengthen per transaction.</p>
+<p>A local JLM1 policy proposal for future wallet or publisher integration.</p>
 </article>
 </div>
-<div class="prose-block after-grid"><p>The mint is the token itself. The market route is where the first liquidity and trading path are created. The default intent policy is not another tax or transfer restriction: it is a public baseline describing how supported wallets should protect a trade, such as requiring a maximum total cost or restricting execution to an approved route.</p><p>A trader is still free to choose stricter terms for an individual transaction. An issuer might publish a 2% maximum-cost baseline, while a trader can sign a 1% limit for one purchase. The user-level intent wins because it is the condition attached to that specific transaction.</p></div>
+<div class="prose-block after-grid"><p>The Mint is the token itself. The Pump route creates its initial trading path. The JLM1 policy selection is saved in the local plan, not registered on-chain by this launcher. A wallet could later display such a baseline, but only an integrated Jolt Guard transaction enforces a trader's signed limits.</p><p>Issuer options and a Jolt intent are distinct: an option would cover a developer's publicly verifiable commitment, while an intent protects the outcome of one supported trade. Neither is automatically attached to every coin created here.</p></div>
 </section>
 <section class="section-block">
 <div class="section-head">
@@ -355,7 +360,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <p>Each stage produces explicit data so a creator can review authorities, route configuration and policy before signing.</p>
 </div>
-<div class="prose-block compact"><p>Imagine a creator launching a token through Pump with SOL as the quote asset. JLM1 records the token metadata, selected launch route and default policy as one inspectable document. The adapter then turns the asset and market portions into launch instructions, while h/monhook keeps the policy identity available for wallets and later trades. If any field changes, the compiled identity changes too, so an old review cannot be reused for a different launch.</p></div>
+<div class="prose-block compact"><p>JLM1 records the creator's intended metadata, Pump route and policy as an inspectable local document. The current mainnet action builds the Pump coin-creation instruction from the verified metadata URI. The plan's preview hash changes if its fields change, but this hash is not an on-chain policy registration or proof that a wallet enforces it.</p></div>
 <div class="step-grid">
 <article>
 <span>01 / ASSET</span>
@@ -365,7 +370,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <article>
 <span>02 / POLICY</span>
 <h3>Select rules</h3>
-<p>Choose a baseline cost, route or fee constraint for supported interfaces.</p>
+<p>Describe an intended baseline in the local plan; no policy is published by this step.</p>
 </article>
 <article>
 <span>03 / ROUTE</span>
@@ -386,7 +391,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <h2>Launch readiness checklist.</h2>
 </div>
 </div>
-<div class="prose-block compact"><p>The checklist is deliberately split between facts the software can validate and decisions only the creator can make. A URI can be checked for format, but software cannot decide whether an authority should remain mutable or whether published social links are trustworthy. A commercial launch flow must make both categories explicit before asking for a signature.</p></div>
+<div class="prose-block compact"><p>The software checks metadata and the selected Pump route. The creator must still review the source JSON, the wallet's final instruction and the amount of SOL required. This interface does not expose controls for mint or metadata authority configuration; inspect Pump's defaults before approving.</p></div>
 <div class="split-panel">
 <article>
 <h3>Required inputs</h3>
@@ -394,16 +399,16 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <li>Metadata URI resolves to valid token metadata.</li>
 <li>Name and symbol fit the selected launch route limits.</li>
 <li>Creator wallet has sufficient SOL for rent and fees.</li>
-<li>Quote asset and initial market route are confirmed.</li>
+<li>SOL quote asset and Pump <code>create_v2</code> route are understood.</li>
 </ul>
 </article>
 <article>
 <h3>Creator decisions</h3>
 <ul class="check-list warn">
-<li>Whether mint and metadata authorities remain mutable.</li>
-<li>Which default policy wallets should display.</li>
-<li>Whether metadata and mint authorities remain or are revoked.</li>
-<li>Which treasury and social links are published.</li>
+<li>Whether the verified metadata and social links are final.</li>
+<li>Whether the connected wallet should pay the shown creation costs.</li>
+<li>Whether to export the local JLM1 policy proposal for later integration.</li>
+<li>Whether Pump's authority defaults meet the creator's requirements.</li>
 </ul>
 </article>
 </div>
@@ -419,7 +424,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="faq">
 <details>
 <summary>Does a default policy prevent users from adding stricter limits?</summary>
-<p>No. The issuer policy is a baseline. A trader may bind tighter max-input, min-output, expiry or route constraints to an individual transaction.</p>
+<p>The selected default policy is a local proposal, not an enforced issuer rule. A trader using an integrated Jolt Guard route can sign their own max-input, min-output and expiry bounds.</p>
 </details>
 <details>
 <summary>Is the policy tied to one liquidity pool?</summary>
@@ -984,6 +989,15 @@ pako/dist/pako.esm.mjs:
 
   var launchForm = byId("launch-form");
   var metadataCheck = byId("metadata-check");
+  function clearMetadataPreview() {
+    ["coin-description", "coin-image", "coin-website", "coin-twitter", "coin-telegram"].forEach(function (id) {
+      if (byId(id)) byId(id).value = "";
+    });
+    if (byId("coin-image-preview")) {
+      byId("coin-image-preview").removeAttribute("src");
+      byId("coin-image-preview").hidden = true;
+    }
+  }
   if (metadataCheck) metadataCheck.addEventListener("click", async function () {
     var state = byId("metadata-state");
     var preview = byId("coin-image-preview");
@@ -992,6 +1006,7 @@ pako/dist/pako.esm.mjs:
     verifiedMetadataUri = null;
     verifiedMetadata = null;
     launchManifestReady = false;
+    clearMetadataPreview();
     try {
       var uri = metadataUri(byId("coin-uri").value.trim());
       if (uri.length > 200) throw new Error("Pump metadata URI must not exceed 200 characters");
@@ -1005,9 +1020,9 @@ pako/dist/pako.esm.mjs:
       var image = metadataUri(metadata.image);
       byId("coin-description").value = metadata.description;
       byId("coin-image").value = image;
-      if (metadata.website) byId("coin-website").value = metadata.website;
-      if (metadata.twitter) byId("coin-twitter").value = metadata.twitter;
-      if (metadata.telegram) byId("coin-telegram").value = metadata.telegram;
+      byId("coin-website").value = metadata.website || "";
+      byId("coin-twitter").value = metadata.twitter || "";
+      byId("coin-telegram").value = metadata.telegram || "";
       preview.src = image;
       preview.hidden = false;
       verifiedMetadataUri = uri;
@@ -1030,11 +1045,17 @@ pako/dist/pako.esm.mjs:
     verifiedMetadataUri = null;
     verifiedMetadata = null;
     launchManifestReady = false;
+    clearMetadataPreview();
     if (byId("metadata-state")) { byId("metadata-state").textContent = "METADATA NOT VERIFIED"; byId("metadata-state").classList.remove("ready"); }
     setWalletAddress(walletAddress, activeProvider);
   }
   ["coin-uri", "coin-name", "coin-symbol"].forEach(function (id) {
     if (byId(id)) byId(id).addEventListener("input", invalidateMetadata);
+  });
+  if (byId("coin-policy")) byId("coin-policy").addEventListener("change", function () {
+    launchManifestReady = false;
+    if (byId("launch-submit")) byId("launch-submit").disabled = true;
+    if (byId("launch-output")) byId("launch-output").textContent = "The local policy plan changed. Compile it again before creating the coin.";
   });
   if (launchForm) launchForm.addEventListener("submit", async function (event) {
     event.preventDefault();
@@ -1086,19 +1107,15 @@ pako/dist/pako.esm.mjs:
       },
       defaultIntentPolicy: {
         type: byId("coin-policy").value,
-        enforcement: "jolt-guard-route-wrapper"
+        status: "local-proposal-not-published"
       }
     };
     var canonical = JSON.stringify(manifest);
     output.textContent = JSON.stringify({
-      launchManifestId: await sha256(canonical),
+      localPlanHash: await sha256(canonical),
       manifest: manifest,
-      transactionPlan: [
-        "create Token-2022 mint and metadata",
-        "create bonding curve or native market",
-        "publish default Jolt intent policy",
-        "bind trading interface to Jolt Guard"
-      ],
+      liveAction: "create a Token-2022 coin through Pump create_v2 after wallet approval",
+      notIncluded: ["publish the intended Jolt policy", "create an issuer lock or option", "integrate Privacy Rings"],
       signingAuthority: walletAddress || "connect wallet before transaction assembly"
     }, null, 2);
     launchManifestReady = true;
@@ -1145,7 +1162,7 @@ pako/dist/pako.esm.mjs:
         signature: result.signature,
         solscan: result.explorer,
         pump: result.pump,
-        note: "The token is live on mainnet and its policy references Jolt Guard program 6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY."
+        note: "The Pump coin was created on mainnet. The local JLM1 policy plan was not published or enforced by this transaction."
       }, null, 2);
       try {
         var launchRecord = {
@@ -1182,6 +1199,15 @@ pako/dist/pako.esm.mjs:
   });
 
   var latestIntentQuote = null;
+  ["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage", "intent-output-min", "intent-expiry"].forEach(function (id) {
+    if (!byId(id)) return;
+    byId(id).addEventListener("input", function () {
+      intentManifestReady = false;
+      if (byId("intent-submit")) byId("intent-submit").disabled = true;
+      if (["intent-input-mint", "intent-output-mint", "intent-input", "intent-slippage"].indexOf(id) !== -1) latestIntentQuote = null;
+      if (byId("intent-output")) byId("intent-output").textContent = latestIntentQuote ? "Constraints changed. Compile the preview again before signing." : "Trade changed. Get a fresh quote and compile again before signing.";
+    });
+  });
   if (byId("intent-output-mint")) {
     try {
       var requestedOutputMint = new URLSearchParams(window.location.search).get("outputMint");
@@ -1260,9 +1286,10 @@ pako/dist/pako.esm.mjs:
         throw new Error("request a fresh quote after changing the trade fields");
       }
       output.textContent = JSON.stringify({
-        intentId: await sha256(JSON.stringify(manifest)),
+        localPreviewHash: await sha256(JSON.stringify(manifest)),
         constraints: manifest,
         quote: latestIntentQuote,
+        note: "This local JSON hash is not the on-chain JOLT intent ID. Signing assembles a fresh Jupiter route and the actual guard instruction.",
         execution: [
           "snapshot source and destination token accounts",
           "invoke PRE policy hook",
@@ -1273,7 +1300,7 @@ pako/dist/pako.esm.mjs:
       }, null, 2);
       intentManifestReady = true;
       if (byId("intent-submit")) byId("intent-submit").disabled = !walletAddress;
-      showToast("JOLT V1 intent compiled", "success");
+      showToast("Trade preview compiled", "success");
     } catch (error) {
       output.textContent = "error · " + error.message;
       showToast(error.message, "error");
@@ -1368,6 +1395,7 @@ pako/dist/pako.esm.mjs:
     verifyDeployment: "scripts/verify-deployment.mjs",
     checkSite: "scripts/check-site.mjs",
     readme: "README.md",
+    productScope: "docs/PRODUCT_SCOPE.md",
     architecture: "docs/ARCHITECTURE.md",
     integration: "docs/INTEGRATION.md",
     security: "docs/SECURITY.md",
@@ -1423,7 +1451,11 @@ pako/dist/pako.esm.mjs:
       showCode(button.dataset.code, button);
     });
   });
-  if (byId("code-view")) showCode("program", document.querySelector('[data-code="program"]'));
+  if (byId("code-view")) {
+    var requestedCode = new URLSearchParams(window.location.search).get("file") || "program";
+    if (!codePaths[requestedCode]) requestedCode = "program";
+    showCode(requestedCode, document.querySelector('[data-code="' + requestedCode + '"]'));
+  }
 
   if (byId("code-filter")) byId("code-filter").addEventListener("input", function () {
     var query = byId("code-filter").value.trim().toLowerCase();
@@ -1461,7 +1493,7 @@ pako/dist/pako.esm.mjs:
     var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = path.split("/").pop() || "joltwork-source.txt";
+    link.download = path.split("/").pop() || "hmonhook-source.txt";
     link.click();
     URL.revokeObjectURL(link.href);
     showToast("Source file downloaded", "success");
