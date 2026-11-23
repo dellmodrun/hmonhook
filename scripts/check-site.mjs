@@ -50,7 +50,7 @@ for (const id of ["market-grid", "market-search", "market-refresh", "market-sort
   assert.match(markets, new RegExp(`id=["']${id}["']`), `markets page missing ${id}`);
 }
 assert.match(marketsClient, /api\.dexscreener\.com\/tokens\/v1\/solana/, "markets must resolve live Solana market data");
-assert.match(app, /joltwork\.launches\.v1/, "confirmed launches must be persisted for market discovery");
+assert.match(app, /hmonhook\.launches\.v1/, "confirmed launches must be persisted for market discovery");
 const marketRegistry = JSON.parse(readFileSync(resolve(root, "markets/registry.json"), "utf8"));
 assert.equal(marketRegistry.format, "JOLTWORK_MARKETS_V1", "unexpected markets registry format");
 for (const launch of marketRegistry.launches) {

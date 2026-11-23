@@ -4,9 +4,9 @@
 <base href="../">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Compose a transaction-bound Solana intent with Joltwork.">
-<title>Trade with Intent — Joltwork</title>
-<link rel="icon" href="./joltwork.png">
+<meta name="description" content="Compose a transaction-bound Solana intent with h/monhook.">
+<title>Trade with Intent — h/monhook</title>
+<link rel="icon" href="./hmonhook.png">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./enhancements.css">
 </head>
@@ -15,8 +15,8 @@
 <aside class="site-rail" aria-label="Primary navigation">
 <div class="rail-inner">
 <a class="rail-brand" href="./">
-<img src="./joltwork.png" alt="">
-<span>Joltwork<small>INTENT HOOKS / SOLANA</small>
+<img src="./hmonhook.png" alt="">
+<span>h/monhook<small>INTENT HOOKS / SOLANA</small>
 </span>
 </a>
 <nav class="rail-nav">
@@ -74,14 +74,7 @@
 </a>
 </nav>
 <div class="rail-bottom">
-<a class="rail-action" href="https://x.com/Joltworkrunit" target="_blank" rel="noreferrer">
-<span class="rail-icon">
-<svg class="fill-icon" viewBox="0 0 24 24">
-<path d="M18.9 2H22l-6.8 7.8L23 22h-6.1l-4.8-6.3L6.6 22H3.5l7.1-8.1L3.1 2h6.3l4.4 5.8L18.9 2Zm-1.1 17.9h1.7L8.5 4H6.7l11.1 15.9Z"/>
-</svg>
-</span>
-<span class="rail-label">FOLLOW ON X</span>
-</a>
+
 <button id="connect-wallet" class="rail-action">
 <span class="rail-icon">
 <svg viewBox="0 0 24 24">
@@ -115,7 +108,7 @@
 <section class="chapter">
 <div class="chapter-label">INTENT WORKBENCH</div>
 <h2>Specify the result before signing the route.</h2>
-<div class="prose-block"><p>In a normal swap interface, the user sees a quote and signs a transaction assembled by the application. The quote explains what should happen, but it is not itself an on-chain rule. A Joltwork intent converts the important part of that quote into instruction data: the route that may run, the most the user will spend, the least they must receive and the slot after which permission expires.</p><p>The numbers below use token base units because that is what the Solana program verifies without rounding ambiguity. A production wallet should also display the human-readable amount beside them. Joltwork’s job is to make sure the friendly display and the integer enforced by the program refer to the same signed intent.</p></div>
+<div class="prose-block"><p>In a normal swap interface, the user sees a quote and signs a transaction assembled by the application. The quote explains what should happen, but it is not itself an on-chain rule. A h/monhook intent converts the important part of that quote into instruction data: the route that may run, the most the user will spend, the least they must receive and the slot after which permission expires.</p><p>The numbers below use token base units because that is what the Solana program verifies without rounding ambiguity. A production wallet should also display the human-readable amount beside them. h/monhook’s job is to make sure the friendly display and the integer enforced by the program refer to the same signed intent.</p></div>
 <div class="wallet-context">
 <span>SIGNING AUTHORITY</span>
 <b data-wallet-state>not connected</b>
@@ -161,7 +154,7 @@
 <span>INTENT ID / SHA-256</span>
 <span class="output-tools">
 <button class="text-button" data-copy="intent-output">copy</button>
-<button class="text-button" data-download="intent-output" data-filename="joltwork-intent.json">download</button>
+<button class="text-button" data-download="intent-output" data-filename="hmonhook-intent.json">download</button>
 </span>
 </div>
 <pre id="intent-output">The canonical manifest and Jolt Guard constraints will appear here.</pre>
@@ -294,8 +287,8 @@
 </div>
 <div class="faq">
 <details>
-<summary>Does Joltwork provide the swap quote?</summary>
-<p>No. A router or market supplies the executable accounts, data and quote. Joltwork canonicalizes the user’s accepted limits around that route. The SDK now validates and wraps official Jupiter v6 swap-instruction payloads into the ordered CPI account set; the current browser tool still compiles the intent rather than fetching and submitting the final transaction.</p>
+<summary>Does h/monhook provide the swap quote?</summary>
+<p>No. A router or market supplies the executable accounts, data and quote. h/monhook canonicalizes the user’s accepted limits around that route. The SDK now validates and wraps official Jupiter v6 swap-instruction payloads into the ordered CPI account set; the current browser tool still compiles the intent rather than fetching and submitting the final transaction.</p>
 </details>
 <details>
 <summary>Can one intent cross multiple programs?</summary>
@@ -315,9 +308,9 @@
 <a class="button button-solid" href="./protocol/">open Jolt Guard</a>
 </section>
 <footer>
-<span>JOLTWORK / INTENT</span>
+<span>H/MONHOOK / INTENT</span>
 <span>TRANSACTION-BOUND CONSTRAINTS</span>
-<span>© 2026 JOLTWORK</span>
+<span>© 2026 H/MONHOOK</span>
 </footer>
 </main>
 <script src="./wallet-icons.js"></script>

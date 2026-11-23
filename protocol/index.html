@@ -5,8 +5,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="The Jolt Guard intent-hook protocol for Solana.">
-<title>Protocol — Joltwork</title>
-<link rel="icon" href="./joltwork.png">
+<title>Protocol — h/monhook</title>
+<link rel="icon" href="./hmonhook.png">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./enhancements.css">
 </head>
@@ -15,8 +15,8 @@
 <aside class="site-rail" aria-label="Primary navigation">
 <div class="rail-inner">
 <a class="rail-brand" href="./">
-<img src="./joltwork.png" alt="">
-<span>Joltwork<small>INTENT HOOKS / SOLANA</small>
+<img src="./hmonhook.png" alt="">
+<span>h/monhook<small>INTENT HOOKS / SOLANA</small>
 </span>
 </a>
 <nav class="rail-nav">
@@ -74,14 +74,7 @@
 </a>
 </nav>
 <div class="rail-bottom">
-<a class="rail-action" href="https://x.com/Joltworkrunit" target="_blank" rel="noreferrer">
-<span class="rail-icon">
-<svg class="fill-icon" viewBox="0 0 24 24">
-<path d="M18.9 2H22l-6.8 7.8L23 22h-6.1l-4.8-6.3L6.6 22H3.5l7.1-8.1L3.1 2h6.3l4.4 5.8L18.9 2Zm-1.1 17.9h1.7L8.5 4H6.7l11.1 15.9Z"/>
-</svg>
-</span>
-<span class="rail-label">FOLLOW ON X</span>
-</a>
+
 <button id="connect-wallet" class="rail-action">
 <span class="rail-icon">
 <svg viewBox="0 0 24 24">
@@ -106,11 +99,11 @@
 <div class="page-title-row">
 <div>
 <div class="eyebrow">PROTOCOL / COMPLETE ARCHITECTURE</div>
-<h1>Joltwork Protocol</h1>
+<h1>h/monhook Protocol</h1>
 </div>
 <span class="page-code">ATOMIC CPI WRAPPER / JRC1</span>
 </div>
-<p>Joltwork is an intent-bound settlement protocol for Solana. Jolt Guard is its on-chain enforcement program; JLM1, JOLT V1, JHK1 and JRC1 are the interfaces that connect issuers, wallets, routes, policies and receipts.</p>
+<p>h/monhook is an intent-bound settlement protocol for Solana. Jolt Guard is its on-chain enforcement program; JLM1, JOLT V1, JHK1 and JRC1 are the interfaces that connect issuers, wallets, routes, policies and receipts.</p>
 </header>
 <section class="section-block">
 <div class="section-head">
@@ -120,7 +113,7 @@
 </div>
 <p>The protocol does not replace a launchpad, wallet or liquidity router. It gives those systems one shared language for declaring and enforcing a transaction outcome.</p>
 </div>
-<div class="prose-block"><p>Joltwork separates declaration from enforcement. A creator can publish a baseline when a token launches; a trader can turn a specific quote into stricter transaction terms; a wallet can explain those terms; and Jolt Guard can enforce the final result around the selected route. No single interface has to be trusted to remember what the user accepted.</p><p>The six components below are not six separate products. They are stages of the same lifecycle. JLM1 starts with an asset, JOLT V1 describes one trade, Jolt Guard executes it, JHK1 adds optional policy logic, JRC1 reports what settled, and the SDK lets applications assemble and read those formats consistently.</p></div>
+<div class="prose-block"><p>h/monhook separates declaration from enforcement. A creator can publish a baseline when a token launches; a trader can turn a specific quote into stricter transaction terms; a wallet can explain those terms; and Jolt Guard can enforce the final result around the selected route. No single interface has to be trusted to remember what the user accepted.</p><p>The six components below are not six separate products. They are stages of the same lifecycle. JLM1 starts with an asset, JOLT V1 describes one trade, Jolt Guard executes it, JHK1 adds optional policy logic, JRC1 reports what settled, and the SDK lets applications assemble and read those formats consistently.</p></div>
 <div class="fact-grid">
 <article>
 <b>JLM1 / LAUNCH</b>
@@ -176,7 +169,7 @@
 <p>Jolt Guard is executable on <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer">Solana mainnet at <code>6HfEu…S3ENTY</code> ↗</a> and on <a href="https://explorer.solana.com/address/3gAqr1U9CzYhZBoqDJeEQFtphjVGvr24h4znUK2knfVG?cluster=devnet" target="_blank" rel="noreferrer">devnet at <code>3gAqr…K2knfVG</code> ↗</a>. Both ProgramData accounts match SBF SHA-256 <code>469ab222…124ebdd</code>; the deployment manifests publish their exact identities and authorities.</p>
 </div>
 </section>
-<section class="section-block"><div class="section-head"><div><div class="eyebrow">A TRANSACTION IN PLAIN LANGUAGE</div><h2>The router finds a path. Joltwork decides whether its result is acceptable.</h2></div></div><div class="prose-block"><p>Suppose a wallet finds a route that may spend up to 1 SOL to buy a token. The user accepts only if at least 950,000 token units reach the destination account before a chosen expiry slot. The wallet encodes those limits and the selected route program into JOLT V1, then asks the user to sign.</p><p>Jolt Guard records the source and destination balances, runs the router through CPI and reads the balances again. Spending 0.98 SOL and receiving 970,000 units passes. Spending 1.01 SOL or receiving 940,000 units fails. The program is not judging whether the quoted price was “good”; it is enforcing the exact boundary the user authorized.</p></div></section>
+<section class="section-block"><div class="section-head"><div><div class="eyebrow">A TRANSACTION IN PLAIN LANGUAGE</div><h2>The router finds a path. h/monhook decides whether its result is acceptable.</h2></div></div><div class="prose-block"><p>Suppose a wallet finds a route that may spend up to 1 SOL to buy a token. The user accepts only if at least 950,000 token units reach the destination account before a chosen expiry slot. The wallet encodes those limits and the selected route program into JOLT V1, then asks the user to sign.</p><p>Jolt Guard records the source and destination balances, runs the router through CPI and reads the balances again. Spending 0.98 SOL and receiving 970,000 units passes. Spending 1.01 SOL or receiving 940,000 units fails. The program is not judging whether the quoted price was “good”; it is enforcing the exact boundary the user authorized.</p></div></section>
 <figure class="mechanism-figure">
 <div class="figure-frame">
 <svg viewBox="0 0 1100 250" role="img" aria-label="Jolt Guard execution sequence">
@@ -437,9 +430,9 @@
 <a class="button button-solid" href="./code/">open source</a>
 </section>
 <footer>
-<span>JOLTWORK / PROTOCOL</span>
+<span>H/MONHOOK / PROTOCOL</span>
 <span>JOLT GUARD / JRC1</span>
-<span>© 2026 JOLTWORK</span>
+<span>© 2026 H/MONHOOK</span>
 </footer>
 </main>
 <script src="./wallet-icons.js"></script>

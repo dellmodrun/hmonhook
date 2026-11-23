@@ -16,7 +16,7 @@ assets = {
     "./fonts/eb-garamond-regular.woff2":   ("font/woff2",     ROOT / "fonts/eb-garamond-regular.woff2"),
     "./fonts/eb-garamond-italic.woff2":    ("font/woff2",     ROOT / "fonts/eb-garamond-italic.woff2"),
     "./fonts/jetbrains-mono-regular.woff2":("font/woff2",     ROOT / "fonts/jetbrains-mono-regular.woff2"),
-    "./joltwork.png":                      ("image/png",      ROOT / "joltwork.png"),
+    "./hmonhook.png":                      ("image/png",      ROOT / "hmonhook.png"),
     "./favicon.svg":                       ("image/svg+xml",  ROOT / "favicon.svg"),
 }
 

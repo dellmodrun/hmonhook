@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var cachedWalletAddress = sessionStorage.getItem("joltwork-wallet") || null;
+  var cachedWalletAddress = sessionStorage.getItem("hmonhook-wallet") || null;
   var walletAddress = null;
   var verifiedMetadataUri = null;
   var verifiedMetadata = null;
@@ -75,8 +75,8 @@
   function setWalletAddress(address, providerObject) {
     walletAddress = address ? String(address) : null;
     activeProvider = providerObject || null;
-    if (walletAddress) sessionStorage.setItem("joltwork-wallet", walletAddress);
-    else sessionStorage.removeItem("joltwork-wallet");
+    if (walletAddress) sessionStorage.setItem("hmonhook-wallet", walletAddress);
+    else sessionStorage.removeItem("hmonhook-wallet");
     var label = walletButton && walletButton.querySelector(".rail-label");
     if (label) label.textContent = walletAddress ? shortAddress(walletAddress) : "CONNECT WALLET";
     document.querySelectorAll("[data-wallet-state]").forEach(function (item) {
@@ -126,7 +126,7 @@
     modal.innerHTML = '<button class="wallet-backdrop" data-wallet-close aria-label="Close wallet dialog"></button>' +
       '<section class="wallet-dialog" role="dialog" aria-modal="true" aria-labelledby="wallet-title">' +
       '<div class="wallet-dialog-head"><div><span>SOLANA / SIGNING AUTHORITY</span><h2 id="wallet-title">Connect a wallet</h2></div><button class="wallet-close" data-wallet-close aria-label="Close">×</button></div>' +
-      '<p>Select an injected wallet. Joltwork never requests a seed phrase or private key.</p>' +
+      '<p>Select an injected wallet. h/monhook never requests a seed phrase or private key.</p>' +
       '<div id="wallet-options" class="wallet-options"></div>' +
       '<button id="wallet-disconnect" class="button wallet-disconnect" type="button">disconnect current wallet</button>' +
       '<small>Wallet marks are sourced from the official Solana Wallet Adapter packages. Only install wallets from their official websites and review every transaction before signing.</small>' +
@@ -147,7 +147,7 @@
       var referrer = encodeURIComponent(window.location.origin);
       var mobileHelp = document.createElement("div");
       mobileHelp.className = "wallet-mobile-help";
-      mobileHelp.innerHTML = '<b>Using a mobile browser?</b><p>Open Joltwork inside a wallet browser so the provider can be injected securely.</p>' +
+      mobileHelp.innerHTML = '<b>Using a mobile browser?</b><p>Open h/monhook inside a wallet browser so the provider can be injected securely.</p>' +
         '<div><a href="https://phantom.com/ul/browse/' + currentUrl + '?ref=' + referrer + '">open in Phantom</a>' +
         '<a href="https://solflare.com/ul/v1/browse/' + currentUrl + '?ref=' + referrer + '">open in Solflare</a></div>';
       options.appendChild(mobileHelp);
@@ -227,7 +227,7 @@
         }
       } catch (error) { /* not previously approved in this wallet */ }
     }
-    sessionStorage.removeItem("joltwork-wallet");
+    sessionStorage.removeItem("hmonhook-wallet");
     cachedWalletAddress = null;
   }
 
@@ -421,11 +421,11 @@
           explorer: result.explorer,
           createdAt: Date.now()
         };
-        var storedLaunches = JSON.parse(localStorage.getItem("joltwork.launches.v1") || "[]");
+        var storedLaunches = JSON.parse(localStorage.getItem("hmonhook.launches.v1") || "[]");
         if (!Array.isArray(storedLaunches)) storedLaunches = [];
         storedLaunches = storedLaunches.filter(function (item) { return item && item.mint !== launchRecord.mint; });
         storedLaunches.unshift(launchRecord);
-        localStorage.setItem("joltwork.launches.v1", JSON.stringify(storedLaunches.slice(0, 100)));
+        localStorage.setItem("hmonhook.launches.v1", JSON.stringify(storedLaunches.slice(0, 100)));
       } catch (_) { /* A confirmed launch remains valid if local storage is unavailable. */ }
       showToast("Coin creation confirmed on Solana", "success");
     } catch (error) {
@@ -588,7 +588,7 @@
       var blob = new Blob([target.textContent], { type: "application/json" });
       var link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = button.dataset.filename || "joltwork-manifest.json";
+      link.download = button.dataset.filename || "hmonhook-manifest.json";
       link.click();
       URL.revokeObjectURL(link.href);
       showToast("JSON manifest downloaded", "success");
@@ -717,7 +717,7 @@
     var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = path.split("/").pop() || "joltwork-source.txt";
+    link.download = path.split("/").pop() || "hmonhook-source.txt";
     link.click();
     URL.revokeObjectURL(link.href);
     showToast("Source file downloaded", "success");
