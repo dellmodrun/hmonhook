@@ -7,6 +7,7 @@ import bs58 from 'bs58';
 
 test('market page retries a confirmed local receipt and then reads the shared directory', async () => {
   const mint = Keypair.generate().publicKey.toBase58();
+  const sameNameMint = Keypair.generate().publicKey.toBase58();
   const creator = Keypair.generate().publicKey.toBase58();
   const signature = bs58.encode(Keypair.generate().secretKey);
   const storageKey = 'joltwork.launches.v1';
@@ -17,7 +18,7 @@ test('market page retries a confirmed local receipt and then reads the shared di
   const element = (id) => {
     if (!elements.has(id)) elements.set(id, {
       textContent: '', innerHTML: '', disabled: false, value: '',
-      addEventListener() {}, classList: { toggle() {} },
+      listeners: {}, addEventListener(type, listener) { this.listeners[type] = listener; }, classList: { toggle() {} },
     });
     return elements.get(id);
   };
@@ -29,6 +30,12 @@ test('market page retries a confirmed local receipt and then reads the shared di
     const target = String(url);
     if (target.endsWith('/markets/registry.json')) return response({ launches: [] });
     if (target.endsWith('/markets/registry-service.json')) return response({ endpoint: 'https://registry.example/launch-registry' });
+    if (target.startsWith('https://registry.example/launch-registry?')) {
+      assert.equal(new URL(target).searchParams.get('name'), 'Recovered coin');
+      return response({ launches: [mint, sameNameMint].map((address) => ({
+        mint: address, creator, signature, name: 'Recovered coin', symbol: 'REC', created_at: new Date().toISOString(),
+      })) });
+    }
     if (target === 'https://registry.example/launch-registry') {
       if (options.method === 'POST') {
         posts += 1;
@@ -56,4 +63,8 @@ test('market page retries a confirmed local receipt and then reads the shared di
   assert.ok(directoryReads >= 2, 'the market should reload after publication');
   assert.equal(JSON.parse(storage.get(storageKey))[0].directoryPublished, true);
   assert.match(element('market-grid').innerHTML, /PUMP LAUNCH VERIFIED/);
+  element('market-search').value = 'Recovered coin';
+  await element('market-search-form').listeners.submit({ preventDefault() {} });
+  assert.match(element('market-search-message').textContent, /2 verified directory launches/);
+  assert.match(element('market-grid').innerHTML, new RegExp(sameNameMint));
 });

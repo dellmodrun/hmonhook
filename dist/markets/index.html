@@ -178,7 +178,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </section>
 
 <section class="market-discovery">
-<form id="market-search-form" class="market-search-form"><label for="market-search">SEARCH SOLANA MINT</label><div><input id="market-search" spellcheck="false" autocomplete="off" placeholder="Enter a token Mint address"><button class="button button-solid" type="submit">find market</button></div><small id="market-search-message">Search adds a temporary discovery card; it does not label an unrelated token as a h/monhook launch.</small></form>
+<form id="market-search-form" class="market-search-form"><label for="market-search">SEARCH SOLANA MINT OR NAME</label><div><input id="market-search" spellcheck="false" autocomplete="off" placeholder="Enter a Mint or exact coin name"><button class="button button-solid" type="submit">find market</button></div><small id="market-search-message">Mint search discovers a market. Exact name search compares launches verified in the h/monhook directory when its service is online.</small></form>
 <div class="market-controls"><div class="market-filters"><button class="active" data-market-filter="all" type="button">ALL</button><button data-market-filter="live" type="button">LIVE</button><button data-market-filter="awaiting" type="button">AWAITING INDEX</button><button data-market-filter="device" type="button">THIS DEVICE</button></div><label>SORT<select id="market-sort"><option value="newest">NEWEST</option><option value="volume">24H VOLUME</option><option value="liquidity">LIQUIDITY</option><option value="market-cap">MARKET CAP</option></select></label></div>
 </section>
 
@@ -1069,6 +1069,11 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     } catch (_) { return []; }
   }
 
+  function directoryRecord(item) {
+    return { mint: item.mint, signature: item.signature, creator: item.creator, name: item.name, symbol: item.symbol,
+      metadataUri: item.metadata_uri, createdAt: item.created_at, source: "verified-pump", verified: true };
+  }
+
   async function loadRegistry() {
     var entries = [];
     try {
@@ -1086,10 +1091,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         var liveResponse = await fetch(config.endpoint, { cache: "no-store" });
         if (!liveResponse.ok) throw new Error("verified directory unavailable");
         var liveData = await liveResponse.json();
-        if (Array.isArray(liveData.launches)) entries = entries.concat(liveData.launches.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
-          return { mint: item.mint, signature: item.signature, creator: item.creator, name: item.name, symbol: item.symbol,
-            metadataUri: item.metadata_uri, createdAt: item.created_at, source: "verified-pump", verified: true };
-        }));
+        if (Array.isArray(liveData.launches)) entries = entries.concat(liveData.launches.filter(function (item) { return validMint(item && item.mint); }).map(directoryRecord));
       }
     } catch (_) { /* Keep static and device entries visible. */ }
     return entries;
@@ -1259,9 +1261,30 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   });
   byId("market-search-form").addEventListener("submit", async function (event) {
     event.preventDefault();
-    var mint = byId("market-search").value.trim();
+    var query = byId("market-search").value.trim();
     var message = byId("market-search-message");
-    if (!validMint(mint)) { message.textContent = "Enter a valid Solana Mint address."; return; }
+    if (!validMint(query)) {
+      if (!query || query.length > 32) { message.textContent = "Enter an exact coin name of 1–32 characters or a Solana Mint."; return; }
+      try {
+        var configResponse = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+        var config = configResponse.ok ? await configResponse.json() : {};
+        if (!config.endpoint || !/^https:\/\//.test(config.endpoint)) throw new Error("Name search is not online yet.");
+        var lookupUrl = new URL(config.endpoint);
+        lookupUrl.searchParams.set("name", query);
+        var lookupResponse = await fetch(lookupUrl, { cache: "no-store" });
+        if (!lookupResponse.ok) throw new Error("Verified directory search is unavailable.");
+        var lookup = await lookupResponse.json();
+        var matches = Array.isArray(lookup.launches) ? lookup.launches.filter(function (item) { return validMint(item && item.mint); }).map(directoryRecord) : [];
+        state.launches = mergeLaunches(state.launches.concat(matches));
+        await fetchPairs(matches.map(function (item) { return item.mint; }));
+        state.filter = "all";
+        document.querySelectorAll("[data-market-filter]").forEach(function (item) { item.classList.toggle("active", item.dataset.marketFilter === "all"); });
+        message.textContent = matches.length ? matches.length + " verified directory launch" + (matches.length === 1 ? "" : "es") + " match this exact name." : "No verified directory launch has this exact name.";
+        render();
+      } catch (error) { message.textContent = error && error.message ? error.message : "Name search is unavailable."; }
+      return;
+    }
+    var mint = query;
     message.textContent = "Loading on-chain market data…";
     if (!state.launches.some(function (item) { return item.mint === mint; })) state.launches.unshift({ mint: mint, source: "search" });
     await fetchPairs([mint]);

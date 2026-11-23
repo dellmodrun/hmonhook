@@ -53,6 +53,11 @@
     } catch (_) { return []; }
   }
 
+  function directoryRecord(item) {
+    return { mint: item.mint, signature: item.signature, creator: item.creator, name: item.name, symbol: item.symbol,
+      metadataUri: item.metadata_uri, createdAt: item.created_at, source: "verified-pump", verified: true };
+  }
+
   async function loadRegistry() {
     var entries = [];
     try {
@@ -70,10 +75,7 @@
         var liveResponse = await fetch(config.endpoint, { cache: "no-store" });
         if (!liveResponse.ok) throw new Error("verified directory unavailable");
         var liveData = await liveResponse.json();
-        if (Array.isArray(liveData.launches)) entries = entries.concat(liveData.launches.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
-          return { mint: item.mint, signature: item.signature, creator: item.creator, name: item.name, symbol: item.symbol,
-            metadataUri: item.metadata_uri, createdAt: item.created_at, source: "verified-pump", verified: true };
-        }));
+        if (Array.isArray(liveData.launches)) entries = entries.concat(liveData.launches.filter(function (item) { return validMint(item && item.mint); }).map(directoryRecord));
       }
     } catch (_) { /* Keep static and device entries visible. */ }
     return entries;
@@ -243,9 +245,30 @@
   });
   byId("market-search-form").addEventListener("submit", async function (event) {
     event.preventDefault();
-    var mint = byId("market-search").value.trim();
+    var query = byId("market-search").value.trim();
     var message = byId("market-search-message");
-    if (!validMint(mint)) { message.textContent = "Enter a valid Solana Mint address."; return; }
+    if (!validMint(query)) {
+      if (!query || query.length > 32) { message.textContent = "Enter an exact coin name of 1–32 characters or a Solana Mint."; return; }
+      try {
+        var configResponse = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+        var config = configResponse.ok ? await configResponse.json() : {};
+        if (!config.endpoint || !/^https:\/\//.test(config.endpoint)) throw new Error("Name search is not online yet.");
+        var lookupUrl = new URL(config.endpoint);
+        lookupUrl.searchParams.set("name", query);
+        var lookupResponse = await fetch(lookupUrl, { cache: "no-store" });
+        if (!lookupResponse.ok) throw new Error("Verified directory search is unavailable.");
+        var lookup = await lookupResponse.json();
+        var matches = Array.isArray(lookup.launches) ? lookup.launches.filter(function (item) { return validMint(item && item.mint); }).map(directoryRecord) : [];
+        state.launches = mergeLaunches(state.launches.concat(matches));
+        await fetchPairs(matches.map(function (item) { return item.mint; }));
+        state.filter = "all";
+        document.querySelectorAll("[data-market-filter]").forEach(function (item) { item.classList.toggle("active", item.dataset.marketFilter === "all"); });
+        message.textContent = matches.length ? matches.length + " verified directory launch" + (matches.length === 1 ? "" : "es") + " match this exact name." : "No verified directory launch has this exact name.";
+        render();
+      } catch (error) { message.textContent = error && error.message ? error.message : "Name search is unavailable."; }
+      return;
+    }
+    var mint = query;
     message.textContent = "Loading on-chain market data…";
     if (!state.launches.some(function (item) { return item.mint === mint; })) state.launches.unshift({ mint: mint, source: "search" });
     await fetchPairs([mint]);

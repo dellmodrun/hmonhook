@@ -37,7 +37,16 @@ Deno.serve(async (request) => {
   const headers = { apikey: serviceKey, authorization: `Bearer ${serviceKey}` };
   try {
     if (request.method === 'GET') {
-      const response = await fetch(`${table}?select=mint,signature,creator,name,symbol,metadata_uri,created_at&order=created_at.desc&limit=100`, { headers });
+      const lookup = new URL(request.url).searchParams.get('name');
+      if (lookup !== null && (lookup.trim().length === 0 || lookup.trim().length > 32 || /[\u0000-\u001f\u007f]/.test(lookup))) {
+        return json({ error: 'Invalid coin name' }, 400, allowedOrigin);
+      }
+      const response = lookup === null
+        ? await fetch(`${table}?select=mint,signature,creator,name,symbol,metadata_uri,created_at&order=created_at.desc&limit=100`, { headers })
+        : await fetch(`${supabaseUrl}/rest/v1/rpc/hmonhook_launches_by_name`, {
+          method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+          body: JSON.stringify({ lookup_name: lookup.trim() }),
+        });
       if (!response.ok) throw new Error('Registry read failed');
       return json({ launches: await response.json() }, 200, allowedOrigin);
     }

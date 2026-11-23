@@ -15,6 +15,7 @@ RPC indexing can lag transaction confirmation. The launch page retries a tempora
 
 - A project-controlled Supabase project and a production Solana RPC endpoint with `getTransaction` history are required.
 - Run `supabase/migrations/20261124_launch_registry.sql` in that project and deploy `supabase/functions/launch-registry` with JWT verification disabled as specified in `supabase/config.toml`.
+- Apply `supabase/migrations/20261124_launch_name_search.sql` as well. It adds exact, case-insensitive name lookup across verified directory entries, including entries older than the latest 100 shown on the default market page. This is not a global search of every Solana token sharing the name.
 - Set Edge Function secrets `HMONHOOK_SITE_ORIGIN` (the exact public website origin) and `HMONHOOK_SOLANA_RPC_URL`. Supabase provides `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to its functions. Keep every service role and RPC secret server-side.
 - Set the public function URL in `markets/registry-service.json` only after a real signed launch registration and a cross-device read pass. The frontend then publishes confirmed launches automatically and reads them without a full GitHub Pages rebuild for each new Mint.
 
