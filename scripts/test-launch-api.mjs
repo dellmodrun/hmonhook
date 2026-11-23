@@ -92,6 +92,50 @@ test('persistent upload and verified launch are visible across requests', async 
   } finally { globalThis.fetch = originalFetch; }
 });
 
+test('a retry repairs a directory entry after a partial storage failure', async () => {
+  const storage = bucket();
+  const write = storage.put;
+  let failIndexOnce = true;
+  storage.put = async (key, data, options) => {
+    if (failIndexOnce && key.startsWith('launch/by-time/')) {
+      failIndexOnce = false;
+      throw new Error('Index write interrupted');
+    }
+    return write(key, data, options);
+  };
+  const env = { BUCKET: storage };
+  const creator = Keypair.generate().publicKey;
+  const mint = Keypair.generate().publicKey;
+  const instruction = await PUMP_SDK.createV2Instruction({
+    mint, name: 'Retry Test', symbol: 'RETRY', uri: 'https://example.org/retry.json',
+    creator, user: creator, mayhemMode: false, holderReward: false,
+  });
+  const keys = [...new Set([creator.toBase58(), ...instruction.keys.map(key => key.pubkey.toBase58()), PUMP_PROGRAM_ID.toBase58()])];
+  const signature = bs58.encode(Keypair.generate().secretKey);
+  const transaction = { slot: 401, blockTime: 1_800_000_001, meta: { err: null }, transaction: {
+    signatures: [signature], message: { accountKeys: keys, instructions: [{
+      programIdIndex: keys.indexOf(PUMP_PROGRAM_ID.toBase58()),
+      accounts: instruction.keys.map(key => keys.indexOf(key.pubkey.toBase58())),
+      data: bs58.encode(instruction.data),
+    }] },
+  } };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({ result: transaction });
+  const submit = () => api.fetch(request('/launch-registry', { method: 'POST', body: JSON.stringify({
+    signature, mint: mint.toBase58(), creator: creator.toBase58(),
+  }) }), env);
+  try {
+    assert.equal((await submit()).status, 503);
+    assert.ok(storage.objects.has(`launch/by-mint/${mint.toBase58()}.json`));
+    assert.deepEqual((await (await api.fetch(request('/launch-registry'), env)).json()).launches, []);
+    assert.equal((await submit()).status, 200);
+    const listed = await (await api.fetch(request('/launch-registry'), env)).json();
+    const searched = await (await api.fetch(request('/launch-registry?name=retry%20test'), env)).json();
+    assert.equal(listed.launches.length, 1);
+    assert.equal(searched.launches[0].mint, mint.toBase58());
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 test('upload rejects other origins and does not touch storage', async () => {
   const env = { BUCKET: bucket() };
   const result = await api.fetch(new Request(`${base}/metadata-upload`, { method: 'POST',

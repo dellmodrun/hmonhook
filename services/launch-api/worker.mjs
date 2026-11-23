@@ -175,17 +175,25 @@ async function launchRegistry(request, env) {
   const launch = verifiedLaunch(transaction, mint, creator);
   if (!launch) return response({ error: 'No matching confirmed Pump create_v2 launch' }, 422);
   const key = `launch/by-mint/${mint}.json`;
-  if (!await env.BUCKET.head(key)) {
-    const row = { ...launch, ...await hostedMetadata(request, env, launch),
-      created_at: new Date((transaction.blockTime || Date.now() / 1000) * 1000).toISOString() };
-    const bytes = JSON.stringify(row);
-    const reverseSlot = String(999999999999n - BigInt(transaction.slot)).padStart(12, '0');
-    const nameHash = await sha256(new TextEncoder().encode(normalizedName(launch.name)));
-    await env.BUCKET.put(key, bytes, { httpMetadata: { contentType: 'application/json' } });
-    await env.BUCKET.put(`launch/by-time/${reverseSlot}-${mint}.json`, bytes);
-    await env.BUCKET.put(`launch/by-name/${nameHash}/${mint}.json`, bytes);
+  const existing = await env.BUCKET.get(key);
+  const row = existing ? JSON.parse(await existing.text()) : {
+    ...launch, ...await hostedMetadata(request, env, launch),
+    created_at: new Date((transaction.blockTime || Date.now() / 1000) * 1000).toISOString(),
+  };
+  if (row.mint !== mint || row.signature !== signature || row.creator !== creator || row.name !== launch.name) {
+    return response({ error: 'Stored launch does not match the verified transaction' }, 503);
   }
-  return response({ launch });
+  const bytes = JSON.stringify(row);
+  const reverseSlot = String(999999999999n - BigInt(transaction.slot)).padStart(12, '0');
+  const nameHash = await sha256(new TextEncoder().encode(normalizedName(row.name)));
+  for (const [path, metadata] of [
+    [key, { httpMetadata: { contentType: 'application/json' } }],
+    [`launch/by-time/${reverseSlot}-${mint}.json`, {}],
+    [`launch/by-name/${nameHash}/${mint}.json`, {}],
+  ]) {
+    if (!await env.BUCKET.head(path)) await env.BUCKET.put(path, bytes, metadata);
+  }
+  return response({ launch: row });
 }
 
 export default {
