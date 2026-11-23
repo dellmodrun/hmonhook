@@ -53,7 +53,7 @@ catch (_) { prematureDefaultRejected = true; }
 assert.ok(prematureDefaultRejected, 'default must require a breached registered treasury');
 
 const seriesLamportsBeforeBuy = await connection.getBalance(opened.series.address, 'confirmed');
-const buySignature = await send([buyOptionsInstruction({ programId, series: opened.series.address, buyer: buyer.publicKey, lots: 2n })], [buyer]);
+const buySignature = await send([buyOptionsInstruction({ programId, series: opened.series.address, buyer: buyer.publicKey, treasury, lots: 2n })], [buyer]);
 series = await fetchVerifiedSeries(connection, programId, opened.series.address);
 assert.equal(series.soldLots, 2n);
 assert.equal((await connection.getBalance(opened.series.address, 'confirmed')) - seriesLamportsBeforeBuy, 200);
@@ -73,6 +73,10 @@ await send([
   createAssociatedTokenAccountIdempotentInstruction(issuer.publicKey, buyerTreasuryDestination, buyer.publicKey, mint, TOKEN_2022_PROGRAM_ID),
   createTransferCheckedInstruction(treasury, mint, buyerTreasuryDestination, issuer.publicKey, unit, decimals, [], TOKEN_2022_PROGRAM_ID),
 ], [issuer]);
+let postBreachPurchaseRejected = false;
+try { await send([buyOptionsInstruction({ programId, series: opened.series.address, buyer: buyer.publicKey, treasury, lots: 1n })], [buyer]); }
+catch (_) { postBreachPurchaseRejected = true; }
+assert.ok(postBreachPurchaseRejected, 'new options cannot be bought after registered treasury outflow');
 const defaultSignature = await send([triggerDefaultInstruction({ programId, series: opened.series.address, treasury })], [buyer]);
 series = await fetchVerifiedSeries(connection, programId, opened.series.address);
 assert.equal(series.status, 1);
@@ -92,10 +96,10 @@ const expiring = openSeriesInstructions({
   treasuryFloor: BigInt(99 * unit),
 });
 await send(expiring.instructions, [issuer]);
-await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, lots: 2n })], [buyer]);
+await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, treasury, lots: 2n })], [buyer]);
 while ((await connection.getSlot('confirmed')) <= expiryStart + 10) await new Promise((resolve) => setTimeout(resolve, 350));
 let expiredSaleRejected = false;
-try { await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, lots: 1n })], [buyer]); }
+try { await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, treasury, lots: 1n })], [buyer]); }
 catch (_) { expiredSaleRejected = true; }
 assert.ok(expiredSaleRejected, 'option purchases after the sale deadline must fail');
 const unauthorized = reclaimInstructions({ programId, issuer: buyer.publicKey, series: expiring.series.address, mint, vault: expiring.series.vault });
@@ -122,6 +126,6 @@ assert.ok(expiredExerciseRejected, 'exercise after expiry must fail');
 console.log(JSON.stringify({
   network: endpoint, programId: programId.toBase58(), series: opened.series.address.toBase58(),
   openSignature, buySignature, exerciseSignature, defaultSignature, claimSignature,
-  prematureDefaultRejected, divertedExerciseRejected, expiredSaleRejected, unauthorizedReclaimRejected,
+  prematureDefaultRejected, postBreachPurchaseRejected, divertedExerciseRejected, expiredSaleRejected, unauthorizedReclaimRejected,
   duplicateClaimRejected, earlyReclaimSignature, reclaimSignature, expiredExerciseRejected,
 }, null, 2));

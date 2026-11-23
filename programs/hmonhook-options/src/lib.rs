@@ -211,10 +211,12 @@ fn buy(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramRes
     let buyer = next_account_info(&mut it)?;
     let state = next_account_info(&mut it)?;
     let position_account = next_account_info(&mut it)?;
+    let treasury = next_account_info(&mut it)?;
     let system = next_account_info(&mut it)?;
     if !buyer.is_signer || !buyer.is_writable || !state.is_writable || !position_account.is_writable { return Err(bad_account()); }
     let mut series = load_series(program_id, state)?;
     if series.status != STATUS_ACTIVE || Clock::get()?.slot > series.sale_deadline_slot { return Err(invalid()); }
+    if *treasury.key != series.treasury || treasury_breached(treasury, &series) { return Err(invalid()); }
     let sold = series.sold_lots.checked_add(lots).ok_or_else(overflow)?;
     if sold > series.total_lots { return Err(invalid()); }
     let (expected, bump) = Pubkey::find_program_address(&[b"position", state.key.as_ref(), buyer.key.as_ref()], program_id);

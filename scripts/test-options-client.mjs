@@ -29,9 +29,10 @@ test('all option actions target the chosen new program with exact account order'
   assert.equal(open.instructions[1].data[0], 0);
   assert.equal(open.instructions[1].keys[3].pubkey.toBase58(), vault.toBase58());
   assert.equal(open.instructions[1].keys[5].pubkey.toBase58(), series.toBase58());
-  const buy = buyOptionsInstruction({ programId, series, buyer, lots: 2n });
+  const buy = buyOptionsInstruction({ programId, series, buyer, treasury, lots: 2n });
   assert.equal(buy.data[0], 1);
   assert.equal(buy.keys[2].pubkey.toBase58(), derivePosition(programId, series, buyer).toBase58());
+  assert.equal(buy.keys[3].pubkey.toBase58(), treasury.toBase58());
   for (const [op, action] of [
     [2, exerciseInstructions({ programId, series, mint, vault, issuer, buyer, lots: 1n })],
     [4, claimDefaultInstructions({ programId, series, mint, vault, issuer, buyer, lots: 1n })],

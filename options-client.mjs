@@ -50,9 +50,9 @@ export async function openSeriesFromPumpCurve(connection, args) {
   return { ...opened, strikeSnapshot };
 }
 
-export function buyOptionsInstruction({ programId, series, buyer, lots }) {
+export function buyOptionsInstruction({ programId, series, buyer, treasury, lots }) {
   const position = derivePosition(programId, series, buyer);
-  return instruction(programId, 1, [meta(buyer, true, true), meta(series, false, true), meta(position, false, true), meta(SystemProgram.programId)], lots);
+  return instruction(programId, 1, [meta(buyer, true, true), meta(series, false, true), meta(position, false, true), meta(treasury), meta(SystemProgram.programId)], lots);
 }
 
 function settleInstructions({ programId, series, mint, vault, issuer, buyer, lots }, op) {
