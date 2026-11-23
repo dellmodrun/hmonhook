@@ -84,6 +84,26 @@ async function publicObject(path, env) {
     'etag': object.httpEtag } });
 }
 
+async function hostedMetadata(request, env, launch) {
+  let uri;
+  try { uri = new URL(launch.metadata_uri); } catch { return {}; }
+  if (uri.origin !== new URL(request.url).origin || !JSON_PATH.test(uri.pathname)) return {};
+  const object = await env.BUCKET.get(uri.pathname.slice(1));
+  if (!object) return {};
+  let metadata;
+  try { metadata = JSON.parse(await object.text()); } catch { return {}; }
+  if (metadata.name !== launch.name || metadata.symbol !== launch.symbol) return {};
+  let image;
+  try { image = new URL(metadata.image); } catch { return {}; }
+  if (image.origin !== uri.origin || !IMAGE_PATH.test(image.pathname)) return {};
+  return {
+    image: image.href,
+    description: typeof metadata.description === 'string' ? metadata.description.slice(0, 500) : '',
+    website: typeof metadata.website === 'string' && /^https:\/\//.test(metadata.website) ? metadata.website : '',
+    twitter: typeof metadata.twitter === 'string' && /^https:\/\//.test(metadata.twitter) ? metadata.twitter : '',
+  };
+}
+
 async function rpcTransaction(env, signature) {
   const endpoints = [...new Set([env.HMONHOOK_SOLANA_RPC_URL || RPC, FALLBACK_RPC])];
   let sawNull = false;
@@ -152,7 +172,8 @@ async function launchRegistry(request, env) {
   if (!launch) return response({ error: 'No matching confirmed Pump create_v2 launch' }, 422);
   const key = `launch/by-mint/${mint}.json`;
   if (!await env.BUCKET.head(key)) {
-    const row = { ...launch, created_at: new Date((transaction.blockTime || Date.now() / 1000) * 1000).toISOString() };
+    const row = { ...launch, ...await hostedMetadata(request, env, launch),
+      created_at: new Date((transaction.blockTime || Date.now() / 1000) * 1000).toISOString() };
     const bytes = JSON.stringify(row);
     const reverseSlot = String(999999999999n - BigInt(transaction.slot)).padStart(12, '0');
     const nameHash = await sha256(new TextEncoder().encode(normalizedName(launch.name)));

@@ -45,7 +45,8 @@ test('market page retries a confirmed local receipt and then reads the shared di
         return response({ launch: { mint } });
       }
       directoryReads += 1;
-      return response({ launches: published ? [{ mint, creator, signature, name: 'Recovered coin', symbol: 'REC', created_at: new Date().toISOString() }] : [] });
+      return response({ launches: published ? [{ mint, creator, signature, name: 'Recovered coin', symbol: 'REC',
+        image: 'https://metadata.example/recovered.png', created_at: new Date().toISOString() }] : [] });
     }
     if (target.startsWith('https://api.dexscreener.com/')) return response([]);
     throw new Error(`Unexpected fetch: ${target}`);
@@ -68,6 +69,7 @@ test('market page retries a confirmed local receipt and then reads the shared di
   assert.equal(JSON.parse(storage.get(storageKey))[0].directoryPublished, true);
   assert.equal(JSON.parse(storage.get(storageKey))[0].status, 'confirmed');
   assert.match(element('market-grid').innerHTML, /PUMP LAUNCH VERIFIED/);
+  assert.match(element('market-grid').innerHTML, /metadata\.example\/recovered\.png/);
   element('market-search').value = 'Recovered coin';
   await element('market-search-form').listeners.submit({ preventDefault() {} });
   assert.match(element('market-search-message').textContent, /2 verified directory launches/);

@@ -73,6 +73,8 @@ test('persistent upload and verified launch are visible across requests', async 
     assert.equal(submitted.status, 200);
     const listed = await (await api.fetch(request('/launch-registry'), env)).json();
     assert.equal(listed.launches[0].mint, mint.toBase58());
+    assert.equal(listed.launches[0].image, image);
+    assert.equal(listed.launches[0].description, 'A real upload flow test.');
     const searched = await (await api.fetch(request('/launch-registry?name=service%20test'), env)).json();
     assert.equal(searched.launches[0].signature, signature);
     assert.equal(env.BUCKET.objects.size, 7);

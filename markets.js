@@ -55,7 +55,9 @@
 
   function directoryRecord(item) {
     return { mint: item.mint, signature: item.signature, creator: item.creator, name: item.name, symbol: item.symbol,
-      metadataUri: item.metadata_uri, createdAt: item.created_at, source: "verified-pump", verified: true };
+      metadataUri: item.metadata_uri, image: item.image, description: item.description,
+      website: item.website, twitter: item.twitter, createdAt: item.created_at,
+      source: "verified-pump", verified: true };
   }
 
   async function loadRegistry() {
