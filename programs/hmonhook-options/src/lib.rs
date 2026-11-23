@@ -75,6 +75,17 @@ fn token_data(account: &AccountInfo, mint: &Pubkey, authority: &Pubkey) -> Resul
     u64_at(&data, 64)
 }
 
+fn vault_token_data(account: &AccountInfo, mint: &Pubkey, authority: &Pubkey) -> Result<u64, ProgramError> {
+    let amount = token_data(account, mint, authority)?;
+    let data = account.try_borrow_data()?;
+    // A preapproved delegate can transfer escrowed tokens without the series
+    // PDA signing. The vault must have no delegate or delegated allowance.
+    if data.get(72..76) != Some(&[0; 4]) || u64_at(&data, 121)? != 0 {
+        return Err(bad_account());
+    }
+    Ok(amount)
+}
+
 fn treasury_breached(account: &AccountInfo, series: &Series) -> bool {
     // An emptied and closed registered treasury is also a breach. Requiring
     // a valid token account here would let the issuer evade the rule by closing it.
@@ -186,7 +197,7 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let lot_size = 10_u64.checked_pow(decimals as u32).ok_or_else(overflow)?;
     if supply == 0 || deposit == 0 || deposit % lot_size != 0 || (deposit as u128) * 100 < (supply as u128) * 2 || (deposit as u128) * 100 > (supply as u128) * 10 { return Err(invalid()); }
     token_data(source, mint.key, issuer.key)?;
-    token_data(vault, mint.key, state.key)?;
+    if vault_token_data(vault, mint.key, state.key)? != 0 { return Err(bad_account()); }
     let treasury_amount = token_data(treasury, mint.key, issuer.key)?;
     if floor == 0 || floor > treasury_amount || treasury.key == source.key { return Err(invalid()); }
     let (expected, bump) = Pubkey::find_program_address(&[b"series", mint.key.as_ref(), issuer.key.as_ref(), &nonce.to_le_bytes()], program_id);
@@ -196,9 +207,9 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let size = borsh::to_vec(&series).map_err(|_| invalid())?.len();
     let seeds = [b"series".as_ref(), mint.key.as_ref(), issuer.key.as_ref(), &nonce.to_le_bytes(), &[bump]];
     create_pda(issuer, state, system, program_id, size, &seeds)?;
-    let before = token_data(vault, mint.key, state.key)?;
+    let before = vault_token_data(vault, mint.key, state.key)?;
     transfer_tokens(source, vault, mint, issuer, token_program, deposit, decimals, None)?;
-    let received = token_data(vault, mint.key, state.key)?.checked_sub(before).ok_or_else(overflow)?;
+    let received = vault_token_data(vault, mint.key, state.key)?.checked_sub(before).ok_or_else(overflow)?;
     if received != deposit { return Err(bad_account()); }
     save(state, &series)
 }
@@ -267,7 +278,7 @@ fn settle(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8], default_cl
     if (default_claim && series.status != STATUS_DEFAULT) || (!default_claim && series.status != STATUS_ACTIVE) { return Err(invalid()); }
     let mut position = load_position(program_id, position_account, state, buyer)?;
     if lots > position_remaining(&position)? { return Err(invalid()); }
-    token_data(vault, mint.key, state.key)?;
+    vault_token_data(vault, mint.key, state.key)?;
     let before = token_data(destination, mint.key, buyer.key)?;
     let (_, decimals) = mint_data(mint)?;
     let tokens = lots.checked_mul(series.lot_size).ok_or_else(overflow)?;
@@ -314,7 +325,7 @@ fn reclaim(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let mut series = load_series(program_id, state)?;
     let slot = Clock::get()?.slot;
     if *issuer.key != series.issuer || *mint.key != series.mint || *vault.key != series.vault || slot <= series.sale_deadline_slot || series.status == STATUS_CLOSED { return Err(invalid()); }
-    token_data(vault, mint.key, state.key)?;
+    vault_token_data(vault, mint.key, state.key)?;
     token_data(destination, mint.key, issuer.key)?;
     let (_, decimals) = mint_data(mint)?;
     let expired = slot > series.expiry_slot;
@@ -404,6 +415,26 @@ mod tests {
         let system_id = solana_system_interface::program::id();
         let closed = AccountInfo::new(&treasury, false, false, &mut lamports, &mut closed_data, &system_id, false);
         assert!(treasury_breached(&closed, &series));
+    }
+
+    #[test]
+    fn vault_rejects_preapproved_delegate_or_allowance() {
+        let mint = Pubkey::new_unique();
+        let authority = Pubkey::new_unique();
+        let address = Pubkey::new_unique();
+        let mut lamports = 1;
+        let mut data = [0_u8; 165];
+        data[..32].copy_from_slice(mint.as_ref());
+        data[32..64].copy_from_slice(authority.as_ref());
+        data[108] = 1;
+        let token_id = token_2022::id();
+        let account = AccountInfo::new(&address, false, false, &mut lamports, &mut data, &token_id, false);
+        assert_eq!(vault_token_data(&account, &mint, &authority).unwrap(), 0);
+        account.try_borrow_mut_data().unwrap()[72..76].copy_from_slice(&1_u32.to_le_bytes());
+        assert!(vault_token_data(&account, &mint, &authority).is_err());
+        account.try_borrow_mut_data().unwrap()[72..76].fill(0);
+        account.try_borrow_mut_data().unwrap()[121..129].copy_from_slice(&1_u64.to_le_bytes());
+        assert!(vault_token_data(&account, &mint, &authority).is_err());
     }
 
     #[test]
