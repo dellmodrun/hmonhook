@@ -26,6 +26,9 @@ const instruction = await PUMP_SDK.createV2Instruction({
 
 if (!instruction.programId.equals(PUMP_PROGRAM_ID)) throw new Error("Unexpected target program.");
 if (instruction.keys.length !== 16) throw new Error(`Unexpected create_v2 account count: ${instruction.keys.length}`);
+if (instruction.keys[7].pubkey.toBase58() !== "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb") {
+  throw new Error("Pump create_v2 no longer uses the Token-2022 program expected by issuer options.");
+}
 
 const latest = await connection.getLatestBlockhash("confirmed");
 const transaction = new Transaction({

@@ -39,6 +39,9 @@ export async function createPumpCoin(request: PumpLaunchRequest) {
   if (instruction.keys.length !== 16) {
     throw new Error('Safety check failed: unexpected Pump create_v2 account layout.');
   }
+  if (instruction.keys[7].pubkey.toBase58() !== 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb') {
+    throw new Error('Safety check failed: this Pump route is not Token-2022 compatible with issuer options.');
+  }
 
   const rpcUrl = new URL(request.rpcEndpoint);
   if (rpcUrl.protocol !== 'https:') throw new Error('The RPC endpoint must use HTTPS.');
