@@ -1,10 +1,10 @@
-name: build jolt guard sbf
+name: build protocol sbf
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - "programs/jolt-guard/**"
+      - "programs/**"
       - ".github/workflows/sbf-build.yml"
 
 permissions:
@@ -31,5 +31,35 @@ jobs:
       - uses: actions/upload-artifact@v5
         with:
           name: jolt-guard-sbf
+          path: artifacts/
+          if-no-files-found: error
+
+  build-hmonhook-sbf:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - program: hmonhook-guard
+            binary: hmonhook_guard
+          - program: hmonhook-options
+            binary: hmonhook_options
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Agave toolchain
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v4.4.0/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - name: Build ${{ matrix.program }} SBF
+        run: |
+          mkdir -p artifacts
+          cargo build-sbf \
+            --manifest-path programs/${{ matrix.program }}/Cargo.toml \
+            --sbf-out-dir artifacts
+          test -s artifacts/${{ matrix.binary }}.so
+          sha256sum artifacts/${{ matrix.binary }}.so | tee artifacts/${{ matrix.binary }}.so.sha256
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.program }}-sbf
           path: artifacts/
           if-no-files-found: error
