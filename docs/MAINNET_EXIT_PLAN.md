@@ -9,13 +9,15 @@ Status: **deployment blocked**. This document is a release gate, not a claim tha
 | Item | Current result |
 | --- | --- |
 | Management address | `DyjJ2cxfL3oYCnazLHB7zpe4sd4mSnQuCbqV5sDGrgmG` |
-| Management balance | 1.1999845 SOL at the latest read-only check |
+| Management balance | 1.1999945 SOL at the latest read-only check |
 | New Guard / options accounts | Both reserved addresses unoccupied |
 | Final program-account rent floor | 1.00495608 SOL for the current CI Guard and options binaries |
 | Simultaneous temporary buffer rent | 1.00320856 SOL; staging, not an additional permanent cost |
 | Transaction fees and other accounts | Excluded from the rent floor |
 
 These estimates use the CI artifacts from run `45393759609` at commit `53a2fac`, whose options SBF hash is `bacfb380c38167de444c797ca223ad2d59463f34f8379342dd64ac5ac9c3ac6f`. The CI build and local lifecycle passed; this is **not** an independent security review or public-cluster transaction test. Recompute from the final binaries and current network rent immediately before deployment.
+
+The latest read-only preflight returned `machineChecksPassed: true` and `readyToDeploy: false`. Machine checks cover identity, binary hashes, vacant addresses, balance above the **final-account rent floor**, and network identity. They do not prove that 1.1999945 SOL is enough for the temporary deployment buffer, fees, and other accounts at each step. A deployment transaction must not be sent based on the rent floor alone. The read-only recovery audit also confirmed both reserved mainnet programs remain undeployed, so no new mainnet program rent has been paid or become recoverable.
 
 ## Which SOL can be recovered
 
