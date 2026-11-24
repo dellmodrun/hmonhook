@@ -5,7 +5,7 @@
     "build:client": "node build-client.mjs",
     "build:site": "python bundle.py",
     "test:site": "node scripts/check-site.mjs",
-    "test:options": "node --test scripts/test-options-client.mjs scripts/test-options-strike.mjs scripts/test-options-release-gate.mjs scripts/test-options-program-gate.mjs scripts/test-options-network-gate.mjs",
+    "test:options": "node --test scripts/test-options-client.mjs scripts/test-options-strike.mjs scripts/test-options-release-gate.mjs scripts/test-options-program-gate.mjs scripts/test-options-network-gate.mjs scripts/test-options-transaction.mjs",
     "test:launch": "node --test scripts/test-launch-confirm.mjs scripts/test-launch-registry.mjs scripts/test-market-registry-recovery.mjs scripts/test-metadata-upload.mjs scripts/test-metadata-upload-service.mjs scripts/test-launch-api.mjs scripts/test-pump-token-compat.mjs scripts/test-launch-wallet-switch.mjs",
     "verify:devnet": "node scripts/verify-deployment.mjs devnet",
     "verify:mainnet": "node scripts/verify-deployment.mjs mainnet"

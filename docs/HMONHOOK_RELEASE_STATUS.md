@@ -14,6 +14,8 @@ The disabled options frontend now requires a reviewed SHA-256 digest and an expl
 
 The mainnet genesis hash check in the options page had been truncated, which would have rejected the real mainnet RPC even after deployment. It now uses the full hash shared with the artifact reviewer. A browser test accepts the full mainnet value and rejects devnet before series inspection. The [Solana cluster source](https://github.com/solana-labs/solana/blob/master/sdk/src/genesis_config.rs) records the same full mainnet-beta hash.
 
+Option transactions now run an unsigned RPC simulation before requesting a wallet signature. A failed simulation stops the signing flow; tests verify this ordering. Simulation is a snapshot and cannot replace the program's on-chain checks when state changes between simulation and execution.
+
 ## Verified locally
 
 - `programs/hmonhook-guard` builds to SBF. Its own wire marker is `HMON`, and `hmonhook-sdk` builds matching instructions and receipts.

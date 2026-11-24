@@ -1,11 +1,13 @@
 import { Buffer } from 'buffer';
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 export { Connection } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { PumpSdk, PUMP_PROGRAM_ID, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
 import { strikeFromPumpReserves } from './options-strike-core.mjs';
 export { SOLANA_MAINNET_GENESIS_HASH } from './options-network-core.mjs';
 import { verifyOptionsProgram } from './options-release-core.mjs';
+import { submitOptionsInstructions } from './options-transaction-core.mjs';
+export { submitOptionsInstructions } from './options-transaction-core.mjs';
 import { openSeriesInstructions, buyOptionsInstruction, exerciseInstructions,
   claimDefaultInstructions, refundPremiumInstruction, triggerDefaultInstruction,
   reclaimInstructions, fetchVerifiedSeries,
@@ -109,34 +111,6 @@ export async function previewIssuerSeries({ rpcEndpoint, programId, issuer, mint
     treasuryBefore: source.amount, treasuryFloor: floor, strikeLamports: strike.strikeLamports,
     premiumLamports: strike.premiumLamports, lotSize: strike.lotSize, totalLots: lots,
     snapshotSlot: response.context.slot, saleDeadlineSlot, expirySlot };
-}
-
-export async function submitOptionsInstructions({ connection, provider, authority, instructions }:
-  { connection: Connection; provider: any; authority: PublicKey; instructions: any[] }) {
-  if (!provider?.publicKey || !publicKey(provider.publicKey).equals(authority)) {
-    throw new Error('Connected wallet changed. Review and prepare this transaction again.');
-  }
-  const latest = await connection.getLatestBlockhash('confirmed');
-  const transaction = new Transaction({ feePayer: authority, recentBlockhash: latest.blockhash }).add(...instructions);
-  let signature: string;
-  if (typeof provider.signAndSendTransaction === 'function') {
-    const sent = await provider.signAndSendTransaction(transaction, { preflightCommitment: 'confirmed', maxRetries: 3 });
-    signature = typeof sent === 'string' ? sent : sent.signature;
-  } else if (typeof provider.signTransaction === 'function') {
-    const signed = await provider.signTransaction(transaction);
-    signature = await connection.sendRawTransaction(signed.serialize(), { preflightCommitment: 'confirmed', maxRetries: 3 });
-  } else throw new Error('This wallet cannot sign a Solana transaction.');
-  if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature || '')) throw new Error('Wallet returned no valid signature.');
-  try {
-    const confirmation = await connection.confirmTransaction({ signature, ...latest }, 'confirmed');
-    if (confirmation.value.err) return { signature, status: 'failed' as const, error: confirmation.value.err };
-    return { signature, status: 'confirmed' as const };
-  } catch (_) {
-    const status = (await connection.getSignatureStatuses([signature], { searchTransactionHistory: true })).value[0];
-    if (status?.err) return { signature, status: 'failed' as const, error: status.err };
-    return { signature, status: status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized'
-      ? 'confirmed' as const : 'pending' as const };
-  }
 }
 
 export async function submitIssuerSeries(prepared: Awaited<ReturnType<typeof previewIssuerSeries>>, provider: any) {
