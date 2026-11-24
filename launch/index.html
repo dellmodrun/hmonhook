@@ -164,7 +164,7 @@
 </label>
 </div>
 <div class="field-pair">
-<label>OPTIONAL TRADE PLAN / NOT ACTIVE<select id="coin-policy">
+<label>OPTIONAL TRADE PLAN / LOCAL ONLY<select id="coin-policy">
 <option value="max-cost">MAXIMUM TOTAL COST</option>
 <option value="allowed-route">ALLOWED ROUTE</option>
 <option value="token-fee-cap">TOKEN FEE CEILING</option>
@@ -228,7 +228,7 @@
 </article>
 <article>
 <b>03 / DEFAULT INTENT POLICY</b>
-<p>A local JLM1 policy proposal for future wallet or publisher integration.</p>
+<p>A local JLM1 plan for review. Creating a coin does not publish or enforce this plan on-chain.</p>
 </article>
 </div>
 <div class="prose-block after-grid"><p>The Mint is the token itself. The Pump route creates its initial trading path. The JLM1 policy selection is saved in the local plan, not registered on-chain by this launcher. A wallet could later display such a baseline, but only a transaction protected by the deployed Guard enforces a trader's signed limits.</p><p>Issuer options and a protected intent are distinct: an option would cover a developer's publicly verifiable commitment, while an intent protects the outcome of one supported trade. Neither is automatically attached to every coin created here.</p></div>

@@ -121,12 +121,12 @@
 </div>
 <p>The protocol does not replace a launchpad, wallet or liquidity router. It gives those systems one shared language for declaring and enforcing a transaction outcome.</p>
 </div>
-<div class="prose-block"><p>h/monhook separates declaration from enforcement. The current launcher can create a coin and export a local JLM1 policy proposal; it does not publish that policy on-chain. For a supported Jupiter route, a trader can turn a quote into transaction limits, and the deployed Guard checks the realized result. A future publisher could make an issuer baseline discoverable to wallets.</p><p>The six components below describe one transaction lifecycle. JLM1 describes a launch plan, Intent V1 describes one trade, the deployed Guard executes it, JHK1 defines optional policy logic, JRC1 reports what settled, and the SDK assembles and reads the formats. Issuer options and Privacy Rings are separate integrations with their own contracts and trust boundaries.</p></div>
+<div class="prose-block"><p>h/monhook separates declaration from enforcement. The current launcher can create a coin and export a local JLM1 policy plan; it does not publish that policy on-chain. For a supported Jupiter route, a trader can turn a quote into transaction limits, and the deployed Guard checks the realized result. A future publisher could make an issuer baseline discoverable to wallets.</p><p>The six components below describe one transaction lifecycle. JLM1 describes a launch plan, Intent V1 describes one trade, the deployed Guard executes it, JHK1 defines optional policy logic, JRC1 reports what settled, and the SDK assembles and reads the formats. Issuer options and Privacy Rings are separate integrations with their own contracts and trust boundaries.</p></div>
 <div class="fact-grid">
 <article>
 <b>JLM1 / LAUNCH</b>
 <strong>Issuer baseline</strong>
-<p>Describes token identity, launch route and a proposed policy; the current launcher keeps this plan local.</p>
+<p>Describes token identity, launch route and a local policy plan; the launcher does not publish it on-chain.</p>
 </article>
 <article>
 <b>Intent V1 / INTENT</b>
