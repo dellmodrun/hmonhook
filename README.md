@@ -1,13 +1,20 @@
 # h/monhook
 
-Public issuer commitments, transaction-bound settlement and an optional privacy direction for Solana. The implemented core is Jolt Guard; the issuer-option and Privacy Rings layers are design and integration work, respectively. See [product scope](docs/PRODUCT_SCOPE.md) for the exact boundary.
+Public issuer commitments, transaction-bound settlement and an optional privacy direction for Solana. The implemented mainnet settlement core is the h/monhook Guard; issuer options and Privacy Rings remain separate development and integration work. See [product scope](docs/PRODUCT_SCOPE.md) for the exact boundary.
 
-h/monhook is not a block explorer. Jolt Guard changes whether a supported route is allowed
+h/monhook is not a block explorer. Its Guard changes whether a supported route is allowed
 to settle. A user signs maximum-input, minimum-output and expiry constraints;
 the program executes the route through CPI and atomically rejects settlement if
 the realized token-account deltas violate the intent.
 
-## Protocol
+## Current Guard and code lineage
+
+The supported website trade path uses the h/monhook Guard at
+[`Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ`](https://explorer.solana.com/address/Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ).
+Its on-chain binary matches SHA-256 `f90a8834e85f0e7094aa387000dbcf5e4c337f9cbc160eb537d2b6d36559776c`;
+the project management wallet retains upgrade authority. The website checks that binary and authority before asking for a protected swap signature. A read-only live Jupiter simulation succeeded, but no signed user swap or independent audit is claimed.
+
+The current `hmonhook-sdk` uses the `HMON` instruction format and `HRC1` receipt. The earlier Jolt Guard and SDK remain published for code lineage:
 
 - programs/jolt-guard: native Rust Solana program.
 - sdk/src/codec.ts: canonical intent commitment and JOLT V1 wire encoder.
@@ -67,7 +74,7 @@ The source commit, loader, program-data account and SBF SHA-256 are recorded in
 deployment is an integration target, not a mainnet production claim; Kora may
 reclaim devnet programs after seven days without on-chain activity.
 
-The verified mainnet deployment is
+The earlier Jolt Guard mainnet deployment remains at
 [`6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY`](https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY).
 Its ProgramData address, deployment signature, upgrade authority and matching
 SBF digest are published in [`deployments/mainnet.json`](deployments/mainnet.json).

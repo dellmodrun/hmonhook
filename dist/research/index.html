@@ -1081,7 +1081,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         slippageBps: byId("intent-slippage").value.trim(), expiresAtSlot: byId("intent-expiry").value.trim(),
         rpcEndpoint: solanaRpcUrl(byId("intent-rpc").value.trim())
       });
-      output.textContent = JSON.stringify({ status: "confirmed", protection: "h/monhook Guard mainnet", programId: "6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
+      output.textContent = JSON.stringify({ status: "confirmed", protection: "h/monhook Guard mainnet", programId: "Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
       showToast("Protected swap confirmed", "success");
     } catch (error) {
       output.textContent = "protected swap error · " + (error && error.message ? error.message : String(error));
@@ -1168,7 +1168,8 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     webPackage: "package.json",
     sdkPackage: "sdk/package.json",
     deployment: "deployments/devnet.json",
-    mainnetDeployment: "deployments/mainnet.json",
+    mainnetDeployment: "deployments/hmonhook-mainnet.json",
+    legacyMainnetDeployment: "deployments/mainnet.json",
     verifyDeployment: "scripts/verify-deployment.mjs",
     checkSite: "scripts/check-site.mjs",
     readme: "README.md",

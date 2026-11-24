@@ -14,7 +14,7 @@
 
 Adapters are part of the security boundary. A malicious or incorrectly decoded route instruction can select unintended accounts even when the guard itself behaves correctly. Production adapters should pin known program IDs, validate writable/signing roles and test adversarial account layouts.
 
-The same published SBF digest is deployed on mainnet and devnet. The mainnet deployment is executable and independently inspectable, but it is not presented as independently audited. Integrators should review the program, adapters and deployment manifest before enabling production value.
+The h/monhook Guard is executable on mainnet at `Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ`; its deployed SBF matches SHA-256 `f90a8834e85f0e7094aa387000dbcf5e4c337f9cbc160eb537d2b6d36559776c` and retains the project management wallet as upgrade authority. A read-only mainnet Jupiter simulation executed it and produced an `HMON_RECEIPT`. This is not an independent audit or a signed user transaction test. The earlier Jolt Guard remains documented separately. Integrators should review the applicable program, adapters and deployment manifest before enabling production value.
 
 ## Reporting
 

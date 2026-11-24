@@ -36,10 +36,14 @@ const legacySdkTests = ["codec", "instruction", "jupiter", "receipt"].reduce((co
 }, 0);
 assert.ok(legacySdkTests > 0, "legacy SDK test count was not found");
 assert.ok(code.includes(`<b>${legacySdkTests}</b>EARLIER SDK TESTS PASSING`), "Source Code SDK test count differs from the test files");
-assert.ok(protocol.includes(`LEGACY GUARD / ${legacySdkTests} SDK TESTS PASSING`), "Protocol SDK test count differs from the test files");
+const guardSdkTests = ["codec", "instruction", "jupiter", "receipt"].reduce((count, name) => {
+  const source = readFileSync(resolve(root, `hmonhook-sdk/test/${name}.test.js`), "utf8");
+  return count + [...source.matchAll(/^test\(/gm)].length;
+}, 0);
+assert.ok(protocol.includes(`H/MONHOOK GUARD / ${guardSdkTests} SDK TESTS PASSING`), "Protocol SDK test count differs from the new SDK tests");
 assert.match(code, /Code lineage and deployment:/, "Source Code does not explain the Jolt inheritance");
 assert.match(code, /data-code="launchClient">launch-client\.ts<\/button>/, "Source Code should lead with the current launch client");
-assert.match(protocol, /trade path currently uses an earlier deployed Guard program/, "Protocol does not identify the deployed older program");
+assert.match(protocol, /supported trade path now uses h\/monhook's own Guard on mainnet/, "Protocol does not identify the deployed Guard");
 for (const id of ["code-view", "code-filter", "code-copy", "code-download"]) {
   assert.match(code, new RegExp(`id=["']${id}["']`), `code browser missing ${id}`);
 }
@@ -48,7 +52,7 @@ for (const source of ["programs/jolt-guard/src/lib.rs", "sdk/src/index.ts", "doc
 }
 const app = readFileSync(resolve(root, "app.js"), "utf8");
 assert.match(app, /get\("file"\) \|\| "hmonGuard"/, "Source Code should open the current h\/monhook Guard source first");
-assert.match(code, /options-custody-v3 @ fb3e25e/, "Source Code must identify the development snapshot");
+assert.match(code, /The h\/monhook Guard is deployed on mainnet/, "Source Code omits the current Guard deployment");
 for (const source of ["programs/hmonhook-guard/src/lib.rs", "programs/hmonhook-options/src/lib.rs", "hmonhook-sdk/src/index.ts"]) {
   assert.ok(existsSync(resolve(root, "source-preview/options-custody-v3", source)), `current source snapshot misses ${source}`);
   assert.ok(existsSync(resolve(root, "dist/source-preview/options-custody-v3", source)), `bundle misses current source snapshot ${source}`);
@@ -69,6 +73,11 @@ for (const forbidden of ["github.com", "raw.githubusercontent.com", "dellmodrun"
   assert.ok(!publicFrontend.toLowerCase().includes(forbidden), `public frontend exposes forbidden host or account: ${forbidden}`);
 }
 const intent = readFileSync(resolve(root, "intent/index.html"), "utf8");
+assert.match(intent, /VERIFIED H\/MONHOOK GUARD DEPLOYMENT/, "intent page omits the active Guard release");
+const guardManifest = JSON.parse(readFileSync(resolve(root, "deployments/hmonhook-mainnet.json"), "utf8"));
+assert.equal(guardManifest.programId, "Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ");
+assert.match(readFileSync(resolve(root, "intent-client.ts"), "utf8"), /verifyGuardProgram\(connection\)/,
+  "protected swap must verify the on-chain Guard before signing");
 for (const [page, html] of [["home", home], ["launch", readFileSync(resolve(root, "launch/index.html"), "utf8")], ["markets", readFileSync(resolve(root, "markets/index.html"), "utf8")], ["intent", intent], ["protocol", protocol], ["research", readFileSync(resolve(root, "research/index.html"), "utf8")]]) {
   assert.doesNotMatch(html, /Joltwork|Jolt Guard/i, `old project name remains in user-facing ${page} copy`);
   assert.doesNotMatch(html, /INTENT HOOKS \/ SOLANA/, `old rail subtitle remains in ${page}`);

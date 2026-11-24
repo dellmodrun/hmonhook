@@ -357,7 +357,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <span class="page-code">ATOMIC CPI WRAPPER / JRC1</span>
 </div>
-<p>h/monhook brings coin launches, market discovery and transaction limits together on Solana. The trade path currently uses an earlier deployed Guard program; the separately named h/monhook Guard source is published but has not been deployed to mainnet. Issuer options and optional confidential transfers are separate product layers, not features of that existing Guard binary. The <a href="./code/">source and deployment page</a> shows the exact relationship.</p>
+<p>h/monhook brings coin launches, market discovery and transaction limits together on Solana. The supported trade path now uses h/monhook's own Guard on mainnet. Issuer options and optional confidential transfers are separate product layers, not features of the deployed Guard binary. The <a href="./code/">source and deployment page</a> shows the exact relationship.</p>
 </header>
 
 <section class="section-block">
@@ -408,20 +408,19 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <div>
 <span>PROGRAM + SDK</span>
-<b class="ready">LEGACY GUARD / 11 SDK TESTS PASSING</b>
+<b class="ready">H/MONHOOK GUARD / 11 SDK TESTS PASSING</b>
 </div>
 <div>
 <span>DEVNET PROGRAM ID</span>
-<b class="ready">3gAqr1U9…K2knfVG</b>
+<b class="ready">DjEzdqVd...cyT4ZQ7</b>
 </div>
 <div>
 <span>MAINNET PROGRAM ID</span>
-<b class="ready">6HfEuWvE…S3ENTY</b>
+<b class="ready">Be7RvxKN...1E2ELQ</b>
 </div>
 </div>
 <div class="callout">
-<b>EXISTING GUARD DEPLOYMENTS</b>
-<p>The currently used Guard is executable on <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer">Solana mainnet at <code>6HfEu…S3ENTY</code> ↗</a> and on <a href="https://explorer.solana.com/address/3gAqr1U9CzYhZBoqDJeEQFtphjVGvr24h4znUK2knfVG?cluster=devnet" target="_blank" rel="noreferrer">devnet at <code>3gAqr…K2knfVG</code> ↗</a>. Both ProgramData accounts match SBF SHA-256 <code>469ab222…124ebdd</code>. Neither address is a deployment of the separately named h/monhook Guard source.</p>
+<b>VERIFIED H/MONHOOK GUARD DEPLOYMENT</b><p>The supported trade path uses <a href="https://explorer.solana.com/address/Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ" target="_blank" rel="noreferrer"><code>Be7RvxKN...1E2ELQ</code> on Solana mainnet</a>. Its ProgramData matches SBF SHA-256 <code>f90a8834...5ac9c3ac6f</code>. Earlier Guard deployments remain recorded separately for code lineage.</p>
 </div>
 </section>
 <section id="privacy-boundary" class="section-block protection-story" aria-labelledby="privacy-title">
@@ -1389,7 +1388,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         slippageBps: byId("intent-slippage").value.trim(), expiresAtSlot: byId("intent-expiry").value.trim(),
         rpcEndpoint: solanaRpcUrl(byId("intent-rpc").value.trim())
       });
-      output.textContent = JSON.stringify({ status: "confirmed", protection: "h/monhook Guard mainnet", programId: "6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
+      output.textContent = JSON.stringify({ status: "confirmed", protection: "h/monhook Guard mainnet", programId: "Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
       showToast("Protected swap confirmed", "success");
     } catch (error) {
       output.textContent = "protected swap error · " + (error && error.message ? error.message : String(error));
@@ -1476,7 +1475,8 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     webPackage: "package.json",
     sdkPackage: "sdk/package.json",
     deployment: "deployments/devnet.json",
-    mainnetDeployment: "deployments/mainnet.json",
+    mainnetDeployment: "deployments/hmonhook-mainnet.json",
+    legacyMainnetDeployment: "deployments/mainnet.json",
     verifyDeployment: "scripts/verify-deployment.mjs",
     checkSite: "scripts/check-site.mjs",
     readme: "README.md",

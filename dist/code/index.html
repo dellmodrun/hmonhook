@@ -357,23 +357,23 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <span class="page-code">RUST / TYPESCRIPT / TESTS</span>
 </div>
-<p>Explore the current h/monhook Guard and option source alongside the code the live website uses. Source availability does not mean a program has been deployed.</p>
-<p class="source-summary">Current development snapshot: <code>options-custody-v3 @ fb3e25e</code>. The Guard and option programs in this snapshot are not the programs currently used by the mainnet trade flow.</p>
-<details class="advanced-information"><summary>Why do some deployed source files use an earlier name?</summary><div class="advanced-inner"><p><strong>Code lineage and deployment:</strong> h/monhook builds on the earlier Joltwork Guard implementation. The mainnet and devnet program IDs shown below are deployments of that earlier Jolt Guard binary, built from source commit <code>d1f21ed</code>; the deployment manifests record their IDs and binary digest. The <code>programs/jolt-guard</code> path, <code>sdk</code> package and <code>JOLT</code> wire marker are compatibility identifiers in that deployed protocol. The website's h/monhook name does not rename or replace those on-chain programs. A separately named h/monhook Guard is in development and has not been deployed to mainnet.</p></div></details>
+<p>Explore the deployed h/monhook Guard and SDK alongside the options source and the earlier Jolt Guard.</p>
+<p class="source-summary">The h/monhook Guard is deployed on mainnet at <code>Be7RvxKN...1E2ELQ</code>. Issuer options remain a development module and are not active on mainnet.</p>
+<details class="advanced-information"><summary>Why do some source files use an earlier name?</summary><div class="advanced-inner"><p><strong>Code lineage and deployment:</strong> h/monhook builds on the earlier Joltwork Guard implementation. The <code>programs/jolt-guard</code> path, <code>sdk</code> package and <code>JOLT</code> wire marker belong to that earlier protocol; its deployment manifests remain published. The supported trade path now uses the separately deployed h/monhook Guard and <code>HMON</code> instruction format. The older programs have not been renamed or overwritten.</p></div></details>
 </header>
 <section class="chapter">
 <div class="chapter-label">PUBLISHED SOURCE BROWSER</div>
 <h2>Explore the code behind h/monhook.</h2>
-<p class="source-summary">Start with the newer Guard, option contract or SDK to inspect the current h/monhook design. The live trade path and its older deployed Guard are listed separately below.</p>
-<div class="prose-block"><p>The source browser shows exact files from the current development snapshot and the live website. It also shows the older program that the current trade path calls. Follow the Mint and Program ID in your wallet to distinguish executable mainnet code from a published source draft.</p><p>The current h/monhook Guard and option files have not been deployed to mainnet from this snapshot. Local tests do not replace a funded deployment, independent review or a public program identity.</p></div>
+<p class="source-summary">Start with the h/monhook Guard and SDK to inspect the active protected trade path. The options contract and earlier Guard are listed separately.</p>
+<div class="prose-block"><p>The source browser shows the Guard source that matches the reviewed mainnet release, its SDK, the options development module and the earlier program. Check the full Program ID in your wallet to distinguish executable code from a published proposal.</p><p>The h/monhook Guard is executable on mainnet; options are not. Local tests and a read-only mainnet simulation do not replace an independent review or a signed user transaction test.</p></div>
 <div class="build-strip">
 <span>H/MONHOOK SOURCE<b>SNAPSHOT FB3E25E</b>
 </span>
-<span>NEW PROGRAMS<b>NOT DEPLOYED</b>
+<span>ISSUER OPTIONS<b>NOT DEPLOYED</b>
 </span>
-<span>LIVE TRADE GUARD<b>EARLIER DEPLOYMENT</b>
+<span>LIVE TRADE GUARD<b>H/MONHOOK MAINNET</b>
 </span>
-<span>MAINNET ADDRESS<b>6HfEuWvE…S3ENTY</b>
+<span>MAINNET ADDRESS<b>Be7RvxKN...1E2ELQ</b>
 </span>
 </div>
 <div class="repo-health" aria-label="Repository summary">
@@ -381,7 +381,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <span><b>02</b>SDK SOURCE TREES</span>
 <span><b>11</b>EARLIER SDK TESTS PASSING</span>
 <span><b>05</b>ENGINEERING DOCS</span>
-<span><b>02</b>DEPLOYMENT RECORDS</span>
+<span><b>03</b>DEPLOYMENT RECORDS</span>
 </div>
 <div class="code-browser">
 <aside class="code-sidebar">
@@ -437,7 +437,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <button data-code="sdkPackage">sdk/package.json</button></div>
 <div class="code-group"><b>DEPLOYMENT</b>
 <button data-code="deployment">deployments/devnet.json</button>
-<button data-code="mainnetDeployment">deployments/mainnet.json</button>
+<button data-code="mainnetDeployment">deployments/hmonhook-mainnet.json</button>
+<button data-code="legacyMainnetDeployment">deployments/mainnet.json</button>
 <button data-code="verifyDeployment">scripts/verify-deployment.mjs</button>
 <button data-code="checkSite">scripts/check-site.mjs</button></div>
 <div class="code-group"><b>DOCUMENTATION</b>
@@ -528,7 +529,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <h2>What the repository proves—and what deployment must still prove.</h2>
 </div>
 </div>
-<div class="prose-block"><p>Source code shows which mechanism was built; the mainnet and devnet manifests identify the executable older Guard. They do not prove every route adapter is free of edge cases. The current issuer-option source is a published draft, while Privacy Rings are not integrated into this site.</p><p>The browser assembles a supported Jupiter route with the existing mainnet Guard and asks the wallet to sign. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. The new h/monhook Guard and option source shown above are not the contracts this website executes today.</p></div>
+<div class="prose-block"><p>The h/monhook mainnet manifest identifies the executable Guard and its SBF hash. This does not prove every route adapter is free of edge cases. The issuer-option source is a published draft, while Privacy Rings are not integrated into this site.</p><p>The browser assembles a supported Jupiter route with the deployed h/monhook Guard and asks the wallet to sign. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. Options signing remains unavailable.</p></div>
 <div class="split-panel">
 <article>
 <h3>Inspectable now</h3>
@@ -553,8 +554,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </article>
 </div>
 <div class="callout">
-<b>CURRENT GUARD DEPLOYMENTS</b>
-<p>The current mainnet and devnet Guard deployments are independently inspectable. They use the earlier protocol identifiers described in the lineage note above. Published manifests bind their identities to the same SBF digest. The separately named h/monhook Guard remains in development; audit and production monitoring remain separate evidence.</p>
+<b>H/MONHOOK GUARD DEPLOYMENT</b>
+<p>The h/monhook Guard is deployed on mainnet at <a href="https://explorer.solana.com/address/Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ" target="_blank" rel="noreferrer"><code>Be7RvxKN...1E2ELQ</code></a>. Its manifest records the verified SBF hash and retained upgrade authority. The earlier Jolt Guard deployments remain independently inspectable; issuer options and Privacy Rings are not active in this release.</p>
 </div>
 </section>
 <section class="cta-panel">
@@ -1262,7 +1263,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         slippageBps: byId("intent-slippage").value.trim(), expiresAtSlot: byId("intent-expiry").value.trim(),
         rpcEndpoint: solanaRpcUrl(byId("intent-rpc").value.trim())
       });
-      output.textContent = JSON.stringify({ status: "confirmed", protection: "h/monhook Guard mainnet", programId: "6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
+      output.textContent = JSON.stringify({ status: "confirmed", protection: "h/monhook Guard mainnet", programId: "Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
       showToast("Protected swap confirmed", "success");
     } catch (error) {
       output.textContent = "protected swap error · " + (error && error.message ? error.message : String(error));
@@ -1349,7 +1350,8 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     webPackage: "package.json",
     sdkPackage: "sdk/package.json",
     deployment: "deployments/devnet.json",
-    mainnetDeployment: "deployments/mainnet.json",
+    mainnetDeployment: "deployments/hmonhook-mainnet.json",
+    legacyMainnetDeployment: "deployments/mainnet.json",
     verifyDeployment: "scripts/verify-deployment.mjs",
     checkSite: "scripts/check-site.mjs",
     readme: "README.md",

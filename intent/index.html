@@ -166,8 +166,8 @@
 <pre id="intent-output">Get a live quote, then review a local preview before signing the protected route.</pre>
 </div>
 </div>
-<div class="status-band"><div><span>QUOTE</span><b class="ready">JUPITER SWAP API V2</b></div><div><span>MAINNET PROGRAM</span><b class="ready">6HfEuWvE…S3ENTY</b></div><div><span>DEPLOYED SBF</span><b class="ready">SHA-256 VERIFIED</b></div></div>
-<div class="callout"><b>EXISTING GUARD DEPLOYMENT</b><p>The supported trade path uses an earlier Guard program at <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer"><code>6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY</code> ↗</a>. This is an existing mainnet program, not a deployment of the separately named h/monhook Guard. Its published SBF SHA-256 is <code>469ab222…124ebdd</code>. <a href="./code/">See the source and deployment relationship</a>.</p></div>
+<div class="status-band"><div><span>QUOTE</span><b class="ready">JUPITER SWAP API V2</b></div><div><span>MAINNET PROGRAM</span><b class="ready">Be7RvxKN...1E2ELQ</b></div><div><span>DEPLOYED SBF</span><b class="ready">SHA-256 VERIFIED</b></div></div>
+<div class="callout"><b>VERIFIED H/MONHOOK GUARD DEPLOYMENT</b><p>The supported trade path uses the h/monhook Guard at <a href="https://explorer.solana.com/address/Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ" target="_blank" rel="noreferrer"><code>Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ</code></a>. Its on-chain SBF matches SHA-256 <code>f90a8834...5ac9c3ac6f</code>; the project management wallet retains upgrade authority. The browser checks these values before asking for a trade signature.</p></div>
 <div class="callout">
 <b>ATOMICITY</b>
 <p>If the route spends above the ceiling, receives below the floor, expires, or fails a selected hook, the entire Solana transaction returns an error and does not settle partially.</p>
