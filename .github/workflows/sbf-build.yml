@@ -86,6 +86,7 @@ jobs:
             if solana cluster-version --url http://127.0.0.1:8899 >/dev/null 2>&1; then break; fi
             sleep 1
           done
+          node scripts/test-options-preflight-local.mjs || { cat /tmp/hmonhook-validator.log; exit 1; }
           node scripts/test-options-local.mjs "$PROGRAM_ID" || { cat /tmp/hmonhook-validator.log; exit 1; }
           node scripts/test-options-buyback-local.mjs "$PROGRAM_ID" || { cat /tmp/hmonhook-validator.log; exit 1; }
           node scripts/test-options-pumpswap-local.mjs "$PROGRAM_ID" || { cat /tmp/hmonhook-validator.log; exit 1; }

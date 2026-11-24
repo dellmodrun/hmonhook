@@ -731,6 +731,7 @@
     optionsConfig: "options/program.json",
     optionsPumpTest: "scripts/test-options-pump-real-local.mjs",
     optionsLocalTest: "scripts/test-options-buyback-local.mjs",
+    optionsPreflightTest: "scripts/test-options-preflight-local.mjs",
     optionsPumpSwapTest: "scripts/test-options-pumpswap-local.mjs",
     hmonhookSdk: "hmonhook-sdk/src/index.ts",
     hmonhookSdkInstruction: "hmonhook-sdk/src/instruction.ts",
