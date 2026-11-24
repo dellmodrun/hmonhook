@@ -31,7 +31,7 @@
     if (url.protocol !== 'https:') throw new Error('Use a mainnet HTTPS RPC endpoint.');
     var connection = new api.Connection(url.href, 'confirmed');
     var genesis = await connection.getGenesisHash();
-    if (genesis !== '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp') throw new Error('RPC endpoint is not Solana mainnet-beta.');
+    if (genesis !== api.SOLANA_MAINNET_GENESIS_HASH) throw new Error('RPC endpoint is not Solana mainnet-beta.');
     await api.loadOptionsProgram(connection, config);
     return connection;
   }

@@ -4,6 +4,7 @@ export { Connection } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { PumpSdk, PUMP_PROGRAM_ID, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
 import { strikeFromPumpReserves } from './options-strike-core.mjs';
+export { SOLANA_MAINNET_GENESIS_HASH } from './options-network-core.mjs';
 import { verifyOptionsProgram } from './options-release-core.mjs';
 import { openSeriesInstructions, buyOptionsInstruction, exerciseInstructions,
   claimDefaultInstructions, refundPremiumInstruction, triggerDefaultInstruction,
