@@ -23,3 +23,10 @@ node_modules/
 target/
 __pycache__/
 .local-deploy/
+
+# deployment credentials and local service configuration
+.env
+.env.*
+!.env.example
+*.keypair.json
+*-keypair.json
