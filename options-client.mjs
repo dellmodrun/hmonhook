@@ -1,6 +1,9 @@
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import { createRequire } from 'node:module';
 const { PUMP_PROGRAM_ID, PUMP_SDK } = createRequire(import.meta.url)('@pump-fun/pump-sdk');
+const { PUMP_AMM_PROGRAM_ID, PUMP_AMM_SDK, canonicalPumpPoolPda, PUMP_AMM_FEE_CONFIG_PDA,
+  GLOBAL_CONFIG_PDA, PUMP_AMM_EVENT_AUTHORITY_PDA, userVolumeAccumulatorPda } =
+  createRequire(import.meta.url)('@pump-fun/pump-swap-sdk');
 import BN from 'bn.js';
 import {
   NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync,
@@ -61,6 +64,14 @@ export function buybackVaultPrepInstructions({ programId, series, mint, payer })
   ] };
 }
 
+export function pumpSwapVaultPrepInstructions({ programId, series, mint, payer }) {
+  const vault = deriveBuybackVault(programId, series, mint);
+  return { vault, instructions: [
+    createAssociatedTokenAccountIdempotentInstruction(key(payer), vault.baseVault, vault.authority, key(mint), TOKEN_2022_PROGRAM_ID),
+    createAssociatedTokenAccountIdempotentInstruction(key(payer), vault.quoteVault, vault.authority, NATIVE_MINT, TOKEN_PROGRAM_ID),
+  ] };
+}
+
 // This is the Pump CPI payload for the development program, not a standalone
 // wallet transaction. The PDA can sign only inside h/monhook's own instruction.
 export async function buildPumpBuybackRoute({ programId, series, mint, spendableQuoteIn, minTokensOut }) {
@@ -105,6 +116,60 @@ export async function pumpBuybackInstruction({ programId, series, mint, keeper, 
     ...route.keys.map((account) => meta(account.pubkey, false, account.isWritable)),
   ], spend, minimum, topup);
   return { vault, route, instruction: outer };
+}
+
+// The installed Pump SDK predates PumpSwap trade V2, so assemble the official
+// 17-account instruction and validate its canonical pool before it is signed.
+export async function buildPumpSwapBuybackRoute({ connection, programId, series, mint, spendableQuoteIn, minTokensOut }) {
+  const spend = BigInt(spendableQuoteIn);
+  const minimum = BigInt(minTokensOut);
+  u64(spend);
+  u64(minimum);
+  if (spend === 0n || minimum === 0n) throw new RangeError('Buyback input and minimum output must be positive.');
+  const vault = deriveBuybackVault(programId, series, mint);
+  const pool = canonicalPumpPoolPda(key(mint));
+  const info = await connection.getAccountInfo(pool, 'confirmed');
+  if (!info || !info.owner.equals(PUMP_AMM_PROGRAM_ID)) throw new Error('Canonical PumpSwap pool is missing.');
+  const decoded = PUMP_AMM_SDK.decodePool(info);
+  if (!decoded.baseMint.equals(key(mint)) || !decoded.quoteMint.equals(NATIVE_MINT) ||
+      !decoded.creator.equals(PublicKey.findProgramAddressSync([Buffer.from('pool-authority'), key(mint).toBuffer()], OFFICIAL_PUMP_PROGRAM_ID)[0]) ||
+      Number(decoded.index) !== 0 || decoded.isCashbackCoin) {
+    throw new Error('Pool is not a supported canonical SOL-quoted Pump coin.');
+  }
+  const feeVault = getAssociatedTokenAddressSync(NATIVE_MINT, PUMP_BUYBACK_FEE_RECIPIENT, true, TOKEN_PROGRAM_ID);
+  const addresses = [pool, vault.authority, GLOBAL_CONFIG_PDA, key(mint), NATIVE_MINT,
+    vault.baseVault, vault.quoteVault, decoded.poolBaseTokenAccount, decoded.poolQuoteTokenAccount,
+    TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, SystemProgram.programId,
+    userVolumeAccumulatorPda(vault.authority), PUMP_AMM_FEE_CONFIG_PDA,
+    feeVault, PUMP_AMM_EVENT_AUTHORITY_PDA, PUMP_AMM_PROGRAM_ID];
+  const writable = new Set([0, 1, 5, 6, 7, 8, 12, 14]);
+  const route = new TransactionInstruction({ programId: PUMP_AMM_PROGRAM_ID,
+    keys: addresses.map((address, index) => meta(address, index === 1, writable.has(index))),
+    data: Buffer.concat([Buffer.from('c2ab1c46684d5b2f', 'hex'), u64(spend), u64(minimum)]) });
+  return { vault, pool, route };
+}
+
+export async function pumpSwapBuybackInstruction({ connection, programId, series, mint, keeper, spendableQuoteIn, minTokensOut, keeperTopupLamports, strikeLamports, lotSize }) {
+  const spend = BigInt(spendableQuoteIn);
+  const minimum = BigInt(minTokensOut);
+  const topup = BigInt(keeperTopupLamports);
+  const strike = BigInt(strikeLamports);
+  const lot = BigInt(lotSize);
+  if (strike <= 0n || lot <= 0n || topup < 0n || topup > 20_000_000n) throw new RangeError('Invalid buyback terms or keeper rent allowance.');
+  if (minimum < (spend * lot + 2n * strike - 1n) / (2n * strike)) {
+    throw new RangeError('Minimum output exceeds the series maximum buyback price.');
+  }
+  const { vault, pool, route } = await buildPumpSwapBuybackRoute({ connection, programId, series, mint,
+    spendableQuoteIn: spend, minTokensOut: minimum });
+  const outer = instruction(programId, 9, [meta(keeper, true, true), meta(series, false, true),
+    ...route.keys.map((account) => meta(account.pubkey, false, account.isWritable))], spend, minimum, topup);
+  return { vault, pool, route, instruction: outer };
+}
+
+export function reclaimPumpSwapQuoteRentInstruction({ programId, series, mint, issuer }) {
+  const vault = deriveBuybackVault(programId, series, mint);
+  return instruction(programId, 10, [meta(series), meta(vault.quoteVault, false, true),
+    meta(vault.authority), meta(issuer, false, true), meta(TOKEN_PROGRAM_ID)]);
 }
 
 export function openSeriesInstructions({ programId, issuer, mint, source, treasury, nonce, deposit, strikeLamports, saleDeadlineSlot, expirySlot, treasuryFloor }) {

@@ -26,6 +26,12 @@ mod wrapped_sol {
 mod pump {
     solana_program::declare_id!("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P");
 }
+mod pump_swap {
+    solana_program::declare_id!("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA");
+}
+mod pump_fees {
+    solana_program::declare_id!("pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ");
+}
 mod pump_fee_config {
     solana_program::declare_id!("8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt");
 }
@@ -35,6 +41,16 @@ const POSITION_TAG: [u8; 8] = *b"HMONPOS2";
 const STATUS_ACTIVE: u8 = 0;
 const STATUS_DEFAULT: u8 = 1;
 const STATUS_CLOSED: u8 = 2;
+const PUMP_BUYBACK_FEE_RECIPIENTS: [&str; 8] = [
+    "5YxQFdt3Tr9zJLvkFccqXVUwhdTWJQc1fFg2YPbxvxeD",
+    "9M4giFFMxmFGXtc3feFzRai56WbBqehoSeRE5GK7gf7",
+    "GXPFM2caqTtQYC2cJ5yJRi9VDkpsYZXzYdwYpGnLmtDL",
+    "3BpXnfJaUTiwXnJNe7Ej1rcbzqTTQUvLShZaWazebsVR",
+    "5cjcW9wExnJJiqgLjq7DEG75Pm6JBgE1hNv4B2vHXUW6",
+    "EHAAiTxcdDwQ3U4bU6YcMsQGaekdzLS3B5SmYo46kJtL",
+    "5eHhjP8JaYkz83CWwvGU2uMUXefd3AazWGx4gpcuEEYD",
+    "A7hAgCzFw14fejgCp387JUJRMNyz4j89JKnhtKU8piqW",
+];
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Series {
@@ -103,6 +119,17 @@ fn vault_token_data(account: &AccountInfo, mint: &Pubkey, authority: &Pubkey) ->
         return Err(bad_account());
     }
     Ok(amount)
+}
+
+fn legacy_vault_token_data(account: &AccountInfo, mint: &Pubkey, authority: &Pubkey) -> Result<u64, ProgramError> {
+    if account.owner != &token_legacy::id() { return Err(bad_account()); }
+    let data = account.try_borrow_data()?;
+    if data.len() < 165 || data.get(0..32) != Some(mint.as_ref()) ||
+        data.get(32..64) != Some(authority.as_ref()) || data[108] != 1 ||
+        data.get(72..76) != Some(&[0; 4]) || u64_at(&data, 121)? != 0 {
+        return Err(bad_account());
+    }
+    u64_at(&data, 64)
 }
 
 fn treasury_breached(account: &AccountInfo, series: &Series) -> bool {
@@ -193,17 +220,7 @@ fn ata(mint: &Pubkey, owner: &Pubkey, token_program: &Pubkey) -> Pubkey {
 }
 
 fn pump_buyback_fee_recipient(address: &Pubkey) -> bool {
-    const RECIPIENTS: [&str; 8] = [
-        "5YxQFdt3Tr9zJLvkFccqXVUwhdTWJQc1fFg2YPbxvxeD",
-        "9M4giFFMxmFGXtc3feFzRai56WbBqehoSeRE5GK7gf7",
-        "GXPFM2caqTtQYC2cJ5yJRi9VDkpsYZXzYdwYpGnLmtDL",
-        "3BpXnfJaUTiwXnJNe7Ej1rcbzqTTQUvLShZaWazebsVR",
-        "5cjcW9wExnJJiqgLjq7DEG75Pm6JBgE1hNv4B2vHXUW6",
-        "EHAAiTxcdDwQ3U4bU6YcMsQGaekdzLS3B5SmYo46kJtL",
-        "5eHhjP8JaYkz83CWwvGU2uMUXefd3AazWGx4gpcuEEYD",
-        "A7hAgCzFw14fejgCp387JUJRMNyz4j89JKnhtKU8piqW",
-    ];
-    RECIPIENTS.iter().any(|value| value.parse::<Pubkey>().ok().as_ref() == Some(address))
+    PUMP_BUYBACK_FEE_RECIPIENTS.iter().any(|value| value.parse::<Pubkey>().ok().as_ref() == Some(address))
 }
 
 fn position_remaining(position: &Position) -> Result<u64, ProgramError> {
@@ -541,6 +558,138 @@ fn buyback_on_pump(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -
     save(state, &series)
 }
 
+// A migrated Pump coin trades in its canonical SOL-quoted PumpSwap pool.
+// Premiums are wrapped only inside this instruction. The PDA's wSOL ATA must
+// return to its starting balance; bought tokens remain in the separate vault.
+fn buyback_on_pump_swap(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
+    if data.len() != 24 || accounts.len() != 19 { return Err(invalid()); }
+    let spend = u64_at(data, 0)?;
+    let min_out = u64_at(data, 8)?;
+    let keeper_topup = u64_at(data, 16)?;
+    if spend == 0 || min_out == 0 || keeper_topup > 20_000_000 { return Err(invalid()); }
+    let keeper = &accounts[0];
+    let state = &accounts[1];
+    let route = &accounts[2..19];
+    if !keeper.is_signer || !keeper.is_writable || !state.is_writable { return Err(bad_account()); }
+    let mut series = load_series(program_id, state)?;
+    if series.status != STATUS_ACTIVE || series.sold_lots != series.total_lots ||
+        Clock::get()?.slot >= series.expiry_slot { return Err(invalid()); }
+    let received = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
+    let available = received.checked_sub(series.premium_spent_lamports)
+        .and_then(|v| v.checked_sub(series.premium_refunded_lamports)).ok_or_else(overflow)?;
+    if spend > available { return Err(invalid()); }
+    let ceiling = (series.strike_lamports as u128).checked_mul(2).ok_or_else(overflow)?;
+    let floor = ((spend as u128).checked_mul(series.lot_size as u128).ok_or_else(overflow)?
+        + ceiling - 1) / ceiling;
+    if (min_out as u128) < floor.max(1) { return Err(invalid()); }
+
+    let (buyer, bump) = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id);
+    let pool_authority = Pubkey::find_program_address(&[b"pool-authority", series.mint.as_ref()], &pump::id()).0;
+    let pool = Pubkey::find_program_address(&[
+        b"pool", &0_u16.to_le_bytes(), pool_authority.as_ref(), series.mint.as_ref(), wrapped_sol::id().as_ref(),
+    ], &pump_swap::id()).0;
+    let expected = [
+        pool, buyer,
+        Pubkey::find_program_address(&[b"global_config"], &pump_swap::id()).0,
+        series.mint, wrapped_sol::id(),
+        ata(&series.mint, &buyer, &token_2022::id()),
+        ata(&wrapped_sol::id(), &buyer, &token_legacy::id()),
+        *route[7].key, *route[8].key,
+        token_2022::id(), token_legacy::id(), solana_system_interface::program::id(),
+        Pubkey::find_program_address(&[b"user_volume_accumulator", buyer.as_ref()], &pump_swap::id()).0,
+        Pubkey::find_program_address(&[b"fee_config", pump_swap::id().as_ref()], &pump_fees::id()).0,
+        *route[14].key,
+        Pubkey::find_program_address(&[b"__event_authority"], &pump_swap::id()).0,
+        pump_swap::id(),
+    ];
+    if route.iter().zip(expected.iter()).any(|(account, key)| account.key != key) ||
+        !PUMP_BUYBACK_FEE_RECIPIENTS.iter().any(|recipient| {
+            recipient.parse::<Pubkey>().ok().map(|address| ata(&wrapped_sol::id(), &address, &token_legacy::id())) == Some(*route[14].key)
+        }) || route[1].owner != &solana_system_interface::program::id() || route[1].data_len() != 0 {
+        return Err(bad_account());
+    }
+    if route[0].owner != &pump_swap::id() { return Err(bad_account()); }
+    let pool_data = route[0].try_borrow_data()?;
+    if pool_data.len() < 203 || pool_data.get(0..8) != Some(&[241, 154, 109, 4, 17, 177, 109, 188]) ||
+        pool_data.get(9..11) != Some(&[0, 0]) ||
+        pool_data.get(11..43) != Some(pool_authority.as_ref()) ||
+        pool_data.get(43..75) != Some(series.mint.as_ref()) ||
+        pool_data.get(75..107) != Some(wrapped_sol::id().as_ref()) ||
+        pool_data.get(139..171) != Some(route[7].key.as_ref()) ||
+        pool_data.get(171..203) != Some(route[8].key.as_ref()) { return Err(bad_account()); }
+    drop(pool_data);
+    let base_before = vault_token_data(&route[5], &series.mint, &buyer)?;
+    let quote_before = legacy_vault_token_data(&route[6], &wrapped_sol::id(), &buyer)?;
+    let minimum = Rent::get()?.minimum_balance(state.data_len());
+    let state_before = state.lamports();
+    let buyer_before = route[1].lamports();
+    if state_before < minimum || buyer_before < Rent::get()?.minimum_balance(0).checked_add(available).ok_or_else(overflow)? {
+        return Err(bad_account());
+    }
+    if keeper_topup != 0 { transfer_sol(keeper, &route[1], &route[11], keeper_topup)?; }
+    let bump_seed = [bump];
+    let seeds = [b"buyback".as_ref(), state.key.as_ref(), bump_seed.as_ref()];
+    let wrap = system_instruction::transfer(route[1].key, route[6].key, spend);
+    invoke_signed(&wrap, &[route[1].clone(), route[6].clone(), route[11].clone()], &[&seeds])?;
+    let sync = Instruction { program_id: token_legacy::id(), accounts: vec![AccountMeta::new(*route[6].key, false)], data: vec![17] };
+    invoke(&sync, &[route[6].clone(), route[10].clone()])?;
+    if legacy_vault_token_data(&route[6], &wrapped_sol::id(), &buyer)? != quote_before.checked_add(spend).ok_or_else(overflow)? {
+        return Err(bad_account());
+    }
+
+    let mut trade_data = vec![0xc2, 0xab, 0x1c, 0x46, 0x68, 0x4d, 0x5b, 0x2f];
+    trade_data.extend_from_slice(&spend.to_le_bytes());
+    trade_data.extend_from_slice(&min_out.to_le_bytes());
+    let writable = [0_usize, 1, 5, 6, 7, 8, 12, 14];
+    let metas = route.iter().enumerate().map(|(index, account)| {
+        if writable.contains(&index) { AccountMeta::new(*account.key, index == 1) }
+        else { AccountMeta::new_readonly(*account.key, false) }
+    }).collect();
+    let trade = Instruction { program_id: pump_swap::id(), accounts: metas, data: trade_data };
+    invoke_signed(&trade, route, &[&seeds])?;
+    let base_out = vault_token_data(&route[5], &series.mint, &buyer)?.checked_sub(base_before).ok_or_else(overflow)?;
+    if base_out < min_out || legacy_vault_token_data(&route[6], &wrapped_sol::id(), &buyer)? != quote_before ||
+        state.lamports() != state_before { return Err(bad_account()); }
+    let preserved = buyer_before.checked_sub(spend).ok_or_else(overflow)?;
+    let refund_keeper = route[1].lamports().checked_sub(preserved).ok_or_else(overflow)?;
+    if refund_keeper > keeper_topup { return Err(bad_account()); }
+    if refund_keeper != 0 {
+        let refund = system_instruction::transfer(route[1].key, keeper.key, refund_keeper);
+        invoke_signed(&refund, &[route[1].clone(), keeper.clone(), route[11].clone()], &[&seeds])?;
+    }
+    if route[1].lamports() != preserved ||
+        preserved < Rent::get()?.minimum_balance(0).checked_add(available - spend).ok_or_else(overflow)? {
+        return Err(bad_account());
+    }
+    series.premium_spent_lamports = series.premium_spent_lamports.checked_add(spend).ok_or_else(overflow)?;
+    save(state, &series)
+}
+
+fn reclaim_pump_swap_quote_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    if accounts.len() != 5 { return Err(invalid()); }
+    let state = &accounts[0];
+    let quote_vault = &accounts[1];
+    let authority = &accounts[2];
+    let issuer = &accounts[3];
+    let token_program = &accounts[4];
+    let series = load_series(program_id, state)?;
+    let total = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
+    if Clock::get()?.slot <= series.expiry_slot ||
+        total != series.premium_spent_lamports.checked_add(series.premium_refunded_lamports).ok_or_else(overflow)? ||
+        *issuer.key != series.issuer || !issuer.is_writable || !quote_vault.is_writable ||
+        token_program.key != &token_legacy::id() { return Err(invalid()); }
+    let (buyer, bump) = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id);
+    if *authority.key != buyer || *quote_vault.key != ata(&wrapped_sol::id(), &buyer, &token_legacy::id()) ||
+        legacy_vault_token_data(quote_vault, &wrapped_sol::id(), &buyer)? != 0 { return Err(bad_account()); }
+    let close = Instruction { program_id: token_legacy::id(), accounts: vec![
+        AccountMeta::new(*quote_vault.key, false), AccountMeta::new(*issuer.key, false),
+        AccountMeta::new_readonly(*authority.key, true),
+    ], data: vec![9] };
+    let bump_seed = [bump];
+    let seeds = [b"buyback".as_ref(), state.key.as_ref(), bump_seed.as_ref()];
+    invoke_signed(&close, &[quote_vault.clone(), issuer.clone(), authority.clone(), token_program.clone()], &[&seeds])
+}
+
 fn reclaim_buyback_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     if accounts.len() != 4 { return Err(invalid()); }
     let state = &accounts[0];
@@ -580,6 +729,8 @@ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], data: 
         6 if payload.is_empty() => claim_premium_refund(program_id, accounts),
         7 => buyback_on_pump(program_id, accounts, payload),
         8 if payload.is_empty() => reclaim_buyback_rent(program_id, accounts),
+        9 => buyback_on_pump_swap(program_id, accounts, payload),
+        10 if payload.is_empty() => reclaim_pump_swap_quote_rent(program_id, accounts),
         _ => Err(invalid()),
     }
 }
