@@ -5,7 +5,9 @@ import { TOKEN_2022_PROGRAM_ID, AuthorityType, createMint, getOrCreateAssociated
   getAccount, mintTo, setAuthority } from '@solana/spl-token';
 import { openSeriesInstructions, buyOptionsInstruction, buybackVaultPrepInstructions,
   pumpBuybackInstruction, fetchVerifiedSeries, refundPremiumInstruction } from '../options-client.mjs';
-import { reclaimBuybackRentInstruction } from '../options-client.mjs';
+import { reclaimBuybackRentInstruction, reclaimPumpSwapQuoteRentInstruction,
+  withdrawExpiredTreasuryForIssuerInstructions, reclaimExpiredForIssuerInstructions,
+  closePositionInstruction, closeSeriesTokenInstruction, closeSeriesInstruction } from '../options-client.mjs';
 import { createMockPumpCurve } from './local-pump-curve.mjs';
 
 const connection = new Connection('http://127.0.0.1:8899', 'confirmed');
@@ -106,5 +108,23 @@ redirectedRent.keys[2].pubkey = buyer.publicKey;
 await assert.rejects(send([redirectedRent], [buyer]), /failed|Error|Instruction/i);
 await send([rentReturn], [buyer]);
 assert.equal(await connection.getBalance(built.vault.authority, 'confirmed'), 0);
+await send(withdrawExpiredTreasuryForIssuerInstructions({ programId, issuer: issuer.publicKey,
+  series, mint, keeper: buyer.publicKey }).instructions, [buyer]);
+await send(reclaimExpiredForIssuerInstructions({ programId, issuer: issuer.publicKey,
+  series, mint, vault: opened.series.vault, keeper: buyer.publicKey }).instructions, [buyer]);
+await send([closePositionInstruction({ programId, series, buyer: buyer.publicKey })], [buyer]);
+for (const kind of ['collateral', 'treasury']) {
+  await send([closeSeriesTokenInstruction({ programId, series, mint,
+    issuer: issuer.publicKey, kind })], [buyer]);
+}
+if (await connection.getBalance(built.vault.quoteVault, 'confirmed')) {
+  await send([reclaimPumpSwapQuoteRentInstruction({ programId, series, mint,
+    issuer: issuer.publicKey })], [buyer]);
+}
+const finalSeriesRent = await connection.getBalance(series, 'confirmed');
+await send([closeSeriesInstruction({ programId, series, mint, issuer: issuer.publicKey })], [buyer]);
+assert.equal(await connection.getBalance(series, 'confirmed'), 0);
+assert.equal((await getAccount(connection, built.vault.baseVault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, 1_000_000n);
 console.log(JSON.stringify({ mockPump: true, signature, premiumSpent: String(refunded.premiumSpentLamports),
-  premiumRefunded: String(refunded.premiumRefundedLamports), boughtTokens: '1000000' }));
+  premiumRefunded: String(refunded.premiumRefundedLamports), boughtTokens: '1000000',
+  finalSeriesRentReturned: finalSeriesRent }));

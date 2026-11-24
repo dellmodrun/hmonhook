@@ -15,6 +15,8 @@ import {
   reclaimBuybackRentInstruction,
   derivePosition, closePositionInstruction, closeSeriesTokenInstruction, closeSeriesInstruction,
   buybackVaultPrepInstructions, closeEmptyBuybackVaultInstruction,
+  claimDefaultForBuyerInstructions, refundPremiumForBuyerInstruction,
+  reclaimExpiredForIssuerInstructions, withdrawExpiredTreasuryForIssuerInstructions,
   listVerifiedSeriesByMint,
 } from '../options-client.mjs';
 import { createMockPumpCurve } from './local-pump-curve.mjs';
@@ -24,6 +26,7 @@ const connection = new Connection(endpoint, 'confirmed');
 const programId = new PublicKey(process.argv[2]);
 const issuer = Keypair.generate();
 const buyer = Keypair.generate();
+const keeper = Keypair.generate();
 const decimals = 6;
 const unit = 10 ** decimals;
 const send = async (instructions, signers) => sendAndConfirmTransaction(connection, new Transaction().add(...instructions), signers, { commitment: 'confirmed' });
@@ -31,6 +34,7 @@ const fund = async (wallet) => connection.confirmTransaction(await connection.re
 
 await fund(issuer);
 await fund(buyer);
+await fund(keeper);
 const mint = await createMint(connection, issuer, issuer.publicKey, issuer.publicKey, decimals, undefined, undefined, TOKEN_2022_PROGRAM_ID);
 const source = (await getOrCreateAssociatedTokenAccount(connection, issuer, mint, issuer.publicKey, false, 'confirmed', undefined, TOKEN_2022_PROGRAM_ID)).address;
 const unmonitored = await createAccount(connection, issuer, mint, issuer.publicKey, Keypair.generate(), undefined, TOKEN_2022_PROGRAM_ID);
@@ -116,11 +120,20 @@ assert.ok(postBreachPurchaseRejected, 'new options cannot be bought after regist
 series = await fetchVerifiedSeries(connection, programId, opened.series.address);
 assert.equal(series.status, 1);
 
-const claimed = claimDefaultInstructions({ programId, series: opened.series.address, mint, vault: opened.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n });
-const claimSignature = await send(claimed.instructions, [buyer]);
+const claimed = claimDefaultForBuyerInstructions({ programId, series: opened.series.address, mint,
+  vault: opened.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey,
+  keeper: keeper.publicKey, lots: 1n });
+const divertedDefault = claimDefaultForBuyerInstructions({ programId, series: opened.series.address, mint,
+  vault: opened.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey,
+  keeper: keeper.publicKey, lots: 1n });
+divertedDefault.instructions[1].keys[6] = { pubkey: source, isSigner: false, isWritable: true };
+let divertedDefaultRejected = false;
+try { await send(divertedDefault.instructions, [keeper]); } catch (_) { divertedDefaultRejected = true; }
+assert.ok(divertedDefaultRejected, 'a keeper cannot redirect the default payout');
+const claimSignature = await send(claimed.instructions, [keeper]);
 assert.equal((await getAccount(connection, claimed.destination, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(2 * unit));
 let duplicateClaimRejected = false;
-try { await send(claimed.instructions, [buyer]); } catch (_) { duplicateClaimRejected = true; }
+try { await send(claimed.instructions, [keeper]); } catch (_) { duplicateClaimRejected = true; }
 assert.ok(duplicateClaimRejected, 'duplicate default claim must fail');
 
 const expiryStart = await connection.getSlot('confirmed');
@@ -155,11 +168,13 @@ assert.equal((await getAccount(connection, expiring.series.vault, 'confirmed', T
 await send(exerciseInstructions({ programId, series: expiring.series.address, mint, vault: expiring.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n }).instructions, [buyer]);
 assert.equal((await getAccount(connection, expiring.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(unit));
 while ((await connection.getSlot('confirmed')) <= expiryStart + 50) await new Promise((resolve) => setTimeout(resolve, 350));
-const reclaimSignature = await send(reclaim.instructions, [issuer]);
+const reclaimSignature = await send(reclaimExpiredForIssuerInstructions({ programId,
+  issuer: issuer.publicKey, series: expiring.series.address, mint, vault: expiring.series.vault,
+  keeper: keeper.publicKey }).instructions, [keeper]);
 const expiringState = await fetchVerifiedSeries(connection, programId, expiring.series.address);
 assert.equal(expiringState.status, 2);
-await send([withdrawRegisteredTreasuryInstruction({ programId, issuer: issuer.publicKey,
-  series: expiring.series.address, mint, destination: source })], [issuer]);
+await send(withdrawExpiredTreasuryForIssuerInstructions({ programId, issuer: issuer.publicKey,
+  series: expiring.series.address, mint, keeper: keeper.publicKey }).instructions, [keeper]);
 assert.equal((await fetchVerifiedSeries(connection, programId, expiring.series.address)).status, 2);
 assert.equal(expiringState.reclaimedLots, 49n);
 assert.equal((await getAccount(connection, expiring.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, 0n);
@@ -170,16 +185,26 @@ assert.ok(expiredExerciseRejected, 'exercise after expiry must fail');
 const expiringPremiumVault = deriveBuybackAuthority(programId, expiring.series.address);
 const closePosition = closePositionInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey });
 let pendingRefundCloseRejected = false;
-try { await send([closePosition], [buyer]); } catch (_) { pendingRefundCloseRejected = true; }
+try { await send([closePosition], [keeper]); } catch (_) { pendingRefundCloseRejected = true; }
 assert.ok(pendingRefundCloseRejected, 'a Position cannot close while its premium refund remains claimable');
 const premiumBalanceBeforeRefund = await connection.getBalance(expiringPremiumVault, 'confirmed');
-const refundSignature = await send([refund], [buyer]);
+const divertedRefund = refundPremiumForBuyerInstruction({ programId, series: expiring.series.address,
+  buyer: buyer.publicKey });
+divertedRefund.keys[0] = { pubkey: keeper.publicKey, isSigner: false, isWritable: true };
+let divertedRefundRejected = false;
+try { await send([divertedRefund], [keeper]); } catch (_) { divertedRefundRejected = true; }
+assert.ok(divertedRefundRejected, 'a keeper cannot redirect a premium refund');
+const buyerBalanceBeforeRefund = await connection.getBalance(buyer.publicKey, 'confirmed');
+const refundSignature = await send([refundPremiumForBuyerInstruction({ programId,
+  series: expiring.series.address, buyer: buyer.publicKey })], [keeper]);
+assert.equal((await connection.getBalance(buyer.publicKey, 'confirmed')) - buyerBalanceBeforeRefund, 200);
 const refundedState = await fetchVerifiedSeries(connection, programId, expiring.series.address);
 assert.equal(refundedState.premiumRefundedLamports, 200n);
 assert.equal(refundedState.premiumRefundClaimedLots, 2n);
 assert.equal(premiumBalanceBeforeRefund - await connection.getBalance(expiringPremiumVault, 'confirmed'), 200);
 let duplicateRefundRejected = false;
-try { await send([refund], [buyer]); } catch (_) { duplicateRefundRejected = true; }
+try { await send([refundPremiumForBuyerInstruction({ programId,
+  series: expiring.series.address, buyer: buyer.publicKey })], [keeper]); } catch (_) { duplicateRefundRejected = true; }
 assert.ok(duplicateRefundRejected, 'the same position cannot claim a premium refund twice');
 const rentReturn = reclaimBuybackRentInstruction({ programId, series: expiring.series.address, issuer: issuer.publicKey });
 const rentBeforeReturn = await connection.getBalance(expiringPremiumVault, 'confirmed');
@@ -188,38 +213,84 @@ assert.ok(rentBeforeReturn > 0);
 assert.equal(await connection.getBalance(expiringPremiumVault, 'confirmed'), 0);
 const closeSeries = closeSeriesInstruction({ programId, series: expiring.series.address, mint, issuer: issuer.publicKey });
 let prematureSeriesCloseRejected = false;
-try { await send([closeSeries], [issuer]); } catch (_) { prematureSeriesCloseRejected = true; }
+try { await send([closeSeries], [keeper]); } catch (_) { prematureSeriesCloseRejected = true; }
 assert.ok(prematureSeriesCloseRejected, 'a Series cannot close while its Position and vaults remain');
 const positionAddress = derivePosition(programId, expiring.series.address, buyer.publicKey);
 const positionRent = await connection.getBalance(positionAddress, 'confirmed');
 assert.ok(positionRent > 0);
-await send([closePosition], [buyer]);
+const buyerBeforeClose = await connection.getBalance(buyer.publicKey, 'confirmed');
+await send([closePosition], [keeper]);
 assert.equal(await connection.getBalance(positionAddress, 'confirmed'), 0);
+assert.equal((await connection.getBalance(buyer.publicKey, 'confirmed')) - buyerBeforeClose, positionRent);
 assert.equal((await fetchVerifiedSeries(connection, programId, expiring.series.address)).closedPositionLots, 2n);
 await send([closeSeriesTokenInstruction({ programId, series: expiring.series.address, mint,
-  issuer: issuer.publicKey, kind: 'collateral' })], [issuer]);
+  issuer: issuer.publicKey, kind: 'collateral' })], [keeper]);
 await send([closeSeriesTokenInstruction({ programId, series: expiring.series.address, mint,
-  issuer: issuer.publicKey, kind: 'treasury' })], [issuer]);
+  issuer: issuer.publicKey, kind: 'treasury' })], [keeper]);
 assert.equal(await connection.getBalance(expiring.series.vault, 'confirmed'), 0);
 assert.equal(await connection.getBalance(expiring.series.treasury, 'confirmed'), 0);
 const buybackVaultRent = await connection.getBalance(emptyBuybackVault.vault.baseVault, 'confirmed');
 assert.ok(buybackVaultRent > 0);
 await send([closeEmptyBuybackVaultInstruction({ programId, series: expiring.series.address,
-  mint, issuer: issuer.publicKey })], [issuer]);
+  mint, issuer: issuer.publicKey })], [keeper]);
 assert.equal(await connection.getBalance(emptyBuybackVault.vault.baseVault, 'confirmed'), 0);
 const seriesRent = await connection.getBalance(expiring.series.address, 'confirmed');
 assert.ok(seriesRent > 0);
-await send([closeSeries], [issuer]);
+const issuerBeforeClose = await connection.getBalance(issuer.publicKey, 'confirmed');
+await send([closeSeries], [keeper]);
 assert.equal(await connection.getBalance(expiring.series.address, 'confirmed'), 0);
+assert.equal((await connection.getBalance(issuer.publicKey, 'confirmed')) - issuerBeforeClose, seriesRent);
+
+// A defaulted buyer may be inactive. A keeper must be able to deliver that
+// buyer's entitlement, refund unused premium, and finish the shutdown.
+const defaultStart = await connection.getSlot('confirmed');
+const defaulted = openSeriesInstructions({ programId, issuer: issuer.publicKey, mint, source, nonce: 9n,
+  deposit: BigInt(50 * unit), strikeLamports: 1_000n,
+  saleDeadlineSlot: BigInt(defaultStart + 10), expirySlot: BigInt(defaultStart + 50),
+  treasuryFloor: BigInt(800 * unit),
+});
+await send(defaulted.instructions, [issuer]);
+await send([buyOptionsInstruction({ programId, series: defaulted.series.address,
+  buyer: buyer.publicKey, lots: 1n })], [buyer]);
+await send([withdrawRegisteredTreasuryInstruction({ programId, issuer: issuer.publicKey,
+  series: defaulted.series.address, mint, destination: source })], [issuer]);
+assert.equal((await fetchVerifiedSeries(connection, programId, defaulted.series.address)).status, 1);
+while ((await connection.getSlot('confirmed')) <= defaultStart + 50) await new Promise((resolve) => setTimeout(resolve, 350));
+const defaultClosePosition = closePositionInstruction({ programId, series: defaulted.series.address,
+  buyer: buyer.publicKey });
+let outstandingDefaultClaimCloseRejected = false;
+try { await send([defaultClosePosition], [keeper]); } catch (_) { outstandingDefaultClaimCloseRejected = true; }
+assert.ok(outstandingDefaultClaimCloseRejected, 'defaulted Position cannot close before its buyer receives tokens');
+const defaultClaim = claimDefaultForBuyerInstructions({ programId, series: defaulted.series.address,
+  mint, vault: defaulted.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey,
+  keeper: keeper.publicKey, lots: 1n });
+await send(defaultClaim.instructions, [keeper]);
+await send(reclaimExpiredForIssuerInstructions({ programId, issuer: issuer.publicKey,
+  series: defaulted.series.address, mint, vault: defaulted.series.vault,
+  keeper: keeper.publicKey }).instructions, [keeper]);
+await send([refundPremiumForBuyerInstruction({ programId, series: defaulted.series.address,
+  buyer: buyer.publicKey })], [keeper]);
+await send([reclaimBuybackRentInstruction({ programId, series: defaulted.series.address,
+  issuer: issuer.publicKey })], [keeper]);
+await send([defaultClosePosition], [keeper]);
+for (const kind of ['collateral', 'treasury']) {
+  await send([closeSeriesTokenInstruction({ programId, series: defaulted.series.address, mint,
+    issuer: issuer.publicKey, kind })], [keeper]);
+}
+await send([closeSeriesInstruction({ programId, series: defaulted.series.address,
+  mint, issuer: issuer.publicKey })], [keeper]);
+assert.equal(await connection.getBalance(defaulted.series.address, 'confirmed'), 0);
 
 console.log(JSON.stringify({
   network: endpoint, programId: programId.toBase58(), series: opened.series.address.toBase58(),
   openSignature, buySignature, exerciseSignature, defaultSignature, claimSignature,
   prematureDefaultRejected, unmonitoredSourceRejected, postBreachPurchaseRejected, divertedExerciseRejected, expiredSaleRejected, unauthorizedReclaimRejected,
   unauthorizedWithdrawRejected, redirectedWithdrawRejected,
-  duplicateClaimRejected, earlyReclaimSignature, reclaimSignature, expiredExerciseRejected,
+  duplicateClaimRejected, divertedDefaultRejected, earlyReclaimSignature, reclaimSignature, expiredExerciseRejected,
   prematureRefundRejected, refundSignature, duplicateRefundRejected,
   prematureSeriesCloseRejected, pendingRefundCloseRejected,
+  divertedRefundRejected,
   positionRentReturned: positionRent, seriesRentReturned: seriesRent,
   buybackVaultRentReturned: buybackVaultRent,
+  outstandingDefaultClaimCloseRejected, defaultedSeriesClosedByKeeper: true,
 }, null, 2));

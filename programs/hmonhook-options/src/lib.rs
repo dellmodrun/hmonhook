@@ -395,7 +395,7 @@ fn settle(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8], default_cl
     let destination = next_account_info(&mut it)?;
     let token_program = next_account_info(&mut it)?;
     let system = next_account_info(&mut it)?;
-    if !buyer.is_signer || !buyer.is_writable || !issuer.is_writable || !state.is_writable || !position_account.is_writable || !vault.is_writable || !destination.is_writable { return Err(bad_account()); }
+    if (!default_claim && !buyer.is_signer) || !buyer.is_writable || !issuer.is_writable || !state.is_writable || !position_account.is_writable || !vault.is_writable || !destination.is_writable { return Err(bad_account()); }
     let mut series = load_series(program_id, state)?;
     if *issuer.key != series.issuer || *mint.key != series.mint || *vault.key != series.vault || (!default_claim && Clock::get()?.slot > series.expiry_slot) { return Err(bad_account()); }
     if (default_claim && series.status != STATUS_DEFAULT) || (!default_claim && series.status != STATUS_ACTIVE) { return Err(invalid()); }
@@ -446,10 +446,11 @@ fn withdraw_registered_treasury(program_id: &Pubkey, accounts: &[AccountInfo]) -
     let treasury = &accounts[3];
     let destination = &accounts[4];
     let token_program = &accounts[5];
-    if !issuer.is_signer || !state.is_writable || !treasury.is_writable || !destination.is_writable {
+    if !state.is_writable || !treasury.is_writable || !destination.is_writable {
         return Err(bad_account());
     }
     let mut series = load_series(program_id, state)?;
+    if !issuer.is_signer && Clock::get()?.slot <= series.expiry_slot { return Err(invalid()); }
     if *issuer.key != series.issuer || *mint.key != series.mint || *treasury.key != series.treasury {
         return Err(bad_account());
     }
@@ -476,10 +477,12 @@ fn reclaim(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let vault = next_account_info(&mut it)?;
     let destination = next_account_info(&mut it)?;
     let token_program = next_account_info(&mut it)?;
-    if !issuer.is_signer || !state.is_writable || !vault.is_writable || !destination.is_writable { return Err(bad_account()); }
+    if !state.is_writable || !vault.is_writable || !destination.is_writable { return Err(bad_account()); }
     let mut series = load_series(program_id, state)?;
     let slot = Clock::get()?.slot;
-    if *issuer.key != series.issuer || *mint.key != series.mint || *vault.key != series.vault || slot <= series.sale_deadline_slot || series.status == STATUS_CLOSED { return Err(invalid()); }
+    if *issuer.key != series.issuer || *mint.key != series.mint || *vault.key != series.vault ||
+        slot <= series.sale_deadline_slot || (!issuer.is_signer && slot <= series.expiry_slot) ||
+        series.status == STATUS_CLOSED { return Err(invalid()); }
     vault_token_data(vault, mint.key, state.key)?;
     token_data(destination, mint.key, issuer.key)?;
     let (_, decimals) = mint_data(mint)?;
@@ -525,7 +528,7 @@ fn claim_premium_refund(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progra
     let position_account = next_account_info(&mut it)?;
     let buyback_user = next_account_info(&mut it)?;
     let system = next_account_info(&mut it)?;
-    if !buyer.is_signer || !buyer.is_writable || !state.is_writable || !position_account.is_writable || !buyback_user.is_writable ||
+    if !buyer.is_writable || !state.is_writable || !position_account.is_writable || !buyback_user.is_writable ||
         system.key != &solana_system_interface::program::id() {
         return Err(bad_account());
     }
@@ -813,7 +816,7 @@ fn close_position(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     let buyer = &accounts[0];
     let state = &accounts[1];
     let position_account = &accounts[2];
-    if !buyer.is_signer || !buyer.is_writable || !state.is_writable || !position_account.is_writable {
+    if !buyer.is_writable || !state.is_writable || !position_account.is_writable {
         return Err(bad_account());
     }
     let mut series = load_series(program_id, state)?;
@@ -895,7 +898,7 @@ fn close_series(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult 
     let base_vault = &accounts[5];
     let quote_vault = &accounts[6];
     let series = load_series(program_id, state)?;
-    if !issuer.is_signer || !issuer.is_writable || !state.is_writable ||
+    if !issuer.is_writable || !state.is_writable ||
         *issuer.key != series.issuer || Clock::get()?.slot <= series.expiry_slot ||
         series.closed_position_lots != series.sold_lots ||
         *vault.key != series.vault || *treasury.key != series.treasury ||
@@ -903,7 +906,12 @@ fn close_series(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult 
         *base_vault.key != ata(&series.mint, buyback.key, &token_2022::id()) ||
         *quote_vault.key != ata(&wrapped_sol::id(), buyback.key, &token_legacy::id()) ||
         vault.lamports() != 0 || treasury.lamports() != 0 || buyback.lamports() != 0 ||
-        base_vault.lamports() != 0 || quote_vault.lamports() != 0 { return Err(invalid()); }
+        quote_vault.lamports() != 0 { return Err(invalid()); }
+    // Premium-funded tokens may remain permanently locked in the canonical
+    // buyback vault. Its rent is then excluded from the issuer's recovery.
+    if base_vault.lamports() != 0 {
+        vault_token_data(base_vault, &series.mint, buyback.key)?;
+    }
     let total = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
     if series.premium_spent_lamports.checked_add(series.premium_refunded_lamports).ok_or_else(overflow)? != total ||
         series.exercised_lots.checked_add(series.default_claimed_lots).and_then(|n| n.checked_add(series.reclaimed_lots)).ok_or_else(overflow)? != series.total_lots {
