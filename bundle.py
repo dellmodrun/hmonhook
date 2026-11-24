@@ -69,28 +69,13 @@ registry_service_output.write_text(registry_service_source.read_text(encoding="u
 metadata_service_source = ROOT / "launch" / "metadata-service.json"
 metadata_service_output = DIST / "launch" / "metadata-service.json"
 metadata_service_output.write_text(metadata_service_source.read_text(encoding="utf-8"), encoding="utf-8")
-test_metadata_source = ROOT / "markets" / "test-token" / "metadata.json"
-test_metadata_output = DIST / "markets" / "test-token" / "metadata.json"
-test_metadata_output.parent.mkdir(parents=True, exist_ok=True)
-test_metadata_output.write_text(test_metadata_source.read_text(encoding="utf-8"), encoding="utf-8")
-
-# The code browser fetches these files by path. Keep the standalone build usable.
-published_source_paths = (
-    "programs/jolt-guard/src/lib.rs", "programs/jolt-guard/Cargo.toml",
-    "sdk/src/index.ts", "sdk/src/constants.ts", "sdk/src/types.ts",
-    "sdk/src/codec.ts", "sdk/src/instruction.ts", "sdk/src/receipt.ts",
-    "sdk/src/adapters/jupiter.ts", "sdk/test/codec.test.js",
-    "sdk/test/instruction.test.js", "sdk/test/jupiter.test.js",
-    "sdk/test/receipt.test.js", "launch-client.ts", "intent-client.ts",
-    "app.js", "build-client.mjs", "markets.js", "markets/registry.json",
-    "package.json", "sdk/package.json", "deployments/devnet.json",
-    "deployments/mainnet.json", "scripts/verify-deployment.mjs",
-    "scripts/check-site.mjs", "README.md", "docs/PRODUCT_SCOPE.md",
-    "docs/ARCHITECTURE.md", "docs/INTEGRATION.md", "docs/SECURITY.md",
-    "docs/OPERATIONS.md", "JOLT_GUARD.md", "CONTRIBUTING.md",
-)
-for relative_path in published_source_paths:
-    source = ROOT / relative_path
+# Include every file the same-origin source browser offers in the standalone build.
+code_map = app.split("var codePaths = {", 1)[1].split("};", 1)[0]
+for match in re.finditer(r'^\s+\w+: "([^"]+)"', code_map, re.MULTILINE):
+    relative_path = match.group(1)
+    source = (ROOT / relative_path).resolve()
+    if not source.is_relative_to(ROOT.resolve()) or not source.is_file():
+        raise ValueError(f"Missing or unsafe source browser path: {relative_path}")
     output = DIST / relative_path
     output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, output)

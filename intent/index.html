@@ -16,7 +16,7 @@
 <div class="rail-inner">
 <a class="rail-brand" href="./">
 <img src="./hmonhook.png" alt="">
-<span>h/monhook<small>INTENT HOOKS / SOLANA</small>
+<span>h/monhook
 </span>
 </a>
 <nav class="rail-nav">
@@ -115,7 +115,7 @@
 <section class="chapter">
 <div class="chapter-label">INTENT WORKBENCH</div>
 <h2>Choose your limits before signing.</h2>
-<div class="prose-block"><p>Start with a quote, then set a spending cap, a minimum amount to receive and an expiry. The supported route uses the earlier Jolt Guard program to check the result.</p><p>Your wallet must approve the final transaction. Amounts in the advanced form use token base units; check the token decimals and every wallet instruction before signing.</p></div>
+<div class="prose-block"><p>Start with a quote, then set a spending cap, a minimum amount to receive and an expiry. The currently deployed Guard checks the result of a supported route.</p><p>Your wallet must approve the final transaction. Amounts in the advanced form use token base units; check the token decimals and every wallet instruction before signing.</p></div>
 <div class="wallet-context">
 <span>SIGNING AUTHORITY</span>
 <b data-wallet-state>not connected</b>
@@ -147,7 +147,7 @@
 </label>
 </div>
 <label>RPC ENDPOINT<input id="intent-rpc" type="url" value="https://solana-rpc.publicnode.com" required></label>
-<p class="form-note">The browser signs only the supported Jupiter route and basic h/monhook Guard bounds. It does not attach an issuer option, a custom policy hook or a Privacy Rings transfer. The default RPC is operated by PublicNode; you can enter another HTTPS Solana RPC.</p>
+<p class="form-note">The browser signs only the supported Jupiter route with basic bounds enforced by the existing Guard. It does not attach an issuer option, a custom policy hook or a Privacy Rings transfer. The default RPC is operated by PublicNode; you can enter another HTTPS Solana RPC.</p>
 <div class="form-actions">
 <button type="button" class="button" data-wallet-connect>connect wallet</button>
 <button type="button" id="intent-quote" class="button">get live quote</button>
@@ -167,7 +167,7 @@
 </div>
 </div>
 <div class="status-band"><div><span>QUOTE</span><b class="ready">JUPITER SWAP API V2</b></div><div><span>MAINNET PROGRAM</span><b class="ready">6HfEuWvE…S3ENTY</b></div><div><span>DEPLOYED SBF</span><b class="ready">SHA-256 VERIFIED</b></div></div>
-<div class="callout"><b>VERIFIED MAINNET DEPLOYMENT</b><p>h/monhook Guard is executable on Solana mainnet at <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer"><code>6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY</code> ↗</a>. Its ProgramData bytecode matches the published SBF SHA-256 <code>469ab222…124ebdd</code>.</p></div>
+<div class="callout"><b>EXISTING GUARD DEPLOYMENT</b><p>The supported trade path uses an earlier Guard program at <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer"><code>6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY</code> ↗</a>. This is an existing mainnet program, not a deployment of the separately named h/monhook Guard. Its published SBF SHA-256 is <code>469ab222…124ebdd</code>. <a href="./code/">See the source and deployment relationship</a>.</p></div>
 <div class="callout">
 <b>ATOMICITY</b>
 <p>If the route spends above the ceiling, receives below the floor, expires, or fails a selected hook, the entire Solana transaction returns an error and does not settle partially.</p>
@@ -191,7 +191,7 @@
 <p>Reload balances, enforce deltas and return a JRC1 receipt—or revert.</p>
 </article>
 </div>
-<div class="prose-block after-grid"><p>“Pre” means the route has not executed yet. h/monhook Guard first checks the signer, expiry, route identity and optional policy. It then calls the selected route inside the same Solana transaction. After the route returns, “post” means the program reloads the real token accounts and measures what left and what arrived.</p><p>If the result stays inside the user’s limits, the transaction may commit and JRC1 reports the realized deltas. If it falls outside those limits, h/monhook Guard returns an error. Solana’s atomic execution then discards the route’s state changes rather than leaving the user with a partially accepted trade.</p></div>
+<div class="prose-block after-grid"><p>“Pre” means the route has not executed yet. The deployed Guard first checks the signer, expiry, route identity and optional policy. It then calls the selected route inside the same Solana transaction. After the route returns, “post” means the program reloads the real token accounts and measures what left and what arrived.</p><p>If the result stays inside the user’s limits, the transaction may commit and JRC1 reports the realized deltas. If it falls outside those limits, the deployed Guard returns an error. Solana’s atomic execution then discards the route’s state changes rather than leaving the user with a partially accepted trade.</p></div>
 </section>
 <section class="section-block">
 <div class="section-head">
@@ -296,7 +296,7 @@
 <div class="faq">
 <details>
 <summary>Does h/monhook provide the swap quote?</summary>
-<p>Jupiter provides the quote and executable route. The browser requests a live quote, then builds a fresh Jupiter swap instruction at signing time and wraps supported bounds with h/monhook Guard. Prices and routes may change between those steps; if the final result misses the signed minimum, the guarded transaction fails.</p>
+<p>Jupiter provides the quote and executable route. The browser requests a live quote, then builds a fresh Jupiter swap instruction at signing time and wraps supported bounds with the deployed Guard. Prices and routes may change between those steps; if the final result misses the signed minimum, the guarded transaction fails.</p>
 </details>
 <details>
 <summary>Can one intent cross multiple programs?</summary>
@@ -313,7 +313,7 @@
 <h2>Inspect the on-chain enforcement path.</h2>
 <p>See exactly where preconditions, CPI execution and postconditions run.</p>
 </div>
-<a class="button button-solid" href="./protocol/">open h/monhook Guard</a>
+<a class="button button-solid" href="./protocol/">open the deployed Guard</a>
 </section>
 <footer>
 <span>H/MONHOOK / INTENT</span>

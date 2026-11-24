@@ -35,11 +35,11 @@ const legacySdkTests = ["codec", "instruction", "jupiter", "receipt"].reduce((co
   return count + [...source.matchAll(/^test\(/gm)].length;
 }, 0);
 assert.ok(legacySdkTests > 0, "legacy SDK test count was not found");
-assert.ok(code.includes(`LEGACY SDK TESTS<b>${legacySdkTests} PASSING`), "Source Code SDK test count differs from the test files");
+assert.ok(code.includes(`<b>${legacySdkTests}</b>EARLIER SDK TESTS PASSING`), "Source Code SDK test count differs from the test files");
 assert.ok(protocol.includes(`LEGACY GUARD / ${legacySdkTests} SDK TESTS PASSING`), "Protocol SDK test count differs from the test files");
 assert.match(code, /Code lineage and deployment:/, "Source Code does not explain the Jolt inheritance");
 assert.match(code, /data-code="launchClient">launch-client\.ts<\/button>/, "Source Code should lead with the current launch client");
-assert.match(protocol, /currently deployed Guard is the earlier Jolt Guard/, "Protocol does not identify the deployed legacy program");
+assert.match(protocol, /trade path currently uses an earlier deployed Guard program/, "Protocol does not identify the deployed older program");
 for (const id of ["code-view", "code-filter", "code-copy", "code-download"]) {
   assert.match(code, new RegExp(`id=["']${id}["']`), `code browser missing ${id}`);
 }
@@ -47,7 +47,12 @@ for (const source of ["programs/jolt-guard/src/lib.rs", "sdk/src/index.ts", "doc
   assert.ok(existsSync(resolve(root, "dist", source)), `standalone code browser misses ${source}`);
 }
 const app = readFileSync(resolve(root, "app.js"), "utf8");
-assert.match(app, /get\("file"\) \|\| "launchClient"/, "Source Code should open the h\/monhook launch client first");
+assert.match(app, /get\("file"\) \|\| "hmonGuard"/, "Source Code should open the current h\/monhook Guard source first");
+assert.match(code, /options-custody-v3 @ fb3e25e/, "Source Code must identify the development snapshot");
+for (const source of ["programs/hmonhook-guard/src/lib.rs", "programs/hmonhook-options/src/lib.rs", "hmonhook-sdk/src/index.ts"]) {
+  assert.ok(existsSync(resolve(root, "source-preview/options-custody-v3", source)), `current source snapshot misses ${source}`);
+  assert.ok(existsSync(resolve(root, "dist/source-preview/options-custody-v3", source)), `bundle misses current source snapshot ${source}`);
+}
 const marketsClient = readFileSync(resolve(root, "markets.js"), "utf8");
 assert.ok(existsSync(resolve(root, "docs/PRODUCT_SCOPE.md")), "product scope document missing");
 assert.match(app, /productScope: "docs\/PRODUCT_SCOPE\.md"/, "source browser cannot open product scope");
@@ -64,6 +69,10 @@ for (const forbidden of ["github.com", "raw.githubusercontent.com", "dellmodrun"
   assert.ok(!publicFrontend.toLowerCase().includes(forbidden), `public frontend exposes forbidden host or account: ${forbidden}`);
 }
 const intent = readFileSync(resolve(root, "intent/index.html"), "utf8");
+for (const [page, html] of [["home", home], ["launch", readFileSync(resolve(root, "launch/index.html"), "utf8")], ["markets", readFileSync(resolve(root, "markets/index.html"), "utf8")], ["intent", intent], ["protocol", protocol], ["research", readFileSync(resolve(root, "research/index.html"), "utf8")]]) {
+  assert.doesNotMatch(html, /Joltwork|Jolt Guard/i, `old project name remains in user-facing ${page} copy`);
+  assert.doesNotMatch(html, /INTENT HOOKS \/ SOLANA/, `old rail subtitle remains in ${page}`);
+}
 for (const id of ["intent-input-mint", "intent-output-mint", "intent-slippage", "intent-quote", "intent-submit"]) {
   assert.match(intent, new RegExp(`id=["']${id}["']`), `intent workbench missing ${id}`);
 }
@@ -103,7 +112,7 @@ assert.match(homeMarkets, /api\.dexscreener\.com\/tokens\/v1\/solana/, "home pre
 assert.ok(!marketsClient.includes('source: "search", createdAt: Date.now()'), "market search must not invent a launch date");
 assert.match(app, /joltwork\.launches\.v1/, "confirmed launches must be persisted for market discovery");
 const marketRegistry = JSON.parse(readFileSync(resolve(root, "markets/registry.json"), "utf8"));
-assert.equal(marketRegistry.format, "JOLTWORK_MARKETS_V1", "unexpected markets registry format");
+assert.equal(marketRegistry.format, "HMONHOOK_MARKETS_V1", "unexpected markets registry format");
 for (const launch of marketRegistry.launches) {
   assert.match(launch.mint, /^[1-9A-HJ-NP-Za-km-z]{32,44}$/, "registry contains an invalid Solana Mint");
   if (launch.signature) assert.match(launch.signature, /^[1-9A-HJ-NP-Za-km-z]{64,88}$/, "registry contains an invalid transaction signature");

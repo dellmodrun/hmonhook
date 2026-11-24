@@ -723,6 +723,27 @@
   var sourceBase = new URL("./", document.baseURI);
   var codeFiles = {};
   var codePaths = {
+    hmonGuard: "source-preview/options-custody-v3/programs/hmonhook-guard/src/lib.rs",
+    hmonCargo: "source-preview/options-custody-v3/programs/hmonhook-guard/Cargo.toml",
+    hmonOptions: "source-preview/options-custody-v3/programs/hmonhook-options/src/lib.rs",
+    hmonOptionsCargo: "source-preview/options-custody-v3/programs/hmonhook-options/Cargo.toml",
+    hmonSdk: "source-preview/options-custody-v3/hmonhook-sdk/src/index.ts",
+    hmonSdkConstants: "source-preview/options-custody-v3/hmonhook-sdk/src/constants.ts",
+    hmonSdkTypes: "source-preview/options-custody-v3/hmonhook-sdk/src/types.ts",
+    hmonSdkCodec: "source-preview/options-custody-v3/hmonhook-sdk/src/codec.ts",
+    hmonSdkInstruction: "source-preview/options-custody-v3/hmonhook-sdk/src/instruction.ts",
+    hmonSdkReceipt: "source-preview/options-custody-v3/hmonhook-sdk/src/receipt.ts",
+    hmonSdkJupiter: "source-preview/options-custody-v3/hmonhook-sdk/src/adapters/jupiter.ts",
+    hmonOptionsClient: "source-preview/options-custody-v3/options-client.mjs",
+    hmonOptionsCore: "source-preview/options-custody-v3/options-core.mjs",
+    hmonOptionsStrike: "source-preview/options-custody-v3/options-strike-core.mjs",
+    hmonOptionsNetwork: "source-preview/options-custody-v3/options-network-core.mjs",
+    hmonOptionsTransaction: "source-preview/options-custody-v3/options-transaction-core.mjs",
+    hmonOptionsRelease: "source-preview/options-custody-v3/options-release-core.mjs",
+    hmonOptionsBrowser: "source-preview/options-custody-v3/options-browser-client.ts",
+    hmonOptionsInterface: "source-preview/options-custody-v3/options-interface.js",
+    hmonOptionsConfig: "source-preview/options-custody-v3/options/program.json",
+    hmonOptionsPremiumSpec: "source-preview/options-custody-v3/docs/OPTIONS_PREMIUM_EXECUTION.md",
     program: "programs/jolt-guard/src/lib.rs",
     cargo: "programs/jolt-guard/Cargo.toml",
     sdkIndex: "sdk/src/index.ts",
@@ -806,8 +827,8 @@
     });
   });
   if (byId("code-view")) {
-    var requestedCode = new URLSearchParams(window.location.search).get("file") || "launchClient";
-    if (!codePaths[requestedCode]) requestedCode = "launchClient";
+    var requestedCode = new URLSearchParams(window.location.search).get("file") || "hmonGuard";
+    if (!codePaths[requestedCode]) requestedCode = "hmonGuard";
     showCode(requestedCode, document.querySelector('[data-code="' + requestedCode + '"]'));
   }
 

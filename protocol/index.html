@@ -4,7 +4,7 @@
 <base href="../">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="The h/monhook Guard intent-hook protocol for Solana.">
+<meta name="description" content="How h/monhook approaches coin launches, trade limits, issuer options and privacy on Solana.">
 <title>Protocol — h/monhook</title>
 <link rel="icon" href="./hmonhook.png">
 <link rel="stylesheet" href="./styles.css">
@@ -16,7 +16,7 @@
 <div class="rail-inner">
 <a class="rail-brand" href="./">
 <img src="./hmonhook.png" alt="">
-<span>h/monhook<small>INTENT HOOKS / SOLANA</small>
+<span>h/monhook
 </span>
 </a>
 <nav class="rail-nav">
@@ -110,7 +110,7 @@
 </div>
 <span class="page-code">ATOMIC CPI WRAPPER / JRC1</span>
 </div>
-<p>h/monhook is an intent-bound settlement protocol for Solana. The currently deployed Guard is the earlier Jolt Guard implementation used by h/monhook; its JOLT wire format remains for compatibility. A separately named h/monhook Guard is in development and is not deployed to mainnet. JLM1, Intent V1, JHK1 and JRC1 connect issuers, wallets, routes, policies and receipts. Issuer options and optional confidential transfers are separate product directions, not features of the deployed Jolt Guard binary.</p>
+<p>h/monhook brings coin launches, market discovery and transaction limits together on Solana. The trade path currently uses an earlier deployed Guard program; the separately named h/monhook Guard source is published but has not been deployed to mainnet. Issuer options and optional confidential transfers are separate product layers, not features of that existing Guard binary. The <a href="./code/">source and deployment page</a> shows the exact relationship.</p>
 </header>
 
 <section class="section-block">
@@ -121,7 +121,7 @@
 </div>
 <p>The protocol does not replace a launchpad, wallet or liquidity router. It gives those systems one shared language for declaring and enforcing a transaction outcome.</p>
 </div>
-<div class="prose-block"><p>h/monhook separates declaration from enforcement. The current launcher can create a coin and export a local JLM1 policy proposal; it does not publish that policy on-chain. For a supported Jupiter route, a trader can turn a quote into transaction limits, and h/monhook Guard checks the realized result. A future publisher could make an issuer baseline discoverable to wallets.</p><p>The six components below describe one transaction lifecycle. JLM1 describes a launch plan, Intent V1 describes one trade, h/monhook Guard executes it, JHK1 defines optional policy logic, JRC1 reports what settled, and the SDK assembles and reads the formats. Issuer options and Privacy Rings are separate integrations with their own contracts and trust boundaries.</p></div>
+<div class="prose-block"><p>h/monhook separates declaration from enforcement. The current launcher can create a coin and export a local JLM1 policy proposal; it does not publish that policy on-chain. For a supported Jupiter route, a trader can turn a quote into transaction limits, and the deployed Guard checks the realized result. A future publisher could make an issuer baseline discoverable to wallets.</p><p>The six components below describe one transaction lifecycle. JLM1 describes a launch plan, Intent V1 describes one trade, the deployed Guard executes it, JHK1 defines optional policy logic, JRC1 reports what settled, and the SDK assembles and reads the formats. Issuer options and Privacy Rings are separate integrations with their own contracts and trust boundaries.</p></div>
 <div class="fact-grid">
 <article>
 <b>JLM1 / LAUNCH</b>
@@ -134,7 +134,7 @@
 <p>Binds authority, route, input ceiling, output floor, expiry and optional policy data.</p>
 </article>
 <article>
-<b>H/MONHOOK GUARD / PROGRAM</b>
+<b>DEPLOYED GUARD / PROGRAM</b>
 <strong>Atomic enforcement</strong>
 <p>Checks preconditions, invokes the route through CPI and verifies realized balance deltas.</p>
 </article>
@@ -173,19 +173,19 @@
 </div>
 </div>
 <div class="callout">
-<b>VERIFIED LEGACY JOLT GUARD DEPLOYMENTS</b>
-<p>The legacy Jolt Guard used by this site is executable on <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer">Solana mainnet at <code>6HfEu…S3ENTY</code> ↗</a> and on <a href="https://explorer.solana.com/address/3gAqr1U9CzYhZBoqDJeEQFtphjVGvr24h4znUK2knfVG?cluster=devnet" target="_blank" rel="noreferrer">devnet at <code>3gAqr…K2knfVG</code> ↗</a>. Both ProgramData accounts match SBF SHA-256 <code>469ab222…124ebdd</code>; the deployment manifests publish their exact identities and authorities. Neither address is the new h/monhook Guard.</p>
+<b>EXISTING GUARD DEPLOYMENTS</b>
+<p>The currently used Guard is executable on <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer">Solana mainnet at <code>6HfEu…S3ENTY</code> ↗</a> and on <a href="https://explorer.solana.com/address/3gAqr1U9CzYhZBoqDJeEQFtphjVGvr24h4znUK2knfVG?cluster=devnet" target="_blank" rel="noreferrer">devnet at <code>3gAqr…K2knfVG</code> ↗</a>. Both ProgramData accounts match SBF SHA-256 <code>469ab222…124ebdd</code>. Neither address is a deployment of the separately named h/monhook Guard source.</p>
 </div>
 </section>
 <section id="privacy-boundary" class="section-block protection-story" aria-labelledby="privacy-title">
 <div class="section-head"><div><div class="eyebrow">OPTIONAL PRIVACY / INTEGRATION PLANNED</div><h2 id="privacy-title">Privacy belongs to the user, not to hidden issuer promises.</h2></div></div>
-<div class="prose-block"><p>The proposed issuer module would compare same-name launches and verify a developer's lock, option terms and violation evidence through separate contracts and indexing. h/monhook Guard would still protect only the outcome of an individual supported trade; it cannot detect a developer sale or exercise an option by itself.</p><p>Helius Privacy Rings offer a possible path for optional confidential transfers of eligible user assets. In the default Ring, asset and amount can be concealed while wallet addresses remain visible. h/monhook has not integrated Privacy Rings into its launcher, intent composer or h/monhook Guard program. Lock collateral, strike and expiry terms, and the evidence used for a forfeiture decision must remain verifiable. A hidden flow cannot be advertised as automatically monitored.</p></div>
+<div class="prose-block"><p>The proposed issuer module would compare same-name launches and verify a developer's lock, option terms and violation evidence through separate contracts and indexing. The deployed Guard protects only the outcome of an individual supported trade; it cannot detect a developer sale or exercise an option by itself.</p><p>Helius Privacy Rings offer a possible path for optional confidential transfers of eligible user assets. In the default Ring, asset and amount can be concealed while wallet addresses remain visible. h/monhook has not integrated Privacy Rings into its launcher, intent composer or the deployed Guard program. Lock collateral, strike and expiry terms, and the evidence used for a forfeiture decision must remain verifiable. A hidden flow cannot be advertised as automatically monitored.</p></div>
 <div class="source-links"><a href="https://www.helius.dev/blog/solana-privacy-rings" target="_blank" rel="noreferrer"><span>EXTERNAL TECHNOLOGY / HELIUS</span><strong>Solana Privacy Rings</strong><code>Read Helius's current explanation</code></a><a href="./launch/#issuer-protection"><span>PROPOSED PRODUCT LAYER</span><strong>Issuer protection</strong><code>Lock, options and evidence requirements</code></a></div>
 </section>
-<section class="section-block"><div class="section-head"><div><div class="eyebrow">A TRANSACTION IN PLAIN LANGUAGE</div><h2>The router finds a path. h/monhook decides whether its result is acceptable.</h2></div></div><div class="prose-block"><p>Suppose a wallet finds a route that may spend up to 1 SOL to buy a token. The user accepts only if at least 950,000 token units reach the destination account before a chosen expiry slot. The wallet encodes those limits and the selected route program into Intent V1, then asks the user to sign.</p><p>h/monhook Guard records the source and destination balances, runs the router through CPI and reads the balances again. Spending 0.98 SOL and receiving 970,000 units passes. Spending 1.01 SOL or receiving 940,000 units fails. The program is not judging whether the quoted price was “good”; it is enforcing the exact boundary the user authorized.</p></div></section>
+<section class="section-block"><div class="section-head"><div><div class="eyebrow">A TRANSACTION IN PLAIN LANGUAGE</div><h2>The router finds a path. The Guard checks whether its result is acceptable.</h2></div></div><div class="prose-block"><p>Suppose a wallet finds a route that may spend up to 1 SOL to buy a token. The user accepts only if at least 950,000 token units reach the destination account before a chosen expiry slot. The wallet encodes those limits and the selected route program into Intent V1, then asks the user to sign.</p><p>The deployed Guard records the source and destination balances, runs the router through CPI and reads the balances again. Spending 0.98 SOL and receiving 970,000 units passes. Spending 1.01 SOL or receiving 940,000 units fails. The program is not judging whether the quoted price was “good”; it is enforcing the exact boundary the user authorized.</p></div></section>
 <figure class="mechanism-figure">
 <div class="figure-frame">
-<svg viewBox="0 0 1100 250" role="img" aria-label="h/monhook Guard execution sequence">
+<svg viewBox="0 0 1100 250" role="img" aria-label="the deployed Guard execution sequence">
 <defs>
 <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
 <path d="M0 0L8 4L0 8Z" fill="#989790"/>
@@ -219,9 +219,9 @@
 </figure>
 <details class="advanced-information"><summary>Explore the technical protocol</summary><div class="advanced-inner">
 <section class="chapter">
-<div class="chapter-label">CORE MECHANISM / H/MONHOOK GUARD</div>
+<div class="chapter-label">CORE MECHANISM / DEPLOYED GUARD</div>
 <h2>Mint policy and transaction intent are complementary.</h2>
-<div class="prose-block"><p>A Token-2022 Transfer Hook follows a mint. It is chosen by the issuer and runs whenever that token is transferred, regardless of which user initiated the transfer or why. That makes it useful for token-level behavior, but it cannot express the complete economic promise of a route involving several programs and assets.</p><p>A h/monhook Intent Hook follows one user-approved transaction. It can protect a route that touches a router, multiple pools and either token program, because the final check looks at the complete realized input and output. The two mechanisms can coexist: a route may encounter a mint hook, while h/monhook Guard still enforces the trader’s overall limit.</p></div>
+<div class="prose-block"><p>A Token-2022 Transfer Hook follows a mint. It is chosen by the issuer and runs whenever that token is transferred, regardless of which user initiated the transfer or why. That makes it useful for token-level behavior, but it cannot express the complete economic promise of a route involving several programs and assets.</p><p>A transaction-bound Intent Hook follows one user-approved transaction. It can protect a route that touches a router, multiple pools and either token program, because the final check looks at the complete realized input and output. The two mechanisms can coexist: a route may encounter a mint hook, while the deployed Guard still enforces the trader’s overall limit.</p></div>
 <div class="comparison">
 <article>
 <span class="index">MINT SCOPE</span>
@@ -303,7 +303,7 @@
 <section class="chapter">
 <div class="chapter-label">POLICY MODULES</div>
 <h2>Policies are composable programs.</h2>
-<div class="prose-block"><p>The base protocol always protects authority, expiry, route identity, maximum input and minimum output. A policy module is for rules that are important to a particular application but should not be permanently hard-coded into h/monhook Guard—for example an approved-route registry or a ceiling on additional token-level fees.</p><p>A policy does not receive unlimited authority to rewrite the trade. It receives the declared phase and its assigned accounts and data, then either accepts or returns an error. This keeps the core settlement invariant small while allowing applications to add rules that can be independently inspected and upgraded.</p></div>
+<div class="prose-block"><p>The base protocol always protects authority, expiry, route identity, maximum input and minimum output. A policy module is for rules that are important to a particular application but should not be permanently hard-coded into the deployed Guard—for example an approved-route registry or a ceiling on additional token-level fees.</p><p>A policy does not receive unlimited authority to rewrite the trade. It receives the declared phase and its assigned accounts and data, then either accepts or returns an error. This keeps the core settlement invariant small while allowing applications to add rules that can be independently inspected and upgraded.</p></div>
 <div class="module-grid">
 <article>
 <b>MAX COST</b>
@@ -339,10 +339,10 @@
 </div>
 <p>The wrapper measures realized state rather than trusting quoted or simulated output.</p>
 </div>
-<div class="prose-block compact"><p>Security starts by narrowing what h/monhook Guard promises. It can prove that the authorized route stayed inside measurable token-account limits; it cannot make an illiquid market liquid, verify an issuer’s marketing claims or protect a compromised wallet key. Keeping those boundaries explicit prevents a settlement guard from being mistaken for a universal token-safety system.</p></div>
+<div class="prose-block compact"><p>Security starts by narrowing what the deployed Guard promises. It can prove that the authorized route stayed inside measurable token-account limits; it cannot make an illiquid market liquid, verify an issuer’s marketing claims or protect a compromised wallet key. Keeping those boundaries explicit prevents a settlement guard from being mistaken for a universal token-safety system.</p></div>
 <div class="split-panel">
 <article>
-<h3>Enforced by h/monhook Guard</h3>
+<h3>Enforced by the deployed Guard</h3>
 <ul class="check-list">
 <li>Authority, expiry and route program validation.</li>
 <li>Classic SPL and Token-2022 account ownership checks.</li>
@@ -424,7 +424,7 @@
 </div>
 <div class="faq">
 <details>
-<summary>Is h/monhook Guard a new AMM?</summary>
+<summary>Is the deployed Guard a new AMM?</summary>
 <p>No. It is a route wrapper and settlement guard. Existing launchpads, AMMs and routers continue to provide liquidity and execution logic.</p>
 </details>
 <details>
@@ -446,7 +446,7 @@
 </section>
 <footer>
 <span>H/MONHOOK / PROTOCOL</span>
-<span>H/MONHOOK GUARD / JRC1</span>
+<span>DEPLOYED GUARD / JRC1</span>
 <span>© 2026 H/MONHOOK</span>
 </footer>
 </main>

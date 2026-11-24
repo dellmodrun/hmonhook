@@ -16,7 +16,7 @@
 <div class="rail-inner">
 <a class="rail-brand" href="./">
 <img src="./hmonhook.png" alt="">
-<span>h/monhook<small>INTENT HOOKS / SOLANA</small>
+<span>h/monhook
 </span>
 </a>
 <nav class="rail-nav">
@@ -200,7 +200,7 @@
 </div>
 <div class="callout">
 <b>BEFORE YOU SIGN</b>
-<p>Verify the public metadata JSON, compile the plan, then use the separate mainnet action. h/monhook assembles Pump's official <code>create_v2</code> instruction, generates the new Mint signer in this browser and asks the connected wallet to review and pay. The transaction creates the coin only; h/monhook Guard policy publication and issuer options require separate integrations.</p>
+<p>Verify the public metadata JSON, compile the plan, then use the separate mainnet action. h/monhook assembles Pump's official <code>create_v2</code> instruction, generates the new Mint signer in this browser and asks the connected wallet to review and pay. The transaction creates the coin only; publication of a Guard policy and issuer options require separate integrations.</p>
 </div>
 <div class="callout"><b>RPC AND PRIVACY</b><p>The default browser-compatible RPC is operated by PublicNode, not h/monhook or Solana. It receives ordinary RPC requests and the signed transaction when submitted. Production operators should replace it with their own trusted Solana RPC endpoint before launch.</p></div>
 </section>
@@ -231,7 +231,7 @@
 <p>A local JLM1 policy proposal for future wallet or publisher integration.</p>
 </article>
 </div>
-<div class="prose-block after-grid"><p>The Mint is the token itself. The Pump route creates its initial trading path. The JLM1 policy selection is saved in the local plan, not registered on-chain by this launcher. A wallet could later display such a baseline, but only an integrated h/monhook Guard transaction enforces a trader's signed limits.</p><p>Issuer options and a protected intent are distinct: an option would cover a developer's publicly verifiable commitment, while an intent protects the outcome of one supported trade. Neither is automatically attached to every coin created here.</p></div>
+<div class="prose-block after-grid"><p>The Mint is the token itself. The Pump route creates its initial trading path. The JLM1 policy selection is saved in the local plan, not registered on-chain by this launcher. A wallet could later display such a baseline, but only a transaction protected by the deployed Guard enforces a trader's signed limits.</p><p>Issuer options and a protected intent are distinct: an option would cover a developer's publicly verifiable commitment, while an intent protects the outcome of one supported trade. Neither is automatically attached to every coin created here.</p></div>
 </section>
 <section class="section-block">
 <div class="section-head">
@@ -306,7 +306,7 @@
 <div class="faq">
 <details>
 <summary>Does a default policy prevent users from adding stricter limits?</summary>
-<p>The selected default policy is a local proposal, not an enforced issuer rule. A trader using an integrated h/monhook Guard route can sign their own max-input, min-output and expiry bounds.</p>
+<p>The selected default policy is a local proposal, not an enforced issuer rule. A trader using a route protected by the deployed Guard can sign their own max-input, min-output and expiry bounds.</p>
 </details>
 <details>
 <summary>Is the policy tied to one liquidity pool?</summary>
@@ -325,7 +325,7 @@
 <section class="cta-panel">
 <div>
 <h2>Need the execution model first?</h2>
-<p>Review h/monhook Guard’s pre-hook, CPI route and postcondition phases.</p>
+<p>Review the deployed Guard’s pre-hook, CPI route and postcondition phases.</p>
 </div>
 <a class="button" href="./protocol/">read protocol</a>
 </section>
