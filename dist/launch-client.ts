@@ -1,6 +1,7 @@
-import { PUMP_PROGRAM_ID, PUMP_SDK } from '@pump-fun/pump-sdk';
+import { PUMP_SDK } from '@pump-fun/pump-sdk';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { confirmPumpLaunch, LaunchPendingError } from './launch-confirm.mjs';
+import { assertPumpCreateV2Route } from './pump-launch-route.mjs';
 
 export type PumpLaunchRequest = {
   provider: {
@@ -33,15 +34,7 @@ export async function createPumpCoin(request: PumpLaunchRequest) {
     mayhemMode: false,
     holderReward: false,
   });
-  if (!instruction.programId.equals(PUMP_PROGRAM_ID)) {
-    throw new Error('Safety check failed: the instruction does not target the official Pump program.');
-  }
-  if (instruction.keys.length !== 16) {
-    throw new Error('Safety check failed: unexpected Pump create_v2 account layout.');
-  }
-  if (instruction.keys[7].pubkey.toBase58() !== 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb') {
-    throw new Error('Safety check failed: this Pump route is not Token-2022 compatible with issuer options.');
-  }
+  assertPumpCreateV2Route(instruction, { mint: mint.publicKey, user, name: request.name, symbol: request.symbol, uri: request.uri });
 
   const rpcUrl = new URL(request.rpcEndpoint);
   if (rpcUrl.protocol !== 'https:') throw new Error('The RPC endpoint must use HTTPS.');

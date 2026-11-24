@@ -736,6 +736,8 @@
     jupiterTest: "sdk/test/jupiter.test.js",
     receiptTest: "sdk/test/receipt.test.js",
     launchClient: "launch-client.ts",
+    launchRoute: "pump-launch-route.mjs",
+    launchConfirm: "launch-confirm.mjs",
     intentClient: "intent-client.ts",
     appClient: "app.js",
     buildClient: "build-client.mjs",

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { PUMP_PROGRAM_ID, PUMP_SDK } from "@pump-fun/pump-sdk";
 import { Connection, Keypair, Transaction } from "@solana/web3.js";
+import { assertPumpCreateV2Route } from "../pump-launch-route.mjs";
 
 if (process.argv.includes("--send")) throw new Error("Mainnet sending is disabled until the unified h/monhook release is approved.");
 const keypairPath = process.env.HMONHOOK_KEYPAIR_PATH;
@@ -24,11 +25,8 @@ const instruction = await PUMP_SDK.createV2Instruction({
   holderReward: false,
 });
 
-if (!instruction.programId.equals(PUMP_PROGRAM_ID)) throw new Error("Unexpected target program.");
-if (instruction.keys.length !== 16) throw new Error(`Unexpected create_v2 account count: ${instruction.keys.length}`);
-if (instruction.keys[7].pubkey.toBase58() !== "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb") {
-  throw new Error("Pump create_v2 no longer uses the Token-2022 program expected by issuer options.");
-}
+assertPumpCreateV2Route(instruction, { mint: mint.publicKey, user: payer.publicKey,
+  name: "Hmonhook API Test", symbol: "APITEST", uri: metadataUri });
 
 const latest = await connection.getLatestBlockhash("confirmed");
 const transaction = new Transaction({
