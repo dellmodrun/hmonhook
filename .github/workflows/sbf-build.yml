@@ -31,7 +31,9 @@ jobs:
       - uses: actions/upload-artifact@v5
         with:
           name: jolt-guard-sbf
-          path: artifacts/
+          path: |
+            artifacts/jolt_guard.so
+            artifacts/jolt_guard.so.sha256
           if-no-files-found: error
 
   build-hmonhook-sbf:
@@ -61,5 +63,7 @@ jobs:
       - uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.program }}-sbf
-          path: artifacts/
+          path: |
+            artifacts/${{ matrix.binary }}.so
+            artifacts/${{ matrix.binary }}.so.sha256
           if-no-files-found: error
