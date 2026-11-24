@@ -15,6 +15,7 @@ When a sold-out series uses premiums to buy back its Mint, the acquired tokens g
 - A buyback is eligible only after `sold_lots == total_lots`. It must use an explicitly allowed on-chain venue, the series Mint, a bounded SOL input, a committed minimum token output, and the immutable buyback vault as destination.
 - The program must compare custody balances before and after the market CPI. It must reject a zero-output purchase, excess SOL spend, changed destination, unrelated token Mint, arbitrary program invocation, and any attempt to drain collateral.
 - If no supported market route can execute by expiry, each buyer can claim a proportional share of unspent premiums after expiry, even if their option was exercised or the series defaulted. The final buyer claim receives any integer-rounding remainder. The current local-validator test covers this fallback without a prior buyback. A future route must stop spending at expiry and preserve the same accounting invariant.
+- A buyer whose proportional share rounds down to zero still records a completed refund claim. This lets the final buyer claim the remaining integer-rounding lamports instead of leaving them stranded in the premium PDA.
 - No issuer, operator, upgrade authority, or keeper withdrawal may bypass these rules. A keeper may submit a transaction and pay its own network fee but may not receive premium principal or bought tokens.
 
 ## Route implementation notes
