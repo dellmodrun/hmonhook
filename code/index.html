@@ -110,19 +110,18 @@
 </div>
 <span class="page-code">RUST / TYPESCRIPT / TESTS</span>
 </div>
-<p>Explore the deployed h/monhook Guard and SDK alongside the options source and the earlier Jolt Guard.</p>
-<p class="source-summary">The h/monhook Guard is deployed on mainnet at <code>Be7RvxKN...1E2ELQ</code>. Issuer options remain a development module and are not active on mainnet.</p>
-<details class="advanced-information"><summary>Why do some source files use an earlier name?</summary><div class="advanced-inner"><p><strong>Code lineage and deployment:</strong> h/monhook builds on the earlier Joltwork Guard implementation. The <code>programs/jolt-guard</code> path, <code>sdk</code> package and <code>JOLT</code> wire marker belong to that earlier protocol; its deployment manifests remain published. The supported trade path now uses the separately deployed h/monhook Guard and <code>HMON</code> instruction format. The older programs have not been renamed or overwritten.</p></div></details>
+<p>Explore h/monhook's Guard, SDK, launch client and issuer options source.</p>
+<p class="source-summary">The h/monhook Guard is deployed on mainnet at <code>Be7RvxKN...1E2ELQ</code>. Inspect the program address and release manifest before signing a protected trade.</p>
 </header>
 <section class="chapter">
 <div class="chapter-label">PUBLISHED SOURCE BROWSER</div>
 <h2>Explore the code behind h/monhook.</h2>
-<p class="source-summary">Start with the h/monhook Guard and SDK to inspect the active protected trade path. The options contract and earlier Guard are listed separately.</p>
-<div class="prose-block"><p>The source browser shows the Guard source that matches the reviewed mainnet release, its SDK, the options development module and the earlier program. Check the full Program ID in your wallet to distinguish executable code from a published proposal.</p><p>The h/monhook Guard is executable on mainnet; options are not. Local tests and a read-only mainnet simulation do not replace an independent review or a signed user transaction test.</p></div>
+<p class="source-summary">Start with the h/monhook Guard and SDK to inspect the protected trade path.</p>
+<div class="prose-block"><p>The browser also includes the token launch client and issuer options source. Check the full Program ID in your wallet before signing.</p><p>The Guard is executable on mainnet. The options source has no mainnet deployment in this release. Local tests and read-only simulations do not replace an independent review.</p></div>
 <div class="build-strip">
 <span>H/MONHOOK SOURCE<b>SNAPSHOT FB3E25E</b>
 </span>
-<span>ISSUER OPTIONS<b>NOT DEPLOYED</b>
+<span>ISSUER OPTIONS<b>NO MAINNET PROGRAM</b>
 </span>
 <span>LIVE TRADE GUARD<b>H/MONHOOK MAINNET</b>
 </span>
@@ -130,11 +129,9 @@
 </span>
 </div>
 <div class="repo-health" aria-label="Repository summary">
-<span><b>03</b>PROGRAM SOURCE TREES</span>
-<span><b>02</b>SDK SOURCE TREES</span>
-<span><b>11</b>EARLIER SDK TESTS PASSING</span>
-<span><b>05</b>ENGINEERING DOCS</span>
-<span><b>03</b>DEPLOYMENT RECORDS</span>
+<span><b>02</b>PROGRAM SOURCE TREES</span>
+<span><b>01</b>SDK SOURCE TREE</span>
+<span><b>01</b>MAINNET GUARD RECORD</span>
 </div>
 <div class="code-browser">
 <aside class="code-sidebar">
@@ -152,7 +149,6 @@
 <button data-code="hmonOptionsTransaction">Transaction layer</button>
 <button data-code="hmonOptionsRelease">Release logic</button>
 <button data-code="hmonOptionsBrowser">Browser option client</button>
-<button data-code="hmonOptionsInterface">Options interface</button>
 <button data-code="hmonOptionsConfig">Options program config</button>
 <button data-code="hmonOptionsPremiumSpec">Premium execution spec</button>
 <button data-code="hmonSdk">h/monhook SDK entry</button>
@@ -162,23 +158,6 @@
 <button data-code="hmonSdkInstruction">SDK instructions</button>
 <button data-code="hmonSdkReceipt">SDK receipts</button>
 <button data-code="hmonSdkJupiter">SDK Jupiter adapter</button></div>
-<div class="code-group"><b>EARLIER DEPLOYED GUARD</b>
-<button data-code="program">Guard program · Rust</button>
-<button data-code="cargo">Guard build settings</button></div>
-<div class="code-group"><b>EARLIER SDK / CORE</b>
-<button data-code="sdkIndex">sdk/src/index.ts</button>
-<button data-code="sdkConstants">sdk/src/constants.ts</button>
-<button data-code="sdkTypes">sdk/src/types.ts</button>
-<button data-code="sdkCodec">sdk/src/codec.ts</button>
-<button data-code="sdkInstruction">sdk/src/instruction.ts</button>
-<button data-code="sdkReceipt">sdk/src/receipt.ts</button></div>
-<div class="code-group"><b>EARLIER SDK / ADAPTERS</b>
-<button data-code="jupiter">sdk/src/adapters/jupiter.ts</button></div>
-<div class="code-group"><b>EARLIER SDK TESTS</b>
-<button data-code="codecTest">sdk/test/codec.test.js</button>
-<button data-code="instructionTest">sdk/test/instruction.test.js</button>
-<button data-code="jupiterTest">sdk/test/jupiter.test.js</button>
-<button data-code="receiptTest">sdk/test/receipt.test.js</button></div>
 <div class="code-group"><b>CURRENT WEBSITE</b>
 <button data-code="launchClient">launch-client.ts</button>
 <button data-code="intentClient">intent-client.ts</button>
@@ -187,24 +166,14 @@
 <button data-code="marketsClient">markets.js</button>
 <button data-code="marketsRegistry">markets/registry.json</button>
 <button data-code="webPackage">package.json</button>
-<button data-code="sdkPackage">sdk/package.json</button></div>
+</div>
 <div class="code-group"><b>DEPLOYMENT</b>
-<button data-code="deployment">deployments/devnet.json</button>
 <button data-code="mainnetDeployment">deployments/hmonhook-mainnet.json</button>
-<button data-code="legacyMainnetDeployment">deployments/mainnet.json</button>
 <button data-code="verifyDeployment">scripts/verify-deployment.mjs</button>
 <button data-code="checkSite">scripts/check-site.mjs</button></div>
-<div class="code-group"><b>DOCUMENTATION</b>
-<button data-code="readme">README.md</button>
-<button data-code="productScope">docs/PRODUCT_SCOPE.md</button>
-<button data-code="architecture">docs/ARCHITECTURE.md</button>
-<button data-code="integration">docs/INTEGRATION.md</button>
-<button data-code="security">docs/SECURITY.md</button>
-<button data-code="operations">docs/OPERATIONS.md</button>
-<button data-code="spec">Guard specification</button>
-<button data-code="contributing">CONTRIBUTING.md</button></div>
+
 </div>
-<div class="code-tree-foot"><span id="code-file-count">54 FILES</span><span>PUBLISHED SOURCE</span></div>
+<div class="code-tree-foot"><span id="code-file-count">30 FILES</span><span>PUBLISHED SOURCE</span></div>
 </aside>
 <div class="code-panel">
 <div class="code-toolbar">
@@ -246,13 +215,13 @@
 <td>implemented</td>
 </tr>
 <tr>
-<td>sdk/src</td>
+<td>hmonhook-sdk/src</td>
 <td>typed constraints, canonical encoding, account assembly, adapters and receipt decoding</td>
 <td>wallets / apps</td>
 <td>implemented</td>
 </tr>
 <tr>
-<td>sdk/test</td>
+<td>hmonhook-sdk/test</td>
 <td>separate codec, instruction, Jupiter and receipt suites</td>
 <td>CI</td>
 <td>active</td>
@@ -260,7 +229,7 @@
 <tr><td>launch-client.ts</td><td>Pump create_v2 assembly, safety checks and confirmation</td><td>coin creators</td><td>implemented</td></tr>
 <tr>
 <td>Guard specification</td>
-<td>Intent V1, JHK1 and JRC1 interfaces</td>
+<td>Intent V1 and HRC1 interfaces</td>
 <td>integrators</td>
 <td>specified</td>
 </tr>
@@ -282,7 +251,7 @@
 <h2>What the repository proves—and what deployment must still prove.</h2>
 </div>
 </div>
-<div class="prose-block"><p>The h/monhook mainnet manifest identifies the executable Guard and its SBF hash. This does not prove every route adapter is free of edge cases. The issuer-option source is a published draft, while Privacy Rings are not integrated into this site.</p><p>The browser assembles a supported Jupiter route with the deployed h/monhook Guard and asks the wallet to sign. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. Options signing remains unavailable.</p></div>
+<div class="prose-block"><p>The h/monhook mainnet manifest identifies the executable Guard and its SBF hash. This does not prove every route adapter is free of edge cases. Issuer options and Privacy Rings are separate from the deployed Guard.</p><p>The browser assembles a supported Jupiter route with the deployed h/monhook Guard and asks the wallet to sign. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. Options signing remains unavailable.</p></div>
 <div class="split-panel">
 <article>
 <h3>Inspectable now</h3>
@@ -291,7 +260,7 @@
 <li>Classic SPL and Token-2022 balance parsing.</li>
 <li>Pre-hook, route and post-hook CPI execution.</li>
 <li>Checked max-input and min-output arithmetic.</li>
-<li>SDK encoder and JRC1 receipt decoder.</li>
+<li>SDK encoder and HRC1 receipt decoder.</li>
 <li>Verified, executable mainnet and devnet Program IDs with build manifests.</li>
 </ul>
 </article>
@@ -308,7 +277,7 @@
 </div>
 <div class="callout">
 <b>H/MONHOOK GUARD DEPLOYMENT</b>
-<p>The h/monhook Guard is deployed on mainnet at <a href="https://explorer.solana.com/address/Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ" target="_blank" rel="noreferrer"><code>Be7RvxKN...1E2ELQ</code></a>. Its manifest records the verified SBF hash and retained upgrade authority. The earlier Jolt Guard deployments remain independently inspectable; issuer options and Privacy Rings are not active in this release.</p>
+<p>The h/monhook Guard is deployed on mainnet at <a href="https://explorer.solana.com/address/Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ" target="_blank" rel="noreferrer"><code>Be7RvxKN...1E2ELQ</code></a>. Its manifest records the verified SBF hash and retained upgrade authority. Issuer options and Privacy Rings have no active mainnet integration in this release.</p>
 </div>
 </section>
 <section class="cta-panel">

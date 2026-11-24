@@ -195,8 +195,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:700px){.home-step-cards,.home-feature-grid,.home-market-list,.home-market-summary{grid-template-columns:1fr}.home-market-search>div{flex-direction:column}.home-market-summary>a{text-align:left;min-height:54px}.hero-copy h1{font-size:clamp(38px,9vw,44px)}.home-dev-note{padding:24px}}
 
 /* Compact market directory: the official token is the first card in the same grid. */
-.market-grid{--card-height:350px;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:var(--card-height);gap:10px;max-height:calc(3 * var(--card-height) + 20px);overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#a65820 #17110d;scrollbar-width:thin;padding-right:4px}
-.market-grid .market-card{display:flex;flex-direction:column;min-height:0;padding:12px;overflow:hidden}
+.market-grid{--card-height:390px;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:auto;gap:10px;max-height:calc(3 * var(--card-height) + 20px);overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#a65820 #17110d;scrollbar-width:thin;padding:0 4px 12px 0}
+.market-grid .market-card{display:flex;flex-direction:column;min-height:var(--card-height);padding:12px;overflow:visible}
 .market-grid .market-card-head,.market-grid .official-market-card .market-card-head{grid-template-columns:40px minmax(0,1fr);gap:8px;min-height:52px}
 .market-grid .market-token-image{width:40px;height:40px}.market-grid .market-token-image img{padding:3px}
 .market-grid .market-badges{gap:3px}.market-grid .market-badges b{padding:3px 4px;font-size:8px}

@@ -135,13 +135,13 @@
 </label>
 </div>
 <div class="metadata-upload">
-<div class="field-pair"><label class="upload-field">UPLOAD ARTWORK<span class="file-picker"><span class="file-picker-button">choose image</span><span id="coin-upload-filename" aria-live="polite">No image selected</span></span><input id="coin-upload-image" type="file" accept="image/png,image/jpeg,image/webp"></label><label>DESCRIPTION FOR UPLOAD<textarea id="coin-upload-description" maxlength="500" placeholder="Describe the coin shown in its public metadata"></textarea></label></div>
+<div class="field-pair"><label class="upload-field">UPLOAD ARTWORK<span class="file-picker"><span class="file-picker-button">choose image</span><span id="coin-upload-filename" aria-live="polite">No image selected</span></span><input id="coin-upload-image" type="file" accept="image/png,image/jpeg,image/webp"></label><label>DESCRIPTION / OPTIONAL<textarea id="coin-upload-description" maxlength="500" placeholder="Optional public description"></textarea></label></div>
 <div class="field-pair"><label>WEBSITE / OPTIONAL<input id="coin-upload-website" type="url" placeholder="https://…"></label><label>X / OPTIONAL<input id="coin-upload-twitter" type="url" placeholder="https://x.com/…"></label></div>
 <label>TELEGRAM / OPTIONAL<input id="coin-upload-telegram" type="url" placeholder="https://t.me/…"></label>
 <button type="button" id="metadata-upload" class="button">upload image + metadata</button>
 <small>Upload a PNG, JPEG or WebP image up to 2 MB. The public metadata link is filled in automatically. You can also provide an existing metadata JSON URI.</small>
 </div>
-<label>PUBLIC DESCRIPTION<textarea id="coin-description" maxlength="500" placeholder="Loaded from verified metadata JSON" readonly required></textarea></label>
+<label>PUBLIC DESCRIPTION<textarea id="coin-description" maxlength="500" placeholder="Loaded from verified metadata JSON" readonly></textarea></label>
 <div class="field-pair">
 <label>IMAGE LINK<input id="coin-image" type="url" placeholder="Loaded from verified metadata JSON" readonly required></label>
 <label>WEBSITE<input id="coin-website" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
@@ -151,7 +151,7 @@
 <label>TELEGRAM<input id="coin-telegram" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
 </div>
 <label>PUBLIC METADATA LINK<input id="coin-uri" type="url" placeholder="https://ipfs.io/ipfs/…" required></label>
-<div class="metadata-review"><img id="coin-image-preview" alt="Coin artwork preview" hidden><div><b id="metadata-state">METADATA NOT VERIFIED</b><p>The JSON must contain matching name, symbol, description and a public image URL.</p></div><button type="button" id="metadata-check" class="button">verify metadata</button></div>
+<div class="metadata-review"><img id="coin-image-preview" alt="Coin artwork preview" hidden><div><b id="metadata-state">METADATA NOT VERIFIED</b><p>The JSON must contain matching name and symbol, an image URL, and a description field that may be empty.</p></div><button type="button" id="metadata-check" class="button">verify metadata</button></div>
 <details class="form-advanced"><summary>Advanced settings (optional)</summary>
 <div class="field-pair">
 <label>QUOTE ASSET / LIVE ROUTE<select id="coin-quote">
@@ -205,13 +205,13 @@
 <div class="callout"><b>RPC AND PRIVACY</b><p>The default browser-compatible RPC is operated by PublicNode, not h/monhook or Solana. It receives ordinary RPC requests and the signed transaction when submitted. Production operators should replace it with their own trusted Solana RPC endpoint before launch.</p></div>
 </section>
 <section id="issuer-protection" class="section-block protection-story" aria-labelledby="issuer-protection-title">
-<div class="section-head"><div><div class="eyebrow">PLANNED / ISSUER PROTECTION</div><h2 id="issuer-protection-title">Make developer promises easier to check.</h2></div><p>This feature is still being built. Launching a coin today does not add a lock or option.</p></div>
+<div class="section-head"><div><div class="eyebrow">ISSUER PROTECTION</div><h2 id="issuer-protection-title">Make developer promises easier to check.</h2></div><p>A coin needs a verified lock and explicit option terms before it can carry a protection label.</p></div>
 <div class="story-grid">
 <article><span>01 / COMPARE</span><h3>See who launched it</h3><p>Coins with the same name should be shown side by side with their Mint and creator, so a familiar name is not mistaken for proof.</p></article>
-<article><span>02 / LOCK</span><h3>Check the commitment</h3><p>A future issuer may lock a stated share of tokens and publish clear option terms. Unlocked coins will be labeled as unlocked.</p></article>
+<article><span>02 / LOCK</span><h3>Check the commitment</h3><p>Compare a stated locked share and exact option terms. Coins without a verified lock remain unlocked.</p></article>
 <article><span>03 / SETTLE</span><h3>Know the outcome</h3><p>Option buyers need clear rules for exercise, expiry and any claim. These rules must be verified on-chain before they are offered.</p></article>
 </div>
-<div class="callout"><b>NOT LIVE YET</b><p>The current launcher does not lock supply, sell options or guarantee a developer's behavior. An option premium can be lost, and no future protection is a price guarantee.</p></div>
+<div class="callout"><b>VERIFY BEFORE BUYING</b><p>This coin creation transaction does not lock supply or sell options. Check a separate on-chain contract and its exact terms before treating any token as protected. An option premium can be lost.</p></div>
 </section>
 <details class="advanced-information"><summary>Explore launch rules and technical details</summary><div class="advanced-inner">
 <section class="home-panel">
@@ -318,7 +318,7 @@
 </details>
 <details>
 <summary>Does launching here provide a developer lock or options?</summary>
-<p>No. The issuer protection model is a design proposal. The current launcher does not create a lock, option position or claim. Any future listing will show the verified contract and exact terms before a user can participate.</p>
+<p>No. No. This launcher creates the coin. A lock, option position or claim requires a separate verified on-chain transaction with exact terms.</p>
 </details>
 </div>
 </section>

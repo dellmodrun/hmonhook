@@ -61,10 +61,20 @@ export async function createPumpCoin(request: PumpLaunchRequest) {
     signature = typeof result === 'string' ? result : result.signature;
   } else if (typeof request.provider.signTransaction === 'function') {
     const signed = await request.provider.signTransaction(transaction);
-    signature = await connection.sendRawTransaction(signed.serialize(), {
-      preflightCommitment: 'confirmed',
-      maxRetries: 3,
-    });
+    const wire = signed.serialize();
+    try {
+      signature = await connection.sendRawTransaction(wire, {
+        preflightCommitment: 'confirmed',
+        maxRetries: 3,
+      });
+    } catch (primaryError) {
+      // This public RPC accepts reads but may reject transaction writes.
+      // Retry the identical signed transaction on Solana's public RPC.
+      if (rpcUrl.origin !== 'https://solana-rpc.publicnode.com' ||
+          !/403|429|fetch failed|network|timeout/i.test(String(primaryError))) throw primaryError;
+      signature = await new Connection('https://api.mainnet.solana.com', 'confirmed')
+        .sendRawTransaction(wire, { preflightCommitment: 'confirmed', maxRetries: 3 });
+    }
   } else {
     throw new Error('This wallet does not expose a supported transaction signing method.');
   }

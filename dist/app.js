@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var cachedWalletAddress = sessionStorage.getItem("joltwork-wallet") || null;
+  var cachedWalletAddress = sessionStorage.getItem("hmonhook-wallet") || null;
   var walletAddress = null;
   var verifiedMetadataUri = null;
   var verifiedMetadata = null;
@@ -49,13 +49,13 @@
   var activeProvider = null;
   var boundProviders = [];
   var walletButton = byId("connect-wallet");
-  window.JoltworkWallet = {
+  window.HmonhookWallet = {
     getProvider: function () { return activeProvider; },
     getAddress: function () { return walletAddress; }
   };
 
   function walletLogo(name) {
-    var icons = window.JOLT_OFFICIAL_WALLET_ICONS || {};
+    var icons = window.HMONHOOK_OFFICIAL_WALLET_ICONS || {};
     return icons[name] || "";
   }
 
@@ -81,8 +81,8 @@
   function setWalletAddress(address, providerObject) {
     walletAddress = address ? String(address) : null;
     activeProvider = providerObject || null;
-    if (walletAddress) sessionStorage.setItem("joltwork-wallet", walletAddress);
-    else sessionStorage.removeItem("joltwork-wallet");
+    if (walletAddress) sessionStorage.setItem("hmonhook-wallet", walletAddress);
+    else sessionStorage.removeItem("hmonhook-wallet");
     var label = walletButton && walletButton.querySelector(".rail-label");
     if (label) label.textContent = walletAddress ? shortAddress(walletAddress) : "CONNECT WALLET";
     document.querySelectorAll("[data-wallet-state]").forEach(function (item) {
@@ -233,7 +233,7 @@
         }
       } catch (error) { /* not previously approved in this wallet */ }
     }
-    sessionStorage.removeItem("joltwork-wallet");
+    sessionStorage.removeItem("hmonhook-wallet");
     cachedWalletAddress = null;
   }
 
@@ -261,8 +261,8 @@
     var name = byId("coin-name").value.trim();
     var symbol = byId("coin-symbol").value.trim().toUpperCase();
     var description = byId("coin-upload-description").value.trim();
-    if (!name || name.length > 32 || !/^[A-Z0-9_$.-]{1,13}$/.test(symbol) || !description || description.length > 500) {
-      return showToast("Enter the coin name, ticker and description before uploading", "error");
+    if (!name || name.length > 32 || !/^[A-Z0-9_$.-]{1,13}$/.test(symbol) || description.length > 500) {
+      return showToast("Enter a valid coin name and ticker before uploading", "error");
     }
     metadataUpload.disabled = true;
     setLaunchStatus("Uploading artwork and metadata...");
@@ -318,7 +318,7 @@
       var name = byId("coin-name").value.trim();
       var symbol = byId("coin-symbol").value.trim().toUpperCase();
       if (metadata.name !== name || String(metadata.symbol || "").toUpperCase() !== symbol) throw new Error("metadata name and symbol must match the form");
-      if (!metadata.description || !metadata.image) throw new Error("metadata must include description and image");
+      if (typeof metadata.description !== "string" || !metadata.image) throw new Error("metadata must include a description field and image");
       var image = metadataUri(metadata.image);
       byId("coin-description").value = metadata.description;
       byId("coin-image").value = image;
@@ -447,10 +447,10 @@
         body: JSON.stringify({ signature: record.signature, mint: record.mint, creator: record.creator }) });
       if (!registered.ok) throw new Error("Directory registration pending");
       try {
-        var saved = JSON.parse(localStorage.getItem("joltwork.launches.v1") || "[]");
+        var saved = JSON.parse(localStorage.getItem("hmonhook.launches.v1") || "[]");
         if (Array.isArray(saved)) {
           saved.forEach(function (item) { if (item && item.mint === record.mint) item.directoryPublished = true; });
-          localStorage.setItem("joltwork.launches.v1", JSON.stringify(saved));
+          localStorage.setItem("hmonhook.launches.v1", JSON.stringify(saved));
         }
       } catch (_) { /* The on-chain launch and directory entry remain valid. */ }
       setLaunchStatus("Coin created and added to the verified market directory. Mint: " + record.mint);
@@ -462,8 +462,8 @@
   var launchSubmit = byId("launch-submit");
   if (launchSubmit) launchSubmit.addEventListener("click", async function () {
     var output = byId("launch-output");
-    var provider = window.JoltworkWallet && window.JoltworkWallet.getProvider();
-    var authority = window.JoltworkWallet && window.JoltworkWallet.getAddress();
+    var provider = window.HmonhookWallet && window.HmonhookWallet.getProvider();
+    var authority = window.HmonhookWallet && window.HmonhookWallet.getAddress();
     if (!provider || !authority) {
       openWalletModal();
       showToast("Connect a wallet before creating the coin", "error");
@@ -473,7 +473,7 @@
       showToast("Verify metadata and compile the launch plan first", "error");
       return;
     }
-    if (!window.JoltworkLaunch || typeof window.JoltworkLaunch.createPumpCoin !== "function") {
+    if (!window.HmonhookLaunch || typeof window.HmonhookLaunch.createPumpCoin !== "function") {
       showToast("Pump transaction module is unavailable", "error");
       return;
     }
@@ -488,7 +488,7 @@
     setLaunchStatus("Waiting for wallet approval and network confirmation...");
     launchSubmit.textContent = "waiting for wallet…";
     try {
-      var result = await window.JoltworkLaunch.createPumpCoin({
+      var result = await window.HmonhookLaunch.createPumpCoin({
         provider: provider,
         authority: authority,
         name: launchName,
@@ -530,11 +530,11 @@
           createdAt: Date.now()
         };
       try {
-        var storedLaunches = JSON.parse(localStorage.getItem("joltwork.launches.v1") || "[]");
+        var storedLaunches = JSON.parse(localStorage.getItem("hmonhook.launches.v1") || "[]");
         if (!Array.isArray(storedLaunches)) storedLaunches = [];
         storedLaunches = storedLaunches.filter(function (item) { return item && item.mint !== launchRecord.mint; });
         storedLaunches.unshift(launchRecord);
-        localStorage.setItem("joltwork.launches.v1", JSON.stringify(storedLaunches.slice(0, 100)));
+        localStorage.setItem("hmonhook.launches.v1", JSON.stringify(storedLaunches.slice(0, 100)));
       } catch (_) { /* A confirmed launch remains valid if local storage is unavailable. */ }
       if (result.status === "confirmed") void publishConfirmedLaunch(launchRecord);
       showToast(result.status === "pending" ? "Confirmation pending. Check the Mint and signature before trying again." : "Coin creation confirmed on Solana", result.status === "pending" ? "" : "success");
@@ -663,16 +663,16 @@
   var intentSubmit = byId("intent-submit");
   if (intentSubmit) intentSubmit.addEventListener("click", async function () {
     var output = byId("intent-output");
-    var provider = window.JoltworkWallet && window.JoltworkWallet.getProvider();
-    var authority = window.JoltworkWallet && window.JoltworkWallet.getAddress();
+    var provider = window.HmonhookWallet && window.HmonhookWallet.getProvider();
+    var authority = window.HmonhookWallet && window.HmonhookWallet.getAddress();
     if (!provider || !authority) return openWalletModal();
     if (!intentManifestReady || !latestIntentQuote) return showToast("Get a fresh quote and compile the intent first", "error");
-    if (!window.JoltworkIntent || typeof window.JoltworkIntent.submitProtectedSwap !== "function") return showToast("Protected swap module is unavailable", "error");
+    if (!window.HmonhookIntent || typeof window.HmonhookIntent.submitProtectedSwap !== "function") return showToast("Protected swap module is unavailable", "error");
     if (!window.confirm("Sign a mainnet swap protected by h/monhook Guard? Review the token amounts and network fee in your wallet.")) return;
     intentSubmit.disabled = true;
     intentSubmit.textContent = "building protected swap…";
     try {
-      var result = await window.JoltworkIntent.submitProtectedSwap({
+      var result = await window.HmonhookIntent.submitProtectedSwap({
         provider: provider, authority: authority,
         inputMint: byId("intent-input-mint").value.trim(), outputMint: byId("intent-output-mint").value.trim(),
         amount: byId("intent-input").value.trim(), minimumOutput: byId("intent-output-min").value.trim(),
@@ -741,22 +741,8 @@
     hmonOptionsTransaction: "source-preview/options-custody-v3/options-transaction-core.mjs",
     hmonOptionsRelease: "source-preview/options-custody-v3/options-release-core.mjs",
     hmonOptionsBrowser: "source-preview/options-custody-v3/options-browser-client.ts",
-    hmonOptionsInterface: "source-preview/options-custody-v3/options-interface.js",
     hmonOptionsConfig: "source-preview/options-custody-v3/options/program.json",
     hmonOptionsPremiumSpec: "source-preview/options-custody-v3/docs/OPTIONS_PREMIUM_EXECUTION.md",
-    program: "programs/jolt-guard/src/lib.rs",
-    cargo: "programs/jolt-guard/Cargo.toml",
-    sdkIndex: "sdk/src/index.ts",
-    sdkConstants: "sdk/src/constants.ts",
-    sdkTypes: "sdk/src/types.ts",
-    sdkCodec: "sdk/src/codec.ts",
-    sdkInstruction: "sdk/src/instruction.ts",
-    sdkReceipt: "sdk/src/receipt.ts",
-    jupiter: "sdk/src/adapters/jupiter.ts",
-    codecTest: "sdk/test/codec.test.js",
-    instructionTest: "sdk/test/instruction.test.js",
-    jupiterTest: "sdk/test/jupiter.test.js",
-    receiptTest: "sdk/test/receipt.test.js",
     launchClient: "launch-client.ts",
     intentClient: "intent-client.ts",
     appClient: "app.js",
@@ -764,20 +750,9 @@
     marketsClient: "markets.js",
     marketsRegistry: "markets/registry.json",
     webPackage: "package.json",
-    sdkPackage: "sdk/package.json",
-    deployment: "deployments/devnet.json",
     mainnetDeployment: "deployments/hmonhook-mainnet.json",
-    legacyMainnetDeployment: "deployments/mainnet.json",
     verifyDeployment: "scripts/verify-deployment.mjs",
     checkSite: "scripts/check-site.mjs",
-    readme: "README.md",
-    productScope: "docs/PRODUCT_SCOPE.md",
-    architecture: "docs/ARCHITECTURE.md",
-    integration: "docs/INTEGRATION.md",
-    security: "docs/SECURITY.md",
-    operations: "docs/OPERATIONS.md",
-    spec: "JOLT_GUARD.md",
-    contributing: "CONTRIBUTING.md"
   };
 
   function renderSource(text) {

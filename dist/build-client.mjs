@@ -7,14 +7,14 @@ await build({
   minify: true,
   platform: 'browser',
   format: 'iife',
-  globalName: 'JoltworkLaunch',
+  globalName: 'HmonhookLaunch',
   inject: ['buffer-shim.js'],
   outfile: 'launch-client.js',
 });
 
 await build({
   entryPoints: ['intent-client.ts'], bundle: true, minify: true, platform: 'browser',
-  format: 'iife', globalName: 'JoltworkIntent', inject: ['buffer-shim.js'], outfile: 'intent-client.js',
+  format: 'iife', globalName: 'HmonhookIntent', inject: ['buffer-shim.js'], outfile: 'intent-client.js',
 });
 
 const intentOutput = await readFile('intent-client.js', 'utf8');

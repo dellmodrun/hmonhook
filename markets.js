@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "joltwork.launches.v1";
+  var STORAGE_KEY = "hmonhook.launches.v1";
   var state = { launches: [], pairs: new Map(), filter: "all", sort: "newest", loading: false, publishing: false };
   var sharedMint = new URLSearchParams(window.location.search).get("mint");
   if (sharedMint && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedMint)) sharedMint = null;

@@ -30,24 +30,18 @@ for (const page of pages) {
 
 const code = readFileSync(resolve(root, "code/index.html"), "utf8");
 const protocol = readFileSync(resolve(root, "protocol/index.html"), "utf8");
-const legacySdkTests = ["codec", "instruction", "jupiter", "receipt"].reduce((count, name) => {
-  const source = readFileSync(resolve(root, `sdk/test/${name}.test.js`), "utf8");
-  return count + [...source.matchAll(/^test\(/gm)].length;
-}, 0);
-assert.ok(legacySdkTests > 0, "legacy SDK test count was not found");
-assert.ok(code.includes(`<b>${legacySdkTests}</b>EARLIER SDK TESTS PASSING`), "Source Code SDK test count differs from the test files");
 const guardSdkTests = ["codec", "instruction", "jupiter", "receipt"].reduce((count, name) => {
   const source = readFileSync(resolve(root, `hmonhook-sdk/test/${name}.test.js`), "utf8");
   return count + [...source.matchAll(/^test\(/gm)].length;
 }, 0);
 assert.ok(protocol.includes(`H/MONHOOK GUARD / ${guardSdkTests} SDK TESTS PASSING`), "Protocol SDK test count differs from the new SDK tests");
-assert.match(code, /Code lineage and deployment:/, "Source Code does not explain the Jolt inheritance");
+assert.doesNotMatch(code, /Jolt|Vamend|EARLIER/i, "Source Code mentions an old project");
 assert.match(code, /data-code="launchClient">launch-client\.ts<\/button>/, "Source Code should lead with the current launch client");
 assert.match(protocol, /supported trade path now uses h\/monhook's own Guard on mainnet/, "Protocol does not identify the deployed Guard");
 for (const id of ["code-view", "code-filter", "code-copy", "code-download"]) {
   assert.match(code, new RegExp(`id=["']${id}["']`), `code browser missing ${id}`);
 }
-for (const source of ["programs/jolt-guard/src/lib.rs", "sdk/src/index.ts", "docs/PRODUCT_SCOPE.md"]) {
+for (const source of ["source-preview/options-custody-v3/programs/hmonhook-guard/src/lib.rs", "source-preview/options-custody-v3/hmonhook-sdk/src/index.ts"]) {
   assert.ok(existsSync(resolve(root, "dist", source)), `standalone code browser misses ${source}`);
 }
 const app = readFileSync(resolve(root, "app.js"), "utf8");
@@ -58,8 +52,7 @@ for (const source of ["programs/hmonhook-guard/src/lib.rs", "programs/hmonhook-o
   assert.ok(existsSync(resolve(root, "dist/source-preview/options-custody-v3", source)), `bundle misses current source snapshot ${source}`);
 }
 const marketsClient = readFileSync(resolve(root, "markets.js"), "utf8");
-assert.ok(existsSync(resolve(root, "docs/PRODUCT_SCOPE.md")), "product scope document missing");
-assert.match(app, /productScope: "docs\/PRODUCT_SCOPE\.md"/, "source browser cannot open product scope");
+assert.match(app, /hmonGuard: "source-preview\/options-custody-v3\/programs\/hmonhook-guard\/src\/lib\.rs"/, "source browser cannot open current Guard");
 assert.match(app, /local-proposal-not-published/, "launcher must mark the policy plan as local");
 assert.match(app, /localPreviewHash/, "trade preview must not use the on-chain intent ID label");
 assert.match(app, /Trade changed\. Get a fresh quote/, "editing a trade must invalidate the signing preview");
@@ -121,7 +114,7 @@ for (const id of ["home-market-list", "home-market-count", "home-market-live", "
 }
 assert.match(homeMarkets, /api\.dexscreener\.com\/tokens\/v1\/solana/, "home preview must use observed market data");
 assert.ok(!marketsClient.includes('source: "search", createdAt: Date.now()'), "market search must not invent a launch date");
-assert.match(app, /joltwork\.launches\.v1/, "confirmed launches must be persisted for market discovery");
+assert.match(app, /hmonhook\.launches\.v1/, "confirmed launches must be persisted for market discovery");
 const marketRegistry = JSON.parse(readFileSync(resolve(root, "markets/registry.json"), "utf8"));
 assert.equal(marketRegistry.format, "HMONHOOK_MARKETS_V1", "unexpected markets registry format");
 for (const launch of marketRegistry.launches) {
