@@ -5,7 +5,8 @@ import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync } from
 import { PumpSdk, PUMP_PROGRAM_ID, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
 import { strikeFromPumpReserves } from './options-strike-core.mjs';
 import { openSeriesInstructions, buyOptionsInstruction, exerciseInstructions,
-  claimDefaultInstructions, refundPremiumInstruction, fetchVerifiedSeries,
+  claimDefaultInstructions, refundPremiumInstruction, triggerDefaultInstruction,
+  reclaimInstructions, fetchVerifiedSeries,
   derivePosition, fetchVerifiedPosition } from './options-core.mjs';
 
 const MAX_U64 = (1n << 64n) - 1n;
@@ -206,4 +207,24 @@ export async function submitPositionAction({ rpcEndpoint, programId, series, buy
     instructions = action === 'exercise' ? exerciseInstructions(args).instructions : claimDefaultInstructions(args).instructions;
   }
   return submitOptionsInstructions({ connection, provider, authority: buyerKey, instructions });
+}
+
+export async function submitSeriesAction({ rpcEndpoint, programId, series, signer, provider, action }:
+  { rpcEndpoint: string; programId: string; series: string; signer: string; provider: any;
+    action: 'register-default' | 'reclaim' }) {
+  const connection = rpcConnection(rpcEndpoint);
+  const programKey = publicKey(programId);
+  const seriesKey = publicKey(series);
+  const signerKey = publicKey(signer);
+  const terms = await fetchVerifiedSeries(connection, programKey, seriesKey);
+  let instructions;
+  if (action === 'register-default') {
+    if (terms.status !== 0) throw new Error('Only an active series can register a treasury breach.');
+    instructions = [triggerDefaultInstruction({ programId: programKey, series: seriesKey, treasury: terms.treasury })];
+  } else {
+    if (!terms.issuer.equals(signerKey)) throw new Error('Only the issuer can reclaim eligible collateral.');
+    instructions = reclaimInstructions({ programId: programKey, issuer: signerKey, series: seriesKey,
+      mint: terms.mint, vault: terms.vault }).instructions;
+  }
+  return submitOptionsInstructions({ connection, provider, authority: signerKey, instructions });
 }

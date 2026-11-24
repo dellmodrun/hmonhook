@@ -75,7 +75,7 @@
     });
   }
   if (marketForm) {
-    var actionIds = ['options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund'];
+    var actionIds = ['options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund', 'options-register-default', 'options-reclaim'];
     function disableActions() { actionIds.forEach(function (id) { byId(id).disabled = true; }); purchaseReview = null; }
     marketForm.addEventListener('input', disableActions);
     async function inspect() {
@@ -104,6 +104,10 @@
       if (connected && owned > 0n && t.status === 0 && BigInt(view.slot) <= t.expirySlot) byId('options-exercise').disabled = false;
       if (connected && owned > 0n && t.status === 1) byId('options-claim').disabled = false;
       if (connected && p && !p.premiumRefunded && BigInt(view.slot) > t.expirySlot) byId('options-refund').disabled = false;
+      if (connected && t.status === 0 && BigInt(view.slot) <= t.expirySlot && view.registeredTreasuryBreached) byId('options-register-default').disabled = false;
+      var reclaimable = t.status === 1 || BigInt(view.slot) <= t.expirySlot
+        ? t.totalLots - t.soldLots - t.reclaimedLots : t.totalLots - t.exercisedLots - t.reclaimedLots;
+      if (connected && String(t.issuer) === connected && BigInt(view.slot) > t.saleDeadlineSlot && t.status !== 2 && reclaimable > 0n && view.vaultAmount >= reclaimable * t.lotSize) byId('options-reclaim').disabled = false;
       return view;
     }
     marketForm.addEventListener('submit', async function (event) { event.preventDefault(); try { await inspect(); } catch (err) { error('options-market-output', err); } });
@@ -143,6 +147,19 @@
           show('options-market-output', ['STATUS: ' + result.status, 'SIGNATURE: ' + result.signature,
             'Refresh the series to see the updated position.']);
           marketView = null;
+        } catch (err) { error('options-market-output', err); }
+      });
+    });
+    [['options-register-default','register-default'],['options-reclaim','reclaim']].forEach(function (pair) {
+      byId(pair[0]).addEventListener('click', async function () {
+        try {
+          var who = wallet(); if (!marketView || marketView.inputs !== marketInputs() || marketView.address !== who.address) throw new Error('Refresh the series after changing inputs or wallet.');
+          await release(value('options-market-rpc')); byId(pair[0]).disabled = true;
+          show('options-market-output', 'Waiting for wallet confirmation...');
+          var result = await api.submitSeriesAction({ rpcEndpoint: value('options-market-rpc'), programId: config.programId,
+            series: value('options-series'), signer: who.address, provider: who.provider, action: pair[1] });
+          show('options-market-output', ['STATUS: ' + result.status, 'SIGNATURE: ' + result.signature,
+            'Refresh the series to see the updated state.']); marketView = null;
         } catch (err) { error('options-market-output', err); }
       });
     });

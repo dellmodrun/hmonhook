@@ -16,6 +16,8 @@ await build({
   entryPoints: ['options-browser-client.ts'], bundle: true, minify: true, platform: 'browser',
   format: 'iife', globalName: 'HmonhookOptions', inject: ['buffer-shim.js'], outfile: 'options-browser-client.js',
 });
+const optionsOutput = await readFile('options-browser-client.js', 'utf8');
+await writeFile('options-browser-client.js', optionsOutput.replace(/[ \t]+$/gm, ''), 'utf8');
 
 await build({
   entryPoints: ['intent-client.ts'], bundle: true, minify: true, platform: 'browser',

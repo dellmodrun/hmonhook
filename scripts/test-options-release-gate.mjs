@@ -9,7 +9,8 @@ function page(config) {
   const elements = new Map();
   for (const id of ['issuer-options-form', 'options-market-form', 'options-release-state',
     'options-market-release', 'issuer-options-controls', 'options-market-controls',
-    'options-open', 'options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund']) {
+    'options-open', 'options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund',
+    'options-register-default', 'options-reclaim']) {
     elements.set(id, { addEventListener() {}, hidden: id.endsWith('controls'), textContent: '' });
   }
   const context = {
