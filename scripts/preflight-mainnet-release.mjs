@@ -15,7 +15,7 @@ const programs = [
   { kind: 'options', address: 'Cz1jDZv12iXcK5JTY3s4wFX6HH8Y48xDeRxPWDgqshNQ',
     keyFile: 'options-program-keypair.json', binary: 'hmonhook_options.so',
     reviewDirectory: 'options-v3',
-    expectedSha256: '9796cb929cfa98310da7d71c10223ec488867958924478f1a54b92c21cfd59a3' },
+    expectedSha256: 'bacfb380c38167de444c797ca223ad2d59463f34f8379342dd64ac5ac9c3ac6f' },
 ];
 
 function publicKeyFromFile(file) {
@@ -97,8 +97,8 @@ console.log(JSON.stringify({ network: 'mainnet-beta', readOnly: true,
       finalAccountRentLamports: finalAccountRentLamports ?? null,
       temporaryBufferRentLamports: temporaryBufferRentLamports ?? null })),
   machineCheckBlockers: blockers,
-  manualReleaseGates: ['full shutdown and SOL-rent recovery lifecycle test',
-    'funded public-cluster lifecycle tests', 'developer-sale evidence policy',
+  manualReleaseGates: ['funded public-cluster lifecycle and shutdown tests',
+    'developer-sale evidence policy',
     'global same-name launch indexing', 'Privacy Rings implementation and verification',
     'independent security review', 'offline authority recovery backup', 'production RPC and monitoring']
 }, null, 2));
