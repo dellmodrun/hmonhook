@@ -176,6 +176,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .home-example{margin-top:14px;padding:20px;border-left:3px solid var(--brand);background:var(--panel-2)}
 .home-example b{font:12px "JetBrains Mono",monospace;color:var(--brand)}
 .home-example p{max-width:900px;margin:10px 0 0;color:#d6cec5;font-size:16px;line-height:1.65}
+.home-example p+p{margin-top:12px}
+.home-example small{display:block;max-width:940px;margin-top:15px;color:var(--muted);font-size:13px;line-height:1.6}
+.research-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.research-status-grid article{min-width:0;padding:22px;border:1px solid var(--line);background:var(--panel-2)}
+.research-status-grid span{color:var(--brand);font:11px "JetBrains Mono",monospace}
+.research-status-grid h3{margin:17px 0 10px;font:27px/1.1 "EB Garamond",serif}
+.research-status-grid p,.advanced-inner>p{margin:0;color:#d6cec5;font-size:15px;line-height:1.65}
+.advanced-inner>p{margin:18px 0}
+@media(max-width:900px){.research-status-grid{grid-template-columns:1fr}}
 .home-dev-note{padding:32px}
 .home-dev-note h2{margin-bottom:16px;font-size:32px}
 .home-dev-note>p{font-size:16px;line-height:1.65}

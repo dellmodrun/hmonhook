@@ -199,6 +199,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .home-example{margin-top:14px;padding:20px;border-left:3px solid var(--brand);background:var(--panel-2)}
 .home-example b{font:12px "JetBrains Mono",monospace;color:var(--brand)}
 .home-example p{max-width:900px;margin:10px 0 0;color:#d6cec5;font-size:16px;line-height:1.65}
+.home-example p+p{margin-top:12px}
+.home-example small{display:block;max-width:940px;margin-top:15px;color:var(--muted);font-size:13px;line-height:1.6}
+.research-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.research-status-grid article{min-width:0;padding:22px;border:1px solid var(--line);background:var(--panel-2)}
+.research-status-grid span{color:var(--brand);font:11px "JetBrains Mono",monospace}
+.research-status-grid h3{margin:17px 0 10px;font:27px/1.1 "EB Garamond",serif}
+.research-status-grid p,.advanced-inner>p{margin:0;color:#d6cec5;font-size:15px;line-height:1.65}
+.advanced-inner>p{margin:18px 0}
+@media(max-width:900px){.research-status-grid{grid-template-columns:1fr}}
 .home-dev-note{padding:32px}
 .home-dev-note h2{margin-bottom:16px;font-size:32px}
 .home-dev-note>p{font-size:16px;line-height:1.65}
@@ -320,10 +329,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   <main class="app-page">
     <section class="hero-banner" aria-labelledby="hero-title">
       <div class="hero-copy">
-<div class="eyebrow">H/MONHOOK / CREATE AND EXPLORE ON SOLANA</div>
-<h1 id="hero-title">Launch a coin. Follow its market. Trade on your terms.</h1>
-<p>Create a coin from your own wallet, see verified launches in one place, and explore trade limits before you sign. Start with the coin. Go deeper only when you need to.</p>
-<p class="hero-thesis">One place to launch, discover and understand what is live.</p>
+<div class="eyebrow">H/MONHOOK / SOLANA LAUNCHPAD</div>
+<h1 id="hero-title">Launch a coin. Know who built it. Trade on your terms.</h1>
+<p>A Solana launchpad built around coin creation, developer comparison, transaction limits and optional privacy.</p>
+<p class="hero-thesis">From the first launch to the final result.</p>
 <div class="primary-actions">
 <a class="button button-solid" href="./launch/">launch a coin</a>
 <a class="button" href="./markets/">browse markets</a>
@@ -339,6 +348,16 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <strong id="official-ca">TBA</strong>
 </div>
 <p>The official h/monhook contract address has not been published. Do not trust unofficial addresses.</p>
+</section>
+
+    <section class="section-block home-plain" aria-labelledby="home-plain-title">
+<div class="section-head"><div><div class="eyebrow">ONE LAUNCHPAD / THREE LAYERS</div><h2 id="home-plain-title">Protect the launch, the trade and the transfer.</h2></div><p>Each layer answers a different question users ask before trusting a coin.</p></div>
+<div class="home-feature-grid">
+<article><span>01 / DEVELOPER PROTECTION</span><h3>Compare before you buy</h3><p>Group coins with the same name, compare their developers and see which supply is locked. Options turn a developer's commitment into terms buyers can inspect.</p><a href="./launch/#issuer-protection">Explore the option design</a></article>
+<article><span>02 / TRADE PROTECTION</span><h3>Set your limits</h3><p>Decide the most you will spend and the least you will receive. The Guard checks the result of a supported transaction against those limits.</p><a href="./intent/">Explore trade limits</a></article>
+<article><span>03 / OPTIONAL PRIVACY</span><h3>Choose what you reveal</h3><p>A Privacy Rings path can make asset and amount confidential while the public evidence behind a launch remains verifiable. Wallet addresses may still be visible.</p><a href="./protocol/#privacy-boundary">Explore privacy</a></article>
+</div>
+<div class="home-example"><b>HOW THE DEVELOPER OPTION IS DESIGNED</b><p>A developer locks 2–10% of a coin's supply and sells options against it. Unlocked coins remain visible with an unlocked label. Each option costs 10% of its strike price, with the strike following a launch bonding-curve model.</p><p>If the market price moves above the strike, an option holder can exercise and buy the locked tokens at that price. If it never reaches the strike, the premium is the holder's loss. A developer sale before expiry would forfeit the locked supply to option holders. Once the locked allocation is sold, collected premiums would fund market buybacks.</p><small>Option terms shown here describe the product design. An actual lock, option or forfeiture must be verified against its deployed contract before any coin receives a protection label.</small></div>
 </section>
 
     <section class="section-block home-launch-steps" aria-labelledby="home-steps-title">
@@ -358,29 +377,20 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <form id="home-market-search" class="home-market-search"><label for="home-market-mint">Have a Mint address?</label><div><input id="home-market-mint" spellcheck="false" autocomplete="off" placeholder="Paste a Solana Mint address"><button class="button" type="submit">Find market</button></div><small id="home-market-message">A Mint search can show any Solana coin; it does not mark it as an h/monhook launch.</small></form>
 </section>
 
-    <section class="section-block home-plain" aria-labelledby="home-plain-title">
-<div class="section-head"><div><div class="eyebrow">WHAT H/MONHOOK ADDS</div><h2 id="home-plain-title">More clarity before you trade.</h2></div></div>
-<div class="home-feature-grid">
-<article><span>AVAILABLE NOW</span><h3>Launch and discover</h3><p>Create a Pump coin from your wallet. Search by Mint and check market activity without guessing from a ticker.</p><a href="./launch/">Create a coin</a></article>
-<article><span>SUPPORTED ROUTES</span><h3>Set trade limits</h3><p>Choose the most you will spend and the least you will receive. The current protected route uses the earlier Jolt Guard program.</p><a href="./intent/">Explore trade limits</a></article>
-<article><span>IN DEVELOPMENT</span><h3>Compare issuer promises</h3><p>Developer locks, option coverage and optional private transfers are planned. They are not active protections on coins launched today.</p><a href="./protocol/">See the roadmap</a></article>
-</div>
-<div class="home-example"><b>A SIMPLE TRADE EXAMPLE</b><p>You allow a trade to spend up to 1 SOL and receive at least 950,000 token units. If the supported protected route cannot meet those limits, the transaction is rejected. A quote is still an estimate, so review your wallet before signing.</p></div>
-</section>
-
-    <section class="dev-letter home-dev-note"><div class="eyebrow">FROM THE BUILDER</div><h2>Why build h/monhook?</h2><p>Launching a coin should be straightforward. Understanding what happens after launch should be just as clear. h/monhook brings the coin, its Mint, its market and the rules around a trade into one place.</p><p>I am building the deeper protection layer in public. You can use the launch and market tools now; issuer options and privacy will only be shown as live when their contracts and interfaces are ready.</p><a class="button" href="./code/">inspect the work</a></section>
+    <section class="dev-letter home-dev-note"><div class="eyebrow">FROM THE BUILDER</div><h2>Why build h/monhook?</h2><p>Launching a coin should be straightforward. Understanding what happens after launch should be just as clear. h/monhook brings the coin, its Mint, its market and the rules around a trade into one place.</p><p>You can use the launch and market tools now. Option and privacy actions will appear only when their contracts and interfaces can be verified.</p><a class="button" href="./code/">inspect the work</a></section>
 
     <section class="section-block"><div class="section-head"><div><div class="eyebrow">COMMON QUESTIONS</div><h2>Know what you are using.</h2></div></div><div class="faq">
 <details><summary>Who creates the coin?</summary><p>Your connected wallet signs and pays for the Pump creation transaction. h/monhook prepares the form and metadata; it does not hold your wallet keys.</p></details>
 <details><summary>When will a price appear?</summary><p>A verified creation is not a live trading market by itself. Price, liquidity and volume appear after a pool is active and a third-party indexer reports it.</p></details>
-<details><summary>Does launching here lock the developer's tokens?</summary><p>No. The issuer lock and options system is still in development. A coin launched here does not automatically receive that protection.</p></details>
+<details><summary>Does launching here lock the developer's tokens?</summary><p>No. A coin receives a protection label only when a lock and option contract can be verified. A standard coin creation does not lock the developer's tokens.</p></details>
+<details><summary>Are transfers private by default?</summary><p>No. A standard launch and market trade remain public. Optional privacy requires its own supported transaction flow.</p></details>
 <details><summary>Where is the official h/monhook token address?</summary><p>The official address is TBA. Check the full address here when it is published; do not rely on a ticker alone.</p></details>
 </div></section>
 
     <section class="cta-panel"><div><h2>Ready to launch?</h2><p>Start with your coin details. Review every step before your wallet signs.</p></div><div class="primary-actions"><a class="button button-solid" href="./launch/">launch a coin</a><a class="button" href="./markets/">view markets</a></div></section>
     <footer>
 <span>H/MONHOOK / SOLANA</span>
-<span>INTENT HOOKS / ATOMIC SETTLEMENT</span>
+<span>ISSUER OPTIONS / TRADE LIMITS / PRIVACY</span>
 <span>© 2026 H/MONHOOK</span>
 </footer>
   </main>
@@ -1203,8 +1213,8 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     });
   });
   if (byId("code-view")) {
-    var requestedCode = new URLSearchParams(window.location.search).get("file") || "program";
-    if (!codePaths[requestedCode]) requestedCode = "program";
+    var requestedCode = new URLSearchParams(window.location.search).get("file") || "launchClient";
+    if (!codePaths[requestedCode]) requestedCode = "launchClient";
     showCode(requestedCode, document.querySelector('[data-code="' + requestedCode + '"]'));
   }
 
@@ -1214,7 +1224,8 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     document.querySelectorAll(".code-group").forEach(function (group) {
       var groupVisible = 0;
       group.querySelectorAll("[data-code]").forEach(function (button) {
-        var match = !query || button.textContent.toLowerCase().includes(query);
+        var match = !query || button.textContent.toLowerCase().includes(query) ||
+          String(codePaths[button.dataset.code] || "").toLowerCase().includes(query);
         button.hidden = !match;
         if (match) { groupVisible += 1; visible += 1; }
       });

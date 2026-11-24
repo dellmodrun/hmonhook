@@ -4,8 +4,8 @@
 <base href="../">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="The academic research that motivated h/monhook and an embedded reader for arXiv:2610.36682.">
-<title>Research Paper — h/monhook</title>
+<meta name="description" content="Why h/monhook combines coin creation, market discovery and supported trade limits on Solana.">
+<title>Research &amp; Direction — h/monhook</title>
 <link rel="icon" href="./hmonhook.png">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./enhancements.css">
@@ -103,107 +103,39 @@
 </aside>
 <main class="app-page">
 <header class="page-title">
-<div class="page-title-row">
-<div>
-<div class="eyebrow">RESEARCH ORIGIN / ARXIV:2610.36682</div>
-<h1>Why this matters</h1>
-</div>
-<span class="page-code">CS.CR / 27 OCT 2026 / V1</span>
-</div>
-<p>The research behind h/monhook's transaction-bound settlement core. Issuer options and optional privacy are later product directions with separate evidence requirements.</p>
+<div class="page-title-row"><div><div class="eyebrow">H/MONHOOK / RESEARCH AND PRODUCT DIRECTION</div><h1>Why h/monhook exists</h1></div><span class="page-code">LAUNCH / DISCOVER / TRADE</span></div>
+<p>A coin launch is only the beginning. h/monhook connects developer commitments, transaction limits and optional privacy around the market that follows.</p>
 </header>
-<section class="paper-origin">
-<div class="eyebrow">HOW THIS PAPER RELATES TO H/MONHOOK</div>
-<h2>Trade previews can miss the final result. Here is the research behind h/monhook and what we are building from it.</h2>
-<p>
-<em>An Empirical Study of Undisclosed Charges in Hook-Based Decentralized Exchanges</em> measures how programmable DEX hooks can create charges that are not itemized by standard fee displays. Its central lesson is broader than one EVM exchange: a quote shown before execution is not enough when programmable logic can change the final economic result.</p>
-<p>h/monhook carries that insight to Solana by moving the protection boundary to the user’s complete transaction intent. Instead of trusting a pool-local label, the user commits to a maximum input, minimum output, route, expiry and optional policy. h/monhook Guard then measures the balances that actually changed and permits settlement only if the signed result is true. The paper does not describe or endorse h/monhook; it is the research origin and motivation for this separate protocol design.</p>
-<p>The paper is evidence for the settlement-disclosure problem. It does not validate the proposed same-name issuer comparison, option payoff or Privacy Rings integration. Those ideas need their own contract design, independent evidence and review; their current status is documented in the <a href="./code/?file=productScope">published product scope</a>.</p>
-<div class="paper-meta">
-<div>
-<span>PAPER</span>
-<b>ARXIV:2610.36682</b>
-</div>
-<div>
-<span>TITLE</span>
-<b>UNDISCLOSED CHARGES IN HOOK-BASED DEXs</b>
-</div>
-<div>
-<span>VERSION</span>
-<b>V1 / 27 OCT 2026</b>
-</div>
-<div>
-<span>LICENSE</span>
-<b>CC BY 4.0</b>
-</div>
-</div>
-</section>
-<figure class="research-figure">
-<img src="https://arxiv.org/html/2610.36682v1/undisclosed_charges.png" alt="Original paper figure showing a quoted output and a reduced output after an unitemized hook charge">
-<figcaption>ORIGINAL FIGURE 1 FROM THE PAPER — “Traders receive the quoted output despite an unitemized charge.” Source: arXiv:2610.36682v1. Reproduced under CC BY 4.0; authors are credited in the embedded official paper below.</figcaption>
-</figure>
+
 <section class="section-block">
-<div class="section-head">
-<div>
-<div class="eyebrow">FROM EVIDENCE TO MECHANISM</div>
-<h2>What h/monhook takes forward.</h2>
+<div class="section-head"><div><div class="eyebrow">THE PRODUCT QUESTION</div><h2>What should a launchpad make easier?</h2></div><p>Three practical questions guide the product, from the first coin to a later trade.</p></div>
+<div class="step-grid">
+<article><span>01 / CREATE</span><h3>What am I launching?</h3><p>Give a coin a name, image and public metadata. Review the transaction before your wallet creates it on Solana.</p><a href="./launch/">Launch a coin ↗</a></article>
+<article><span>02 / FIND</span><h3>Is this the right coin?</h3><p>Use the Mint address and a verified creation record. A familiar name or ticker by itself proves very little.</p><a href="./markets/">Explore markets ↗</a></article>
+<article><span>03 / TRADE</span><h3>What am I agreeing to?</h3><p>Set a spending limit and a minimum received amount for a supported trade, then inspect the wallet transaction.</p><a href="./intent/">Explore trade limits ↗</a></article>
 </div>
-<p>The research motivates disclosure at execution time; h/monhook turns that requirement into a transaction-level acceptance condition.</p>
-</div>
-<div class="prose-block"><p>The paper studies hook-based exchanges and asks a concrete measurement question: can programmable hooks change the economics of a swap in ways that standard fee displays do not itemize? Its contribution is evidence about that disclosure gap. h/monhook does not copy the paper’s exchange design; it takes the gap as a requirement for a different settlement interface on Solana.</p><p>The practical conclusion is simple: users should not have to infer their final cost from a list of known fee categories. They should be able to sign the maximum value that may leave and the minimum value that must arrive, then have those limits checked against the state that actually changed.</p></div>
-<div class="comparison">
-<article>
-<span class="index">PAPER / OBSERVATION</span>
-<h3>Displayed fees can be incomplete</h3>
-<p>Programmable hook effects can sit outside the fee categories a standard interface itemizes.</p>
-<dl>
-<div>
-<dt>evidence</dt>
-<dd>empirical DEX study</dd>
-</div>
-<div>
-<dt>risk</dt>
-<dd>quote / settlement gap</dd>
-</div>
-</dl>
-</article>
-<article>
-<span class="index">H/MONHOOK / RESPONSE</span>
-<h3>Measure the complete outcome</h3>
-<p>Wrap the selected route, reload the affected accounts and compare the realized deltas with signed limits.</p>
-<dl>
-<div>
-<dt>boundary</dt>
-<dd>one transaction intent</dd>
-</div>
-<div>
-<dt>result</dt>
-<dd>commit or revert</dd>
-</div>
-</dl>
-</article>
-</div>
-<div class="prose-block after-grid"><p>The comparison is not saying every hook is harmful. Programmability is useful precisely because it supports behavior that a fixed AMM cannot express. The risk appears when the interface describes only the standard fee path while other economic effects remain possible. h/monhook’s answer is to preserve programmability but make the user’s final acceptance boundary explicit and executable.</p><p>This is also why the project’s Hook is attached to one transaction intent instead of one pool. A user may cross several venues in one route. Measuring the complete source and destination balance change gives the settlement guard a route-level result rather than a pool-level estimate.</p></div>
 </section>
-<section class="paper-reader">
-<div class="paper-reader-head">
-<span>OFFICIAL ARXIV HTML / COMPLETE PAPER + ORIGINAL FIGURES</span>
-<div>
-<a href="https://arxiv.org/html/2610.36682v1" target="_blank" rel="noreferrer">open html ↗</a>
-<a href="https://arxiv.org/pdf/2610.36682" target="_blank" rel="noreferrer">open pdf ↗</a>
+
+<section class="section-block">
+<div class="section-head"><div><div class="eyebrow">THREE PROTECTION LAYERS</div><h2>How the layers connect.</h2></div><p>Each layer protects a different decision.</p></div>
+<div class="research-status-grid">
+<article><span>BEFORE A TRADE</span><h3>Compare developers</h3><p>Same-name coins belong side by side. A 2–10% developer lock and option terms would be displayed next to coins that stay unlocked.</p></article>
+<article><span>DURING A TRADE</span><h3>Enforce limits</h3><p>The trader chooses a maximum spend and minimum received amount. The Guard checks a supported transaction's final result.</p></article>
+<article><span>AFTER A TRADE</span><h3>Choose privacy</h3><p>An optional Privacy Rings path could support confidential transfers without hiding the public evidence needed to verify launch claims.</p></article>
 </div>
-</div>
-<div class="prose-block compact"><p>The official arXiv document below is embedded unchanged so readers can inspect the authors’ method, dataset, limitations and original figures in context. Start with the abstract and introduction for the research question, then read the methodology before treating any reported percentage as a general claim about all hook systems. The PDF and standalone HTML links remain available if the embedded reader is restricted by a browser.</p></div>
-<iframe src="https://arxiv.org/html/2610.36682v1" title="An Empirical Study of Undisclosed Charges in Hook-Based Decentralized Exchanges" loading="lazy">
-</iframe>
+<div class="callout"><b>VERIFY THE ACTUAL FEATURE</b><p>The current launch and market pages do not issue options, certify developer locks or execute private transfers. Those actions must be backed by deployed contracts and visible transaction evidence before a coin receives a protection label.</p></div>
 </section>
-<section class="cta-panel">
-<div>
-<h2>See how the research becomes a Solana protocol.</h2>
-<p>The protocol page maps disclosure, constraints, execution and receipts into one complete architecture.</p>
-</div>
-<a class="button button-solid" href="./protocol/">read protocol</a>
+
+<section class="section-block">
+<div class="section-head"><div><div class="eyebrow">THE RESEARCH QUESTION</div><h2>Why focus on the final result?</h2></div><p>A quote is useful, but the amount a trade finally settles for is what matters to the person signing it.</p></div>
+<div class="prose-block"><p>A published study of hook-based exchanges found that programmable trading logic can affect what a trader pays or receives beyond the standard fee display. That study concerns EVM exchanges; it is background research, not a test or endorsement of h/monhook.</p><p>Our design response is to let a trader set limits before signing a supported route and check the resulting balances during settlement. The paper does not establish that our launchpad, issuer options or privacy ideas are safe or complete. Those require their own implementation and review.</p></div>
+<details class="advanced-information"><summary>Read the original paper and the technical scope</summary><div class="advanced-inner">
+<p><em>An Empirical Study of Undisclosed Charges in Hook-Based Decentralized Exchanges</em> by Kai Ma, Tianle Sun, Shun Zhou, Boyao Yang, Ningyu He and Haoyu Wang, arXiv:2610.36682 (2026). It studies undisclosed settlement charges in hook-based DEXs on Ethereum and BNB Smart Chain.</p>
+<div class="developer-links"><a href="https://arxiv.org/abs/2610.36682" target="_blank" rel="noreferrer">Paper and abstract ↗</a><a href="https://arxiv.org/pdf/2610.36682" target="_blank" rel="noreferrer">Read PDF ↗</a><a href="./code/?file=productScope">Product scope ↗</a></div>
+</div></details>
 </section>
+
+<section class="cta-panel"><div><h2>Start with the product.</h2><p>Launch a coin, inspect a Mint or learn how supported trade limits work.</p></div><a class="button button-solid" href="./markets/">explore markets</a></section>
 <footer>
 <span>H/MONHOOK / RESEARCH</span>
 <span>ARXIV:2610.36682 / CC BY 4.0</span>

@@ -110,14 +110,14 @@
 </div>
 <span class="page-code">RUST / TYPESCRIPT / TESTS</span>
 </div>
-<p>Inspect the legacy Guard currently used by h/monhook, its browser clients and the product-scope document that separates implemented trade protection from proposed issuer options and privacy integration.</p>
-<p><strong>Code lineage and deployment:</strong> h/monhook builds on the earlier Joltwork Guard implementation. The mainnet and devnet program IDs shown below are deployments of that earlier Jolt Guard binary, built from source commit <code>d1f21ed</code>; the deployment manifests record their IDs and binary digest. The <code>programs/jolt-guard</code> path, <code>sdk</code> package and <code>JOLT</code> wire marker are compatibility identifiers in that deployed protocol. The website's h/monhook name does not rename or replace those on-chain programs. A separately named h/monhook Guard is in development and has not been deployed to mainnet.</p>
+<p>Explore the h/monhook website, coin launch client, trade client, on-chain Guard and release documents in one place.</p>
+<details class="advanced-information"><summary>Why do some deployed source files use an earlier name?</summary><div class="advanced-inner"><p><strong>Code lineage and deployment:</strong> h/monhook builds on the earlier Joltwork Guard implementation. The mainnet and devnet program IDs shown below are deployments of that earlier Jolt Guard binary, built from source commit <code>d1f21ed</code>; the deployment manifests record their IDs and binary digest. The <code>programs/jolt-guard</code> path, <code>sdk</code> package and <code>JOLT</code> wire marker are compatibility identifiers in that deployed protocol. The website's h/monhook name does not rename or replace those on-chain programs. A separately named h/monhook Guard is in development and has not been deployed to mainnet.</p></div></details>
 </header>
 <section class="chapter">
 <div class="chapter-label">PUBLISHED SOURCE BROWSER</div>
-<h2>Read the complete files, not decorative excerpts.</h2>
+<h2>Explore the code behind h/monhook.</h2>
 <p class="source-summary">This browser loads each complete published file from h/monhook’s own site. The Rust program parses the signed intent, validates accounts, invokes policy and route programs through CPI, reloads token balances, enforces postconditions and returns a settlement receipt. The SDK builds the matching instruction format; the tests exercise its codec.</p>
-<div class="prose-block"><p>You do not need to read Rust to understand what is being proven. Start with <code>JOLT_GUARD.md</code> for the execution contract, then open <code>sdk/src/index.ts</code> to see how an application builds the instruction. The Rust file is the final authority: it shows which accounts are trusted, which values are checked and which errors stop settlement.</p><p>The browser displays the same source snapshot published with this site rather than decorative snippets maintained separately for marketing. Readers can inspect complete files without being redirected to a third-party code host. Tests demonstrate deterministic encoding and account assembly, but they are not a substitute for an independent security review.</p></div>
+<div class="prose-block"><p>Start with the launch client to see how a coin creation is prepared. The website client shows how forms, wallets and markets connect. For the deployed trade protection program, open the Guard files and read the lineage note above.</p><p>The browser displays complete published source files. You can inspect them without leaving this site. Tests demonstrate encoding and account assembly, but they are not a substitute for an independent security review.</p></div>
 <div class="build-strip">
 <span>RUST PROGRAM<b>IMPLEMENTED</b>
 </span>
@@ -139,9 +139,9 @@
 <aside class="code-sidebar">
 <label class="code-search"><span>FILTER FILES</span><input id="code-filter" type="search" placeholder="type a path…" autocomplete="off"></label>
 <div id="code-tree" class="code-tree">
-<div class="code-group"><b>ON-CHAIN</b>
-<button class="active" data-code="program">programs/jolt-guard/src/lib.rs</button>
-<button data-code="cargo">programs/jolt-guard/Cargo.toml</button></div>
+<div class="code-group"><b>ON-CHAIN / DEPLOYED GUARD</b>
+<button data-code="program">Guard program · Rust</button>
+<button data-code="cargo">Guard build settings</button></div>
 <div class="code-group"><b>SDK / CORE</b>
 <button data-code="sdkIndex">sdk/src/index.ts</button>
 <button data-code="sdkConstants">sdk/src/constants.ts</button>
@@ -157,7 +157,7 @@
 <button data-code="jupiterTest">sdk/test/jupiter.test.js</button>
 <button data-code="receiptTest">sdk/test/receipt.test.js</button></div>
 <div class="code-group"><b>WEB CLIENTS</b>
-<button data-code="launchClient">launch-client.ts</button>
+<button class="active" data-code="launchClient">launch-client.ts</button>
 <button data-code="intentClient">intent-client.ts</button>
 <button data-code="appClient">app.js</button>
 <button data-code="buildClient">build-client.mjs</button>
@@ -177,14 +177,14 @@
 <button data-code="integration">docs/INTEGRATION.md</button>
 <button data-code="security">docs/SECURITY.md</button>
 <button data-code="operations">docs/OPERATIONS.md</button>
-<button data-code="spec">JOLT_GUARD.md</button>
+<button data-code="spec">Guard specification</button>
 <button data-code="contributing">CONTRIBUTING.md</button></div>
 </div>
 <div class="code-tree-foot"><span id="code-file-count">33 FILES</span><span>PUBLISHED SOURCE</span></div>
 </aside>
 <div class="code-panel">
 <div class="code-toolbar">
-<div><span id="code-path" class="code-path">programs/jolt-guard/src/lib.rs</span><small id="code-meta">loading source…</small></div>
+<div><span id="code-path" class="code-path">launch-client.ts</span><small id="code-meta">loading source…</small></div>
 <div class="code-tools"><button id="code-copy" type="button">COPY</button><button id="code-download" type="button">DOWNLOAD</button></div>
 </div>
 <div id="code-view" class="code-view" aria-live="polite"><div class="code-loading">loading complete source…</div></div>
@@ -216,7 +216,7 @@
 </thead>
 <tbody>
 <tr>
-<td>programs/jolt-guard</td>
+<td>Guard program source</td>
 <td>atomic route wrapper and settlement checks</td>
 <td>Solana runtime</td>
 <td>implemented</td>
@@ -235,7 +235,7 @@
 </tr>
 <tr><td>launch-client.ts</td><td>Pump create_v2 assembly, safety checks and confirmation</td><td>coin creators</td><td>implemented</td></tr>
 <tr>
-<td>JOLT_GUARD.md</td>
+<td>Guard specification</td>
 <td>Intent V1, JHK1 and JRC1 interfaces</td>
 <td>integrators</td>
 <td>specified</td>
@@ -283,8 +283,8 @@
 </article>
 </div>
 <div class="callout">
-<b>LEGACY JOLT GUARD DEPLOYMENTS</b>
-<p>The legacy Jolt Guard mainnet and devnet programs are independently inspectable. Published manifests bind their identities to the same SBF digest. The separately named h/monhook Guard remains in development; audit and production monitoring remain separate evidence.</p>
+<b>CURRENT GUARD DEPLOYMENTS</b>
+<p>The current mainnet and devnet Guard deployments are independently inspectable. They use the earlier protocol identifiers described in the lineage note above. Published manifests bind their identities to the same SBF digest. The separately named h/monhook Guard remains in development; audit and production monitoring remain separate evidence.</p>
 </div>
 </section>
 <section class="cta-panel">

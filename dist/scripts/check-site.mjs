@@ -38,6 +38,7 @@ assert.ok(legacySdkTests > 0, "legacy SDK test count was not found");
 assert.ok(code.includes(`LEGACY SDK TESTS<b>${legacySdkTests} PASSING`), "Source Code SDK test count differs from the test files");
 assert.ok(protocol.includes(`LEGACY GUARD / ${legacySdkTests} SDK TESTS PASSING`), "Protocol SDK test count differs from the test files");
 assert.match(code, /Code lineage and deployment:/, "Source Code does not explain the Jolt inheritance");
+assert.match(code, /data-code="launchClient">launch-client\.ts<\/button>/, "Source Code should lead with the current launch client");
 assert.match(protocol, /currently deployed Guard is the earlier Jolt Guard/, "Protocol does not identify the deployed legacy program");
 for (const id of ["code-view", "code-filter", "code-copy", "code-download"]) {
   assert.match(code, new RegExp(`id=["']${id}["']`), `code browser missing ${id}`);
@@ -46,6 +47,7 @@ for (const source of ["programs/jolt-guard/src/lib.rs", "sdk/src/index.ts", "doc
   assert.ok(existsSync(resolve(root, "dist", source)), `standalone code browser misses ${source}`);
 }
 const app = readFileSync(resolve(root, "app.js"), "utf8");
+assert.match(app, /get\("file"\) \|\| "launchClient"/, "Source Code should open the h\/monhook launch client first");
 const marketsClient = readFileSync(resolve(root, "markets.js"), "utf8");
 assert.ok(existsSync(resolve(root, "docs/PRODUCT_SCOPE.md")), "product scope document missing");
 assert.match(app, /productScope: "docs\/PRODUCT_SCOPE\.md"/, "source browser cannot open product scope");

@@ -806,8 +806,8 @@
     });
   });
   if (byId("code-view")) {
-    var requestedCode = new URLSearchParams(window.location.search).get("file") || "program";
-    if (!codePaths[requestedCode]) requestedCode = "program";
+    var requestedCode = new URLSearchParams(window.location.search).get("file") || "launchClient";
+    if (!codePaths[requestedCode]) requestedCode = "launchClient";
     showCode(requestedCode, document.querySelector('[data-code="' + requestedCode + '"]'));
   }
 
@@ -817,7 +817,8 @@
     document.querySelectorAll(".code-group").forEach(function (group) {
       var groupVisible = 0;
       group.querySelectorAll("[data-code]").forEach(function (button) {
-        var match = !query || button.textContent.toLowerCase().includes(query);
+        var match = !query || button.textContent.toLowerCase().includes(query) ||
+          String(codePaths[button.dataset.code] || "").toLowerCase().includes(query);
         button.hidden = !match;
         if (match) { groupVisible += 1; visible += 1; }
       });
