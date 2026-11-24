@@ -64,8 +64,14 @@ for (const id of ["intent-input-mint", "intent-output-mint", "intent-slippage", 
 assert.match(app, /api\.jup\.ag\/swap\/v2\/order/, "intent workbench must use Jupiter Swap API V2");
 assert.ok(existsSync(resolve(root, "intent-client.js")), "protected swap browser bundle missing");
 const launch = readFileSync(resolve(root, "launch/index.html"), "utf8");
+const metadataService = JSON.parse(readFileSync(resolve(root, "launch/metadata-service.json"), "utf8"));
+assert.match(metadataService.endpoint, /^https:\/\/.+\/metadata-upload$/, "live metadata upload endpoint missing");
+assert.ok(existsSync(resolve(root, "dist/launch/metadata-service.json")), "published bundle misses metadata upload configuration");
 for (const id of ["coin-description", "coin-image", "coin-uri", "metadata-check", "launch-submit"]) {
   assert.match(launch, new RegExp(`id=["']${id}["']`), `launch workbench missing ${id}`);
+}
+for (const id of ["coin-upload-image", "coin-upload-description", "metadata-upload"]) {
+  assert.match(launch, new RegExp(`id=["']${id}["']`), `launch upload control missing ${id}`);
 }
 assert.ok(!launch.includes('<option value="USDC">') && !launch.includes('<option value="PUMP_COIN">'), "launcher offers unsupported live quote assets");
 assert.match(launch, /INTENDED POLICY \/ LOCAL PLAN/, "launcher policy status is unclear");

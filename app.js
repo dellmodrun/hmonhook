@@ -246,6 +246,38 @@
 
   var launchForm = byId("launch-form");
   var metadataCheck = byId("metadata-check");
+  var metadataUpload = byId("metadata-upload");
+  if (metadataUpload) metadataUpload.addEventListener("click", async function () {
+    var image = byId("coin-upload-image").files[0];
+    if (!image || image.size > 2000000 || !image.size) return showToast("Choose a PNG, JPEG or WebP image under 2 MB", "error");
+    var name = byId("coin-name").value.trim();
+    var symbol = byId("coin-symbol").value.trim().toUpperCase();
+    var description = byId("coin-upload-description").value.trim();
+    if (!name || name.length > 32 || !/^[A-Z0-9_$.-]{1,13}$/.test(symbol) || !description || description.length > 500) {
+      return showToast("Enter the coin name, ticker and description before uploading", "error");
+    }
+    metadataUpload.disabled = true;
+    metadataUpload.textContent = "uploading…";
+    try {
+      var configResponse = await fetch(new URL("launch/metadata-service.json", document.baseURI), { cache: "no-store" });
+      var config = configResponse.ok ? await configResponse.json() : {};
+      if (!config.endpoint || !/^https:\/\//.test(config.endpoint)) throw new Error("Image upload is not online yet. Use a public metadata JSON URI for now.");
+      var form = new FormData();
+      form.set("image", image);
+      form.set("name", name);
+      form.set("symbol", symbol);
+      form.set("description", description);
+      ["website", "twitter", "telegram"].forEach(function (field) { form.set(field, byId("coin-upload-" + field).value.trim()); });
+      var response = await fetch(config.endpoint, { method: "POST", body: form });
+      var result = await response.json();
+      if (!response.ok || !result.uri) throw new Error(result.error || "Metadata upload failed");
+      byId("coin-uri").value = metadataUri(result.uri);
+      byId("coin-uri").dispatchEvent(new Event("input", { bubbles: true }));
+      metadataCheck.click();
+      showToast("Image and metadata uploaded. Verifying public URL…", "success");
+    } catch (error) { showToast(error && error.message ? error.message : "Metadata upload failed", "error"); }
+    finally { metadataUpload.disabled = false; metadataUpload.textContent = "upload image + metadata"; }
+  });
   function clearMetadataPreview() {
     ["coin-description", "coin-image", "coin-website", "coin-twitter", "coin-telegram"].forEach(function (id) {
       if (byId(id)) byId(id).value = "";
