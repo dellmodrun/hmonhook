@@ -2,6 +2,9 @@ name: verify options with real Pump locally
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/options-real-pump-local.yml"
 
 permissions:
   contents: read
