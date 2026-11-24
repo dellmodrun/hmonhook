@@ -78,6 +78,8 @@ const guardManifest = JSON.parse(readFileSync(resolve(root, "deployments/hmonhoo
 assert.equal(guardManifest.programId, "Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ");
 assert.match(readFileSync(resolve(root, "intent-client.ts"), "utf8"), /verifyGuardProgram\(connection\)/,
   "protected swap must verify the on-chain Guard before signing");
+assert.match(readFileSync(resolve(root, "intent-client.ts"), "utf8"), /connection\.getLatestBlockhash\('confirmed'\)/,
+  "protected swap must use a fresh blockhash from its submission RPC");
 for (const [page, html] of [["home", home], ["launch", readFileSync(resolve(root, "launch/index.html"), "utf8")], ["markets", readFileSync(resolve(root, "markets/index.html"), "utf8")], ["intent", intent], ["protocol", protocol], ["research", readFileSync(resolve(root, "research/index.html"), "utf8")]]) {
   assert.doesNotMatch(html, /Joltwork|Jolt Guard/i, `old project name remains in user-facing ${page} copy`);
   assert.doesNotMatch(html, /INTENT HOOKS \/ SOLANA/, `old rail subtitle remains in ${page}`);

@@ -31,7 +31,7 @@ assert.ok(transaction, 'the browser path did not assemble a transaction');
 const guardAddress = 'Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ';
 assert.ok(transaction.message.staticAccountKeys.some((key) => key.toBase58() === guardAddress),
   'transaction does not invoke the deployed h/monhook Guard');
-const result = await connection.simulateTransaction(transaction, { sigVerify: false });
+const result = await connection.simulateTransaction(transaction, { sigVerify: false, replaceRecentBlockhash: true });
 assert.equal(result.value.err, null, `mainnet simulation failed: ${JSON.stringify(result.value.err)}`);
 assert.ok(result.value.logs?.some((line) => line.includes('HMON_RECEIPT')),
   'the h/monhook Guard did not report a settlement receipt');

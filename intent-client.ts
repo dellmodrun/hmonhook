@@ -82,8 +82,10 @@ export async function submitProtectedSwap(args: {
     ...(build.cleanupInstruction ? [apiInstruction(build.cleanupInstruction)] : []),
     ...(build.otherInstructions || []).map(apiInstruction),
   ];
-  const recentBlockhash = Buffer.from(build.blockhashWithMetadata.blockhash).toString('base64');
-  const blockhash = new PublicKey(Buffer.from(recentBlockhash, 'base64')).toBase58();
+  // Jupiter's blockhash can be older than the RPC used to submit the final
+  // protected transaction. Keep the quoted instruction bytes and user limits,
+  // but take a fresh lifetime from that RPC immediately before wallet signing.
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
   const message = new TransactionMessage({ payerKey: authority, recentBlockhash: blockhash, instructions }).compileToV0Message(lookupTables);
   const transaction = new VersionedTransaction(message);
   if (transaction.serialize().length > 1232) {
@@ -108,7 +110,7 @@ export async function submitProtectedSwap(args: {
         .sendRawTransaction(wire, { preflightCommitment: 'confirmed', maxRetries: 3 });
     }
   } else throw new Error('This wallet cannot sign versioned Solana transactions.');
-  const confirmation = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight: build.blockhashWithMetadata.lastValidBlockHeight }, 'confirmed');
+  const confirmation = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
   if (confirmation.value.err) throw new Error(`Protected transaction failed: ${JSON.stringify(confirmation.value.err)}`);
   return { signature, intentId: Buffer.from(guard.data || []).subarray(29, 61).toString('hex'), explorer: `https://solscan.io/tx/${signature}` };
 }
