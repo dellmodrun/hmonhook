@@ -60,6 +60,29 @@ jobs:
             --sbf-out-dir artifacts
           test -s artifacts/${{ matrix.binary }}.so
           sha256sum artifacts/${{ matrix.binary }}.so | tee artifacts/${{ matrix.binary }}.so.sha256
+      - uses: actions/setup-node@v5
+        if: matrix.program == 'hmonhook-options'
+        with:
+          node-version: 22
+          cache: npm
+      - name: Exercise issuer options on a local validator
+        if: matrix.program == 'hmonhook-options'
+        run: |
+          cargo build-sbf --manifest-path scripts/fixtures/mock-pump/Cargo.toml --sbf-out-dir artifacts
+          test -s artifacts/mock_pump_local_only.so
+          npm ci
+          PROGRAM_ID="$(solana-keygen pubkey artifacts/hmonhook_options-keypair.json)"
+          solana-test-validator --reset \
+            --bpf-program "$PROGRAM_ID" artifacts/hmonhook_options.so \
+            --bpf-program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P artifacts/mock_pump_local_only.so \
+            > /tmp/hmonhook-validator.log 2>&1 &
+          VALIDATOR_PID=$!
+          trap 'kill "$VALIDATOR_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if solana cluster-version --url http://127.0.0.1:8899 >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          node scripts/test-options-local.mjs "$PROGRAM_ID" || { cat /tmp/hmonhook-validator.log; exit 1; }
       - uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.program }}-sbf
