@@ -36,7 +36,7 @@ jobs:
       - name: Execute real PumpSwap local-fork option flow
         run: |
           node scripts/prepare-pumpswap-real-local.mjs
-          PROGRAM_ID="$(solana-keygen pubkey artifacts/hmonhook_options-keypair.json)"
+          PROGRAM_ID="Cz1jDZv12iXcK5JTY3s4wFX6HH8Y48xDeRxPWDgqshNQ"
           POOL_ID="$(node -e "console.log(JSON.parse(require('fs').readFileSync('.local-deploy/pumpswap-real-pool.json', 'utf8')).pubkey)")"
           solana-test-validator --reset --url https://api.mainnet-beta.solana.com \
             --clone ADyA8hdefvWN2dbGGWFotbzWxrAvLW83WG6QCVXvJKqw \
