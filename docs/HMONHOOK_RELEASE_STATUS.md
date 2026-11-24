@@ -10,6 +10,8 @@ As of 2026-11-24, the two current SBF binaries are 33,064 and 149,632 bytes. A m
 
 The curve-derived strike is now enforced by the options program and a local-validator CI run rejected an incorrect value while completing the normal option lifecycle. The remaining hard gates are: (1) validate the new enforcement in a funded public-cluster transaction; (2) choose a durable, truthful developer-sale rule, since a treasury outflow followed by a refill is not currently provable; (3) run the full launch, lock, purchase, exercise/default, refund and buyback paths with funded public-cluster transactions and real pools; (4) obtain independent security review, prepare separately controlled deployment and upgrade authorities, verify deployed SBF hashes, and then enable the mainnet configuration. Privacy Rings is still an unimplemented integration and cannot be advertised as active.
 
+The disabled options frontend now requires a reviewed SHA-256 digest and an explicit upgrade-authority policy in `options/program.json` before showing signing controls. Before each signing action, it checks the loader-owned Program account, its linked ProgramData account, the upgrade authority and the deployed SBF bytes against that config. This is a fail-closed release check, not an independent review or a guarantee that an upgradeable program cannot change between the check and transaction execution. An immutable production program would remove that upgrade race; authority policy is still a release decision.
+
 ## Verified locally
 
 - `programs/hmonhook-guard` builds to SBF. Its own wire marker is `HMON`, and `hmonhook-sdk` builds matching instructions and receipts.

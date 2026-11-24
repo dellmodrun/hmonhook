@@ -723,6 +723,7 @@
     optionsClient: "options-client.mjs",
     optionsCore: "options-core.mjs",
     optionsStrike: "options-strike-core.mjs",
+    optionsRelease: "options-release-core.mjs",
     optionsBrowser: "options-browser-client.ts",
     optionsInterface: "options-interface.js",
     optionsConfig: "options/program.json",

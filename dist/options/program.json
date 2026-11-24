@@ -1,5 +1,7 @@
 {
   "enabled": false,
   "cluster": "mainnet-beta",
-  "programId": null
+  "programId": null,
+  "programSha256": null,
+  "upgradeAuthority": null
 }

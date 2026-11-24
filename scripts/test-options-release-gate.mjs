@@ -36,3 +36,10 @@ test('undeployed options release keeps issuer and market controls hidden', async
   assert.match(elements.get('options-release-state').textContent, /not enabled/);
   assert.match(elements.get('options-market-release').textContent, /not enabled/);
 });
+
+test('an enabled flag without reviewed program metadata keeps signing controls hidden', async () => {
+  const elements = page({ enabled: true, cluster: 'mainnet-beta', programId: '11111111111111111111111111111111' });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(elements.get('issuer-options-controls').hidden, true);
+  assert.equal(elements.get('options-market-controls').hidden, true);
+});

@@ -23,7 +23,8 @@
   function error(id, err) { show(id, 'ERROR: ' + (err && err.message || err)); }
   function configUrl() { return new URL('options/program.json', document.baseURI); }
   async function release(rpc) {
-    if (!config || config.enabled !== true || config.cluster !== 'mainnet-beta' || !config.programId) {
+    if (!config || config.enabled !== true || config.cluster !== 'mainnet-beta' || !config.programId ||
+        !/^[0-9a-f]{64}$/i.test(config.programSha256 || '') || !Object.hasOwn(config, 'upgradeAuthority')) {
       throw new Error('Options trading is not enabled on this release.');
     }
     var url = new URL(rpc);
@@ -188,7 +189,8 @@
     return response.json();
   }).then(function (loaded) {
     config = loaded;
-    var active = loaded.enabled === true && loaded.cluster === 'mainnet-beta' && !!loaded.programId;
+    var active = loaded.enabled === true && loaded.cluster === 'mainnet-beta' && !!loaded.programId &&
+      /^[0-9a-f]{64}$/i.test(loaded.programSha256 || '') && Object.hasOwn(loaded, 'upgradeAuthority');
     if (issuerForm) { byId('options-release-state').textContent = active ? 'Contract configured. Review the on-chain program and terms before signing.' : 'Options trading is not enabled. Contract deployment and independent review are pending.'; byId('issuer-options-controls').hidden = !active; }
     if (marketForm) {
       byId('options-market-release').textContent = active ? 'Contract configured. Inspect a verified series before buying.' : 'Options trading is not enabled. Contract deployment and independent review are pending.';

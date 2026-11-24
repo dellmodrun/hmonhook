@@ -4,13 +4,13 @@ export { Connection } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { PumpSdk, PUMP_PROGRAM_ID, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
 import { strikeFromPumpReserves } from './options-strike-core.mjs';
+import { verifyOptionsProgram } from './options-release-core.mjs';
 import { openSeriesInstructions, buyOptionsInstruction, exerciseInstructions,
   claimDefaultInstructions, refundPremiumInstruction, triggerDefaultInstruction,
   reclaimInstructions, fetchVerifiedSeries,
   derivePosition, fetchVerifiedPosition } from './options-core.mjs';
 
 const MAX_U64 = (1n << 64n) - 1n;
-const OPTIONS_PROGRAM_LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 
 function publicKey(value: unknown): PublicKey { return new PublicKey(String(value)); }
 function positiveInteger(value: unknown, field: string): bigint {
@@ -56,14 +56,9 @@ async function requireTreasuryAboveFloor(connection: Connection, terms: Awaited<
   }
 }
 
-export async function loadOptionsProgram(connection: Connection, config: { enabled: boolean; programId?: string }) {
-  if (!config?.enabled || !config.programId) throw new Error('Issuer options are not enabled on this release.');
-  const programId = publicKey(config.programId);
-  const account = await connection.getAccountInfo(programId, 'confirmed');
-  if (!account?.executable || !account.owner.equals(OPTIONS_PROGRAM_LOADER)) {
-    throw new Error('The configured options program is not deployed on this RPC network.');
-  }
-  return programId;
+export async function loadOptionsProgram(connection: Connection, config: { enabled: boolean; programId?: string;
+  programSha256?: string; upgradeAuthority?: string | null }) {
+  return verifyOptionsProgram(connection, config);
 }
 
 export async function previewIssuerSeries({ rpcEndpoint, programId, issuer, mint, percent, saleWindowSlots,
