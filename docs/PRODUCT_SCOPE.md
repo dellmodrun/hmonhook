@@ -24,7 +24,7 @@ This module is not deployed through h/monhook. No current market card, launch tr
 
 The development options contract binds the collateral source to one monitored issuer treasury. A fall below that account's committed balance can be checked on-chain. It does not identify every wallet controlled by a developer or prove a historical sale after a balance is restored. Its Pump curve and migrated PumpSwap premium buyback paths have passed local-validator tests against the respective deployed binaries using synthetic pools. Acquired tokens go to a separate vault; buyers can reclaim eligible unspent premiums after expiry. Real pools, funded devnet tests and independent review are still needed before real option purchases.
 
-The browser suggests a curve-derived strike and rechecks its quote before signing, while the development program currently accepts the issuer-provided strike without verifying the curve. This must be resolved or disclosed as an issuer-set term before the options release is enabled.
+The browser suggests a curve-derived strike and rechecks its quote before signing. The development program now reads the canonical Pump curve and rejects a different strike at series initialization. This change still needs a funded public-cluster transaction and independent review before the options release is enabled.
 
 ## Optional user privacy: integration planned
 

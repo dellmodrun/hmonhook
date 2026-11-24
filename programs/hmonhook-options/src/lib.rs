@@ -273,11 +273,17 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let buyback_user = next_account_info(&mut it)?;
     let token_program = next_account_info(&mut it)?;
     let system = next_account_info(&mut it)?;
+    let curve = next_account_info(&mut it)?;
     if !issuer.is_signer || !issuer.is_writable || !source.is_writable || !vault.is_writable || !state.is_writable || !buyback_user.is_writable { return Err(bad_account()); }
     let slot = Clock::get()?.slot;
     if sale_deadline <= slot || expiry <= sale_deadline || strike == 0 { return Err(invalid()); }
     let (supply, decimals) = mint_data(mint)?;
     let lot_size = 10_u64.checked_pow(decimals as u32).ok_or_else(overflow)?;
+    let expected_curve = Pubkey::find_program_address(&[b"bonding-curve", mint.key.as_ref()], &pump::id()).0;
+    if *curve.key != expected_curve || curve.owner != &pump::id() ||
+        pump_curve_strike(&curve.try_borrow_data()?, lot_size)? != strike {
+        return Err(bad_account());
+    }
     if supply == 0 || deposit == 0 || deposit % lot_size != 0 || (deposit as u128) * 100 < (supply as u128) * 2 || (deposit as u128) * 100 > (supply as u128) * 10 { return Err(invalid()); }
     // The same account must supply collateral and remain under observation.
     // Otherwise the issuer could sell from the unmonitored source while the

@@ -4,6 +4,7 @@ import { NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedToke
 
 const encoder = new TextEncoder();
 const MAX_U64 = (1n << 64n) - 1n;
+const PUMP_PROGRAM_ID = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
 
 export function key(value) { return value instanceof PublicKey ? value : new PublicKey(value); }
 export function u64(value) {
@@ -27,6 +28,9 @@ export function deriveSeries(programId, mint, issuer, nonce) {
 
 export function derivePosition(programId, series, buyer) {
   return PublicKey.findProgramAddressSync([encoder.encode('position'), key(series).toBuffer(), key(buyer).toBuffer()], key(programId))[0];
+}
+export function derivePumpCurve(mint) {
+  return PublicKey.findProgramAddressSync([encoder.encode('bonding-curve'), key(mint).toBuffer()], PUMP_PROGRAM_ID)[0];
 }
 
 export function deriveBuybackVault(programId, series, mint) {
@@ -74,7 +78,7 @@ export function openSeriesInstructions({ programId, issuer, mint, source, treasu
   const createVault = createAssociatedTokenAccountIdempotentInstruction(key(issuer), series.vault, series.address, key(mint), TOKEN_2022_PROGRAM_ID);
   const initialize = instruction(programId, 0, [
     meta(issuer, true, true), meta(mint), meta(source, false, true), meta(series.vault, false, true),
-    meta(treasury), meta(series.address, false, true), meta(buyback, false, true), meta(TOKEN_2022_PROGRAM_ID), meta(SystemProgram.programId),
+    meta(treasury), meta(series.address, false, true), meta(buyback, false, true), meta(TOKEN_2022_PROGRAM_ID), meta(SystemProgram.programId), meta(derivePumpCurve(mint)),
   ], nonce, deposit, strikeLamports, saleDeadlineSlot, expirySlot, treasuryFloor);
   return { series, instructions: [createVault, initialize] };
 }

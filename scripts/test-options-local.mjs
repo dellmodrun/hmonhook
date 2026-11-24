@@ -16,6 +16,7 @@ import {
   reclaimBuybackRentInstruction,
   listVerifiedSeriesByMint,
 } from '../options-client.mjs';
+import { createMockPumpCurve } from './local-pump-curve.mjs';
 
 const endpoint = 'http://127.0.0.1:8899';
 const connection = new Connection(endpoint, 'confirmed');
@@ -36,8 +37,19 @@ const unmonitored = await createAccount(connection, issuer, mint, issuer.publicK
 await mintTo(connection, issuer, mint, source, issuer, 1000 * unit, [], undefined, TOKEN_2022_PROGRAM_ID);
 await setAuthority(connection, issuer, mint, issuer, AuthorityType.MintTokens, null, [], undefined, TOKEN_2022_PROGRAM_ID);
 await setAuthority(connection, issuer, mint, issuer, AuthorityType.FreezeAccount, null, [], undefined, TOKEN_2022_PROGRAM_ID);
+await send([createMockPumpCurve({ payer: issuer.publicKey, mint }).instruction], [issuer]);
 
 const slot = await connection.getSlot('confirmed');
+const wrongStrike = openSeriesInstructions({
+  programId, issuer: issuer.publicKey, mint, source, treasury, nonce: 5n,
+  deposit: BigInt(50 * unit), strikeLamports: 999n,
+  saleDeadlineSlot: BigInt(slot + 1_000), expirySlot: BigInt(slot + 2_000),
+  treasuryFloor: BigInt(950 * unit),
+});
+let wrongStrikeRejected = false;
+try { await send(wrongStrike.instructions, [issuer]); }
+catch (_) { wrongStrikeRejected = true; }
+assert.ok(wrongStrikeRejected, 'the contract must reject a strike that differs from the Pump curve');
 const rejectedSource = openSeriesInstructions({
   programId, issuer: issuer.publicKey, mint, source, treasury, nonce: 6n,
   deposit: BigInt(50 * unit), strikeLamports: 1_000n,

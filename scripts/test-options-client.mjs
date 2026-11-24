@@ -74,6 +74,8 @@ test('all option actions target the chosen new program with exact account order'
   assert.equal(open.instructions[1].data[0], 0);
   assert.equal(open.instructions[1].keys[3].pubkey.toBase58(), vault.toBase58());
   assert.equal(open.instructions[1].keys[5].pubkey.toBase58(), series.toBase58());
+  assert.equal(open.instructions[1].keys[9].pubkey.toBase58(),
+    PublicKey.findProgramAddressSync([Buffer.from('bonding-curve'), mint.toBuffer()], new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P'))[0].toBase58());
   const buy = buyOptionsInstruction({ programId, series, buyer, treasury, lots: 2n });
   assert.equal(buy.data[0], 1);
   assert.equal(buy.keys[2].pubkey.toBase58(), derivePosition(programId, series, buyer).toBase58());

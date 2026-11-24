@@ -8,6 +8,7 @@ import { TOKEN_2022_PROGRAM_ID, createAssociatedTokenAccountIdempotentInstructio
   getAccount, getAssociatedTokenAddressSync, getMint } from '@solana/spl-token';
 import { openSeriesInstructions, buyOptionsInstruction, buybackVaultPrepInstructions,
   pumpBuybackInstruction, fetchVerifiedSeries } from '../options-client.mjs';
+import { fetchPumpStrikeSuggestion } from '../options-strike.mjs';
 
 const connection = new Connection('http://127.0.0.1:8899', 'confirmed');
 const programId = new PublicKey(process.argv[2]);
@@ -35,8 +36,9 @@ const unit = 1_000_000n;
 const deposit = (supply * 2n / 100n / unit) * unit;
 assert.ok(issuerBalance > deposit, 'issuer must buy enough Pump tokens to lock 2% of supply');
 const slot = await connection.getSlot('confirmed');
+const curveQuote = await fetchPumpStrikeSuggestion(connection, mint);
 const opened = openSeriesInstructions({ programId, issuer: issuer.publicKey, mint, source: issuerAta, treasury: issuerAta,
-  nonce: 501n, deposit, strikeLamports: 100n, saleDeadlineSlot: BigInt(slot + 300),
+  nonce: 501n, deposit, strikeLamports: curveQuote.strikeLamports, saleDeadlineSlot: BigInt(slot + 300),
   expirySlot: BigInt(slot + 600), treasuryFloor: issuerBalance - deposit });
 await send(opened.instructions, [issuer]);
 const lots = deposit / unit;
@@ -46,10 +48,10 @@ const prep = buybackVaultPrepInstructions({ programId, series: opened.series.add
 await send(prep.instructions, [issuer]);
 const before = await getAccount(connection, prep.vault.baseVault, 'confirmed', TOKEN_2022_PROGRAM_ID);
 const spend = 10_000_000n;
-const minimum = (spend * unit + 199n) / 200n;
+const minimum = (spend * unit + 2n * curveQuote.strikeLamports - 1n) / (2n * curveQuote.strikeLamports);
 const built = await pumpBuybackInstruction({ programId, series: opened.series.address, mint,
   keeper: buyer.publicKey, spendableQuoteIn: spend, minTokensOut: minimum,
-  keeperTopupLamports: 5_000_000n, strikeLamports: 100n, lotSize: unit });
+  keeperTopupLamports: 5_000_000n, strikeLamports: curveQuote.strikeLamports, lotSize: unit });
 const premiumBalanceBefore = await connection.getBalance(built.vault.authority, 'confirmed');
 const signature = await send([built.instruction], [buyer]);
 const premiumBalanceAfter = await connection.getBalance(built.vault.authority, 'confirmed');

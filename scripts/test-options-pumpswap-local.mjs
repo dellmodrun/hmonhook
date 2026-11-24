@@ -10,6 +10,7 @@ import { createSyncNativeInstruction } from '@solana/spl-token';
 import { openSeriesInstructions, buyOptionsInstruction, pumpSwapVaultPrepInstructions,
   pumpSwapBuybackInstruction, fetchVerifiedSeries, refundPremiumInstruction,
   reclaimPumpSwapQuoteRentInstruction, reclaimBuybackRentInstruction } from '../options-client.mjs';
+import { createMockPumpCurve } from './local-pump-curve.mjs';
 
 const { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda } = createRequire(import.meta.url)('@pump-fun/pump-swap-sdk');
 const connection = new Connection('http://127.0.0.1:8899', 'confirmed');
@@ -41,6 +42,7 @@ await send([SystemProgram.transfer({ fromPubkey: issuer.publicKey, toPubkey: poo
   createSyncNativeInstruction(poolQuote)], [issuer]);
 await setAuthority(connection, issuer, mint, issuer, AuthorityType.MintTokens, null, [], undefined, TOKEN_2022_PROGRAM_ID);
 await setAuthority(connection, issuer, mint, issuer, AuthorityType.FreezeAccount, null, [], undefined, TOKEN_2022_PROGRAM_ID);
+await send([createMockPumpCurve({ payer: issuer.publicKey, mint }).instruction], [issuer]);
 
 const slot = await connection.getSlot('confirmed');
 const opened = openSeriesInstructions({ programId, issuer: issuer.publicKey, mint, source, treasury: source,

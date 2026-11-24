@@ -1,11 +1,12 @@
 // Local validator only; the Pump program at its public address is a test double.
 import assert from 'node:assert/strict';
-import { Connection, Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, AuthorityType, createMint, getOrCreateAssociatedTokenAccount,
   getAccount, mintTo, setAuthority } from '@solana/spl-token';
 import { openSeriesInstructions, buyOptionsInstruction, buybackVaultPrepInstructions,
   pumpBuybackInstruction, fetchVerifiedSeries, refundPremiumInstruction } from '../options-client.mjs';
 import { reclaimBuybackRentInstruction } from '../options-client.mjs';
+import { createMockPumpCurve } from './local-pump-curve.mjs';
 
 const connection = new Connection('http://127.0.0.1:8899', 'confirmed');
 const programId = new PublicKey(process.argv[2]);
@@ -17,10 +18,8 @@ for (const wallet of [issuer, buyer]) await connection.confirmTransaction(await 
 const mint = await createMint(connection, issuer, issuer.publicKey, issuer.publicKey, 6, undefined, undefined, TOKEN_2022_PROGRAM_ID);
 const source = (await getOrCreateAssociatedTokenAccount(connection, issuer, mint, issuer.publicKey, false, 'confirmed', undefined, TOKEN_2022_PROGRAM_ID)).address;
 await mintTo(connection, issuer, mint, source, issuer, 1_000_000_000n, [], undefined, TOKEN_2022_PROGRAM_ID);
-const pump = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
-const curve = PublicKey.findProgramAddressSync([Buffer.from('bonding-curve'), mint.toBuffer()], pump)[0];
-await send([SystemProgram.transfer({ fromPubkey: issuer.publicKey, toPubkey: curve,
-  lamports: await connection.getMinimumBalanceForRentExemption(0) })], [issuer]);
+const { curve, instruction: createCurve } = createMockPumpCurve({ payer: issuer.publicKey, mint });
+await send([createCurve], [issuer]);
 const curveAta = (await getOrCreateAssociatedTokenAccount(connection, issuer, mint, curve, true, 'confirmed', undefined, TOKEN_2022_PROGRAM_ID)).address;
 await mintTo(connection, issuer, mint, curveAta, issuer, 20_000_000n, [], undefined, TOKEN_2022_PROGRAM_ID);
 await setAuthority(connection, issuer, mint, issuer, AuthorityType.MintTokens, null, [], undefined, TOKEN_2022_PROGRAM_ID);

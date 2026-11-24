@@ -3,7 +3,7 @@
 use solana_program::{
     account_info::AccountInfo, entrypoint, entrypoint::ProgramResult,
     instruction::{AccountMeta, Instruction}, program::invoke, program::invoke_signed,
-    program_error::ProgramError, pubkey::Pubkey,
+    program_error::ProgramError, pubkey::Pubkey, sysvar::{rent::Rent, Sysvar},
 };
 use solana_system_interface::instruction as system_instruction;
 
@@ -14,6 +14,29 @@ fn read_u64(data: &[u8], start: usize) -> Result<u64, ProgramError> {
 }
 
 pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
+    if data.len() == 25 && data[0] == 0 && accounts.len() == 4 {
+        let payer = &accounts[0];
+        let mint = &accounts[1];
+        let curve = &accounts[2];
+        let system = &accounts[3];
+        if !payer.is_signer || !payer.is_writable || !curve.is_writable ||
+            *system.key != solana_system_interface::program::id() {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        let (expected, bump) = Pubkey::find_program_address(&[b"bonding-curve", mint.key.as_ref()], program_id);
+        if expected != *curve.key { return Err(ProgramError::InvalidAccountData); }
+        let seeds = [b"bonding-curve".as_ref(), mint.key.as_ref(), &[bump]];
+        let create = system_instruction::create_account(payer.key, curve.key,
+            Rent::get()?.minimum_balance(115), 115, program_id);
+        invoke_signed(&create, &[payer.clone(), curve.clone(), system.clone()], &[&seeds])?;
+        let mut bytes = curve.try_borrow_mut_data()?;
+        bytes[..8].copy_from_slice(&[23, 183, 248, 55, 96, 216, 172, 96]);
+        bytes[8..16].copy_from_slice(&data[1..9]);
+        bytes[16..24].copy_from_slice(&data[9..17]);
+        bytes[24..32].copy_from_slice(&data[17..25]);
+        bytes[83..115].copy_from_slice(system.key.as_ref());
+        return Ok(());
+    }
     if data.len() != 25 || data[..8] != [0xe1, 0xf7, 0x50, 0x1e, 0xd5, 0xb3, 0x84, 0x88] ||
         data[24] != 0 || accounts.len() != 17 { return Err(ProgramError::InvalidInstructionData); }
     let spend = read_u64(data, 8)?;

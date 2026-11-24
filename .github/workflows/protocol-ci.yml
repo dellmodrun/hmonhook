@@ -77,6 +77,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Check issuer options program
         run: cargo test --manifest-path programs/hmonhook-options/Cargo.toml
+      - name: Check local Pump fixture
+        run: cargo test --manifest-path scripts/fixtures/mock-pump/Cargo.toml
 
   hmonhook-guard:
     runs-on: ubuntu-latest
