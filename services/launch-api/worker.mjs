@@ -9,6 +9,7 @@ const IMAGE_PATH = /^\/images\/([a-f0-9]{64})\.(png|jpg|webp)$/;
 const JSON_PATH = /^\/metadata\/([a-f0-9]{64})\.json$/;
 const RPC = 'https://solana-rpc.publicnode.com';
 const FALLBACK_RPC = 'https://api.mainnet-beta.solana.com';
+const OFFICIAL_TOKEN_KEY = 'config/official-token.json';
 
 function response(body, status = 200, type = 'application/json; charset=utf-8', extra = {}) {
   return new Response(type.startsWith('application/json') ? JSON.stringify(body) : body, {
@@ -87,6 +88,36 @@ async function publicObject(path, env) {
   return new Response(object.body, { headers: { 'content-type': type,
     'access-control-allow-origin': '*', 'cache-control': 'public, max-age=31536000, immutable',
     'etag': object.httpEtag } });
+}
+
+async function officialToken(request, env) {
+  if (request.method === 'GET') {
+    const stored = await env.BUCKET.get(OFFICIAL_TOKEN_KEY);
+    const token = stored ? JSON.parse(await stored.text()) : { mint: null, status: 'tba', updated_at: null };
+    return response({ token }, 200, 'application/json; charset=utf-8', { 'cache-control': 'no-store, max-age=0' });
+  }
+  if (request.method !== 'PUT') return response({ error: 'Method not allowed' }, 405);
+  if (!env.HMONHOOK_OFFICIAL_TOKEN_ADMIN_KEY) return response({ error: 'Admin update unavailable' }, 503);
+  const supplied = request.headers.get('authorization') || '';
+  const expected = `Bearer ${env.HMONHOOK_OFFICIAL_TOKEN_ADMIN_KEY}`;
+  if (supplied.length !== expected.length) return response({ error: 'Unauthorized' }, 401);
+  let mismatch = 0;
+  for (let i = 0; i < expected.length; i += 1) mismatch |= supplied.charCodeAt(i) ^ expected.charCodeAt(i);
+  if (mismatch) return response({ error: 'Unauthorized' }, 401);
+  let body;
+  try {
+    const raw = await request.text();
+    if (raw.length > 256) return response({ error: 'Request too large' }, 413);
+    body = JSON.parse(raw);
+  } catch { return response({ error: 'Invalid JSON' }, 400); }
+  const mint = body?.mint === null || body?.mint === 'TBA' ? null : body?.mint;
+  if (mint !== null && (typeof mint !== 'string' || !ADDRESS.test(mint))) {
+    return response({ error: 'Invalid Solana Mint' }, 400);
+  }
+  const token = { mint, status: mint ? 'published' : 'tba', updated_at: new Date().toISOString() };
+  await env.BUCKET.put(OFFICIAL_TOKEN_KEY, JSON.stringify(token),
+    { httpMetadata: { contentType: 'application/json' } });
+  return response({ token }, 200, 'application/json; charset=utf-8', { 'cache-control': 'no-store, max-age=0' });
 }
 
 async function hostedMetadata(request, env, launch) {
@@ -262,6 +293,7 @@ export default {
       if (path === '/health') return response({ ok: true, storage: true });
       if (path === '/metadata-upload') return await metadataUpload(request, env);
       if (path === '/launch-registry') return await launchRegistry(request, env);
+      if (path === '/official-token') return await officialToken(request, env);
       if (path === '/option-series') return await optionSeriesRegistry(request, env);
       if (request.method === 'GET') return await publicObject(path, env);
       return response({ error: 'Not found' }, 404);

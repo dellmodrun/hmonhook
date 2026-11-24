@@ -10,6 +10,8 @@ Routes:
 - `GET /metadata/<sha256>.json` and `GET /images/<sha256>.<ext>` return immutable public objects.
 - `POST /launch-registry` verifies a confirmed mainnet Pump creation before storing it.
 - `GET /launch-registry` lists recent verified launches; `?name=` returns exact normalized name matches.
+- `GET /official-token` returns the official Mint record from R2 with `no-store` caching; it returns `TBA` until published. The homepage and reserved first Markets card poll this endpoint every two seconds.
+- `PUT /official-token` updates the record without redeploying GitHub Pages. It accepts `{ "mint": "TBA" }` or a Solana Mint and requires the `HMONHOOK_OFFICIAL_TOKEN_ADMIN_KEY` bearer secret stored in Sites runtime settings. The key is kept outside either repository in the owner's local profile and must never enter a frontend bundle.
 - `POST /option-series` accepts a V3 series address and Mint only after the Mint's Pump launch is already indexed. It checks the live Solana account owner, V3 wire tag, issuer/Mint fields, series PDA, custody PDA and collateral ATA before storing a candidate address.
 - `GET /option-series?mint=<Mint>` returns stored candidate addresses for that Mint. These are discovery hints, not current protection badges; the browser re-reads live Series data before listing them, and checks the vault and registered treasury before enabling a purchase.
 
