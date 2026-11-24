@@ -145,6 +145,11 @@
 <button data-code="optionsProgram">programs/hmonhook-options/src/lib.rs</button>
 <button data-code="optionsCargo">programs/hmonhook-options/Cargo.toml</button>
 <button data-code="optionsClient">options-client.mjs</button>
+<button data-code="optionsCore">options-core.mjs</button>
+<button data-code="optionsStrike">options-strike-core.mjs</button>
+<button data-code="optionsBrowser">options-browser-client.ts</button>
+<button data-code="optionsInterface">options-interface.js</button>
+<button data-code="optionsConfig">options/program.json</button>
 <button data-code="optionsPumpTest">scripts/test-options-pump-real-local.mjs</button>
 <button data-code="optionsLocalTest">scripts/test-options-buyback-local.mjs</button>
 <button data-code="optionsPumpSwapTest">scripts/test-options-pumpswap-local.mjs</button>
@@ -272,7 +277,7 @@
 <h2>What the repository proves—and what deployment must still prove.</h2>
 </div>
 </div>
-<div class="prose-block"><p>Source code shows which mechanisms have been built; the mainnet and devnet manifests identify the deployed legacy Jolt Guard binary and its SBF hash. The new h/monhook Guard and issuer-options contracts are development code, with local-validator tests but no mainnet deployment or independent review. Privacy Rings integration is not available. <code>docs/PRODUCT_SCOPE.md</code> records these boundaries.</p><p>The browser can assemble a supported Jupiter route with the deployed legacy Guard and ask the user wallet to sign. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. The development options contract is not connected to the public launch flow. Deployment, integration and audit are different kinds of evidence.</p></div>
+<div class="prose-block"><p>Source code shows which mechanisms have been built; the mainnet and devnet manifests identify the deployed legacy Jolt Guard binary and its SBF hash. The new h/monhook Guard and issuer-options contracts are development code, with local-validator tests but no mainnet deployment or independent review. Privacy Rings integration is not available. <code>docs/PRODUCT_SCOPE.md</code> records these boundaries.</p><p>The browser can assemble a supported Jupiter route with the deployed legacy Guard and ask the user wallet to sign. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. A separate development options interface can review a lock and inspect or settle a series, but its signing actions are disabled by release configuration. Deployment, integration and audit are different kinds of evidence.</p></div>
 <div class="split-panel">
 <article>
 <h3>Inspectable now</h3>

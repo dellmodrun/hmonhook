@@ -127,3 +127,5 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   .menu-open:after{display:none}
   .app-page{width:min(100% - 24px,1232px);margin:0 auto;padding-top:22px}
 }
+
+#issuer-options-controls[hidden],#options-market-controls[hidden]{display:none!important}

@@ -1,0 +1,209 @@
+import { Buffer } from 'buffer';
+import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+export { Connection } from '@solana/web3.js';
+import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { PumpSdk, PUMP_PROGRAM_ID, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
+import { strikeFromPumpReserves } from './options-strike-core.mjs';
+import { openSeriesInstructions, buyOptionsInstruction, exerciseInstructions,
+  claimDefaultInstructions, refundPremiumInstruction, fetchVerifiedSeries,
+  derivePosition, fetchVerifiedPosition } from './options-core.mjs';
+
+const MAX_U64 = (1n << 64n) - 1n;
+const OPTIONS_PROGRAM_LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
+
+function publicKey(value: unknown): PublicKey { return new PublicKey(String(value)); }
+function positiveInteger(value: unknown, field: string): bigint {
+  const text = String(value);
+  if (!/^\d+$/.test(text)) throw new Error(`${field} must be a whole number.`);
+  const number = BigInt(text);
+  if (number <= 0n || number > MAX_U64) throw new Error(`${field} is out of range.`);
+  return number;
+}
+function validMintExtensions(data: Buffer): boolean {
+  if (data.length === 82) return true;
+  if (data.length < 166 || data.subarray(82, 165).some((byte) => byte !== 0) || data[165] !== 1) return false;
+  let offset = 166;
+  while (offset < data.length) {
+    if (data.subarray(offset).every((byte) => byte === 0)) return true;
+    if (data.length - offset < 4) return false;
+    const kind = data.readUInt16LE(offset);
+    const length = data.readUInt16LE(offset + 2);
+    if (kind < 18 || kind > 23 || !length || offset + 4 + length > data.length) return false;
+    offset += 4 + length;
+  }
+  return true;
+}
+function randomNonce(): bigint {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Buffer.from(bytes).readBigUInt64LE();
+}
+function rpcConnection(endpoint: string): Connection {
+  const parsed = new URL(endpoint);
+  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && parsed.hostname === '127.0.0.1')) {
+    throw new Error('Use an HTTPS RPC endpoint or a local validator.');
+  }
+  return new Connection(parsed.href, 'confirmed');
+}
+
+export async function loadOptionsProgram(connection: Connection, config: { enabled: boolean; programId?: string }) {
+  if (!config?.enabled || !config.programId) throw new Error('Issuer options are not enabled on this release.');
+  const programId = publicKey(config.programId);
+  const account = await connection.getAccountInfo(programId, 'confirmed');
+  if (!account?.executable || !account.owner.equals(OPTIONS_PROGRAM_LOADER)) {
+    throw new Error('The configured options program is not deployed on this RPC network.');
+  }
+  return programId;
+}
+
+export async function previewIssuerSeries({ rpcEndpoint, programId, issuer, mint, percent, saleWindowSlots,
+  expiryWindowSlots }: { rpcEndpoint: string; programId: string; issuer: string; mint: string;
+  percent: number; saleWindowSlots: number; expiryWindowSlots: number }) {
+  if (!Number.isInteger(percent) || percent < 2 || percent > 10) throw new Error('Lock 2% to 10% of the Mint supply.');
+  if (!Number.isSafeInteger(saleWindowSlots) || saleWindowSlots < 1000 ||
+      !Number.isSafeInteger(expiryWindowSlots) || expiryWindowSlots <= saleWindowSlots) {
+    throw new Error('Choose a sale window of at least 1,000 slots and a later expiry.');
+  }
+  const connection = rpcConnection(rpcEndpoint);
+  const mintKey = publicKey(mint);
+  const issuerKey = publicKey(issuer);
+  const curveKey = bondingCurvePda(mintKey);
+  const response = await connection.getMultipleAccountsInfoAndContext([mintKey, curveKey], 'confirmed');
+  const [mintInfo, curveInfo] = response.value;
+  if (!mintInfo?.owner.equals(TOKEN_2022_PROGRAM_ID) || mintInfo.data.length < 82 ||
+      mintInfo.data.readUInt32LE(0) !== 0 || mintInfo.data.readUInt32LE(46) !== 0 ||
+      mintInfo.data[45] !== 1 || !validMintExtensions(mintInfo.data)) {
+    throw new Error('Mint must be a supported Token-2022 coin with no mint or freeze authority.');
+  }
+  if (!curveInfo?.owner.equals(PUMP_PROGRAM_ID)) throw new Error('Pump curve is missing for this Mint.');
+  const curve = new PumpSdk().decodeBondingCurve(curveInfo);
+  if (!isSolLikeQuoteMint(curve.quoteMint)) throw new Error('This protection series requires a SOL-quoted Pump coin.');
+  const strike = strikeFromPumpReserves({ virtualQuoteReserves: curve.virtualQuoteReserves.toString(),
+    virtualTokenReserves: curve.virtualTokenReserves.toString(), realTokenReserves: curve.realTokenReserves.toString(),
+    decimals: mintInfo.data[44], complete: curve.complete });
+  const supply = mintInfo.data.readBigUInt64LE(36);
+  const lots = (supply * BigInt(percent) + 100n * strike.lotSize - 1n) / (100n * strike.lotSize);
+  const deposit = lots * strike.lotSize;
+  if (deposit === 0n || deposit * 100n > supply * 10n) throw new Error('Whole-token lots cannot represent this lock percentage.');
+  const treasury = getAssociatedTokenAddressSync(mintKey, issuerKey, false, TOKEN_2022_PROGRAM_ID);
+  const source = await getAccount(connection, treasury, 'confirmed', TOKEN_2022_PROGRAM_ID);
+  if (!source.owner.equals(issuerKey) || !source.mint.equals(mintKey) || source.isFrozen || source.delegate) {
+    throw new Error('Issuer treasury is not an unrestricted token account for this Mint.');
+  }
+  const floor = source.amount - deposit;
+  if (floor <= 0n) throw new Error('Issuer treasury must retain tokens after the lock.');
+  const nonce = randomNonce();
+  const saleDeadlineSlot = BigInt(response.context.slot) + BigInt(saleWindowSlots);
+  const expirySlot = BigInt(response.context.slot) + BigInt(expiryWindowSlots);
+  const opened = openSeriesInstructions({ programId: publicKey(programId), issuer: issuerKey, mint: mintKey,
+    source: treasury, treasury, nonce, deposit, strikeLamports: strike.strikeLamports,
+    saleDeadlineSlot, expirySlot, treasuryFloor: floor });
+  return { connection, programId: publicKey(programId), issuer: issuerKey, mint: mintKey, treasury,
+    nonce, series: opened.series.address, instructions: opened.instructions, supply, deposit,
+    treasuryBefore: source.amount, treasuryFloor: floor, strikeLamports: strike.strikeLamports,
+    premiumLamports: strike.premiumLamports, lotSize: strike.lotSize, totalLots: lots,
+    snapshotSlot: response.context.slot, saleDeadlineSlot, expirySlot };
+}
+
+export async function submitOptionsInstructions({ connection, provider, authority, instructions }:
+  { connection: Connection; provider: any; authority: PublicKey; instructions: any[] }) {
+  if (!provider?.publicKey || !publicKey(provider.publicKey).equals(authority)) {
+    throw new Error('Connected wallet changed. Review and prepare this transaction again.');
+  }
+  const latest = await connection.getLatestBlockhash('confirmed');
+  const transaction = new Transaction({ feePayer: authority, recentBlockhash: latest.blockhash }).add(...instructions);
+  let signature: string;
+  if (typeof provider.signAndSendTransaction === 'function') {
+    const sent = await provider.signAndSendTransaction(transaction, { preflightCommitment: 'confirmed', maxRetries: 3 });
+    signature = typeof sent === 'string' ? sent : sent.signature;
+  } else if (typeof provider.signTransaction === 'function') {
+    const signed = await provider.signTransaction(transaction);
+    signature = await connection.sendRawTransaction(signed.serialize(), { preflightCommitment: 'confirmed', maxRetries: 3 });
+  } else throw new Error('This wallet cannot sign a Solana transaction.');
+  if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(signature || '')) throw new Error('Wallet returned no valid signature.');
+  try {
+    const confirmation = await connection.confirmTransaction({ signature, ...latest }, 'confirmed');
+    if (confirmation.value.err) return { signature, status: 'failed' as const, error: confirmation.value.err };
+    return { signature, status: 'confirmed' as const };
+  } catch (_) {
+    const status = (await connection.getSignatureStatuses([signature], { searchTransactionHistory: true })).value[0];
+    if (status?.err) return { signature, status: 'failed' as const, error: status.err };
+    return { signature, status: status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized'
+      ? 'confirmed' as const : 'pending' as const };
+  }
+}
+
+export async function submitIssuerSeries(prepared: Awaited<ReturnType<typeof previewIssuerSeries>>, provider: any) {
+  const result = await submitOptionsInstructions({ connection: prepared.connection, provider,
+    authority: prepared.issuer, instructions: prepared.instructions });
+  if (result.status === 'confirmed') await fetchVerifiedSeries(prepared.connection, prepared.programId, prepared.series);
+  return { ...result, series: prepared.series.toBase58() };
+}
+
+export async function previewBuyerPosition({ rpcEndpoint, programId, series, buyer, lots }:
+  { rpcEndpoint: string; programId: string; series: string; buyer: string; lots: string | number }) {
+  const connection = rpcConnection(rpcEndpoint);
+  const programKey = publicKey(programId);
+  const seriesKey = publicKey(series);
+  const buyerKey = publicKey(buyer);
+  const terms = await fetchVerifiedSeries(connection, programKey, seriesKey);
+  const count = positiveInteger(lots, 'Lots');
+  const slot = await connection.getSlot('confirmed');
+  if (terms.status !== 0 || BigInt(slot) > terms.saleDeadlineSlot ||
+      count > terms.totalLots - terms.soldLots) throw new Error('The requested option lots are not on sale.');
+  return { connection, programId: programKey, series: seriesKey, buyer: buyerKey, terms,
+    lots: count, premiumLamports: terms.premiumLamports * count,
+    position: derivePosition(programKey, seriesKey, buyerKey) };
+}
+
+export async function inspectOptionSeries({ rpcEndpoint, programId, series, buyer }:
+  { rpcEndpoint: string; programId: string; series: string; buyer?: string }) {
+  const connection = rpcConnection(rpcEndpoint);
+  const programKey = publicKey(programId);
+  const seriesKey = publicKey(series);
+  const terms = await fetchVerifiedSeries(connection, programKey, seriesKey);
+  const slot = await connection.getSlot('confirmed');
+  const vault = await getAccount(connection, terms.vault, 'confirmed', TOKEN_2022_PROGRAM_ID);
+  if (!vault.mint.equals(terms.mint) || !vault.owner.equals(seriesKey)) {
+    throw new Error('Collateral vault does not match the verified option series.');
+  }
+  let treasuryAmount = 0n;
+  try {
+    const treasury = await getAccount(connection, terms.treasury, 'confirmed', TOKEN_2022_PROGRAM_ID);
+    if (treasury.mint.equals(terms.mint) && treasury.owner.equals(terms.issuer)) treasuryAmount = treasury.amount;
+  } catch (_) { /* A closed treasury counts as breached. */ }
+  const position = buyer ? await fetchVerifiedPosition(connection, programKey, seriesKey, publicKey(buyer)) : null;
+  return { terms, slot, vaultAmount: vault.amount, treasuryAmount, position,
+    registeredTreasuryBreached: treasuryAmount < terms.treasuryFloor };
+}
+
+export async function submitBuyerPosition(prepared: Awaited<ReturnType<typeof previewBuyerPosition>>, provider: any) {
+  const current = await fetchVerifiedSeries(prepared.connection, prepared.programId, prepared.series);
+  if (current.soldLots !== prepared.terms.soldLots || current.premiumLamports !== prepared.terms.premiumLamports) {
+    throw new Error('Option availability changed. Review a fresh quote.');
+  }
+  const instruction = buyOptionsInstruction({ programId: prepared.programId, series: prepared.series,
+    buyer: prepared.buyer, treasury: current.treasury, lots: prepared.lots });
+  const result = await submitOptionsInstructions({ connection: prepared.connection, provider,
+    authority: prepared.buyer, instructions: [instruction] });
+  return { ...result, position: prepared.position.toBase58(), premiumLamports: prepared.premiumLamports.toString() };
+}
+
+export async function submitPositionAction({ rpcEndpoint, programId, series, buyer, provider, action, lots }:
+  { rpcEndpoint: string; programId: string; series: string; buyer: string; provider: any;
+    action: 'exercise' | 'claim' | 'refund'; lots?: string | number }) {
+  const connection = rpcConnection(rpcEndpoint);
+  const programKey = publicKey(programId);
+  const seriesKey = publicKey(series);
+  const buyerKey = publicKey(buyer);
+  const terms = await fetchVerifiedSeries(connection, programKey, seriesKey);
+  let instructions;
+  if (action === 'refund') instructions = [refundPremiumInstruction({ programId: programKey, series: seriesKey, buyer: buyerKey })];
+  else {
+    const count = positiveInteger(lots, 'Lots');
+    const args = { programId: programKey, series: seriesKey, mint: terms.mint,
+      vault: terms.vault, issuer: terms.issuer, buyer: buyerKey, lots: count };
+    instructions = action === 'exercise' ? exerciseInstructions(args).instructions : claimDefaultInstructions(args).instructions;
+  }
+  return submitOptionsInstructions({ connection, provider, authority: buyerKey, instructions });
+}

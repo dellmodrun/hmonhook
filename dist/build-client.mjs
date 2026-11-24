@@ -13,6 +13,11 @@ await build({
 });
 
 await build({
+  entryPoints: ['options-browser-client.ts'], bundle: true, minify: true, platform: 'browser',
+  format: 'iife', globalName: 'HmonhookOptions', inject: ['buffer-shim.js'], outfile: 'options-browser-client.js',
+});
+
+await build({
   entryPoints: ['intent-client.ts'], bundle: true, minify: true, platform: 'browser',
   format: 'iife', globalName: 'JoltworkIntent', inject: ['buffer-shim.js'], outfile: 'intent-client.js',
 });

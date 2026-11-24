@@ -51,6 +51,19 @@ for (const [, key, path] of codeMap.matchAll(/^\s+(\w+): "([^"]+)"/gm)) {
   assert.ok(existsSync(resolve(root, "dist", path)), `packaged source missing: ${path}`);
 }
 const marketsClient = readFileSync(resolve(root, "markets.js"), "utf8");
+const optionsConfig = JSON.parse(readFileSync(resolve(root, "options/program.json"), "utf8"));
+assert.equal(optionsConfig.enabled, false, "undeployed option contract must remain disabled");
+assert.equal(optionsConfig.programId, null, "undeployed option contract must not expose a program ID");
+assert.equal(optionsConfig.cluster, "mainnet-beta", "options release target changed unexpectedly");
+for (const page of ["launch/index.html", "markets/index.html"]) {
+  const html = readFileSync(resolve(root, page), "utf8");
+  assert.match(html, /id="options-(?:release-state|market-release)"/, `options release state missing: ${page}`);
+  assert.match(html, /src="\.\/options-interface\.js"/, `options interface missing: ${page}`);
+  assert.match(html, /src="\.\/options-browser-client\.js"/, `options browser client missing: ${page}`);
+}
+assert.match(readFileSync(resolve(root, "enhancements.css"), "utf8"), /#issuer-options-controls\[hidden\],#options-market-controls\[hidden\]\{display:none!important\}/,
+  "disabled options controls must stay hidden");
+assert.ok(existsSync(resolve(root, "dist/options/program.json")), "packaged options release gate missing");
 assert.ok(existsSync(resolve(root, "docs/PRODUCT_SCOPE.md")), "product scope document missing");
 assert.match(app, /productScope: "docs\/PRODUCT_SCOPE\.md"/, "source browser cannot open product scope");
 assert.match(app, /local-proposal-not-published/, "launcher must mark the policy plan as local");

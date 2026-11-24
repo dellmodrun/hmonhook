@@ -151,6 +151,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   .menu-open:after{display:none}
   .app-page{width:min(100% - 24px,1232px);margin:0 auto;padding-top:22px}
 }
+
+#issuer-options-controls[hidden],#options-market-controls[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -1087,6 +1089,11 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     optionsProgram: "programs/hmonhook-options/src/lib.rs",
     optionsCargo: "programs/hmonhook-options/Cargo.toml",
     optionsClient: "options-client.mjs",
+    optionsCore: "options-core.mjs",
+    optionsStrike: "options-strike-core.mjs",
+    optionsBrowser: "options-browser-client.ts",
+    optionsInterface: "options-interface.js",
+    optionsConfig: "options/program.json",
     optionsPumpTest: "scripts/test-options-pump-real-local.mjs",
     optionsLocalTest: "scripts/test-options-buyback-local.mjs",
     optionsPumpSwapTest: "scripts/test-options-pumpswap-local.mjs",
