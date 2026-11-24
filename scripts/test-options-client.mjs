@@ -136,7 +136,7 @@ test('all option actions target the chosen new program with exact account order'
 });
 
 test('series decoder rejects unrelated bytes and preserves base-unit terms', () => {
-  const bytes = Buffer.alloc(266);
+  const bytes = Buffer.alloc(274);
   bytes.write('HMONOPT3', 0);
   bytes[8] = 1;
   bytes[9] = 255;
@@ -154,13 +154,13 @@ test('series decoder rejects unrelated bytes and preserves base-unit terms', () 
   assert.equal(decoded.treasuryFloor, 100n);
   assert.equal(decoded.premiumLamports, 25n);
   assert.equal(decoded.premiumSpentLamports, 5n);
-  assert.throws(() => decodeSeries(Buffer.alloc(266)), /Invalid h\/monhook/);
+  assert.throws(() => decodeSeries(Buffer.alloc(274)), /Invalid h\/monhook/);
   assert.throws(() => decodeSeries(Buffer.alloc(265)), /Invalid h\/monhook/);
   assert.ok(decoded.mint instanceof PublicKey);
 });
 
 test('remote series must be owned by the expected program and match its PDA', async () => {
-  const bytes = Buffer.alloc(266);
+  const bytes = Buffer.alloc(274);
   bytes.write('HMONOPT3', 0);
   bytes[9] = deriveSeries(programId, mint, issuer, nonce).bump;
   bytes.writeBigUInt64LE(nonce, 10);
@@ -170,7 +170,7 @@ test('remote series must be owned by the expected program and match its PDA', as
   await assert.rejects(() => fetchVerifiedSeries({ getAccountInfo: async () => ({ owner: buyer, data: bytes }) }, programId, series), /not owned/);
   await assert.rejects(() => fetchVerifiedSeries(connection, programId, buyer), /does not match/);
   const listed = await listVerifiedSeriesByMint({ getProgramAccounts: async (_, options) => {
-    assert.deepEqual(options.filters, [{ dataSize: 266 }, { memcmp: { offset: 50, bytes: mint.toBase58() } }]);
+    assert.deepEqual(options.filters, [{ dataSize: 274 }, { memcmp: { offset: 50, bytes: mint.toBase58() } }]);
     return [{ pubkey: series, account: { owner: programId, data: bytes } }];
   } }, programId, mint);
   assert.equal(listed.length, 1);
@@ -178,7 +178,7 @@ test('remote series must be owned by the expected program and match its PDA', as
 });
 
 test('directory hints cannot introduce a forged or wrong-Mint option series', async () => {
-  const bytes = Buffer.alloc(266);
+  const bytes = Buffer.alloc(274);
   bytes.write('HMONOPT3', 0);
   bytes[9] = deriveSeries(programId, mint, issuer, nonce).bump;
   bytes.writeBigUInt64LE(nonce, 10);

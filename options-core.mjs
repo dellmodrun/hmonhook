@@ -144,15 +144,44 @@ export function reclaimBuybackRentInstruction({ programId, series, issuer }) {
     meta(issuer, false, true), meta(SystemProgram.programId)]);
 }
 
+export function closePositionInstruction({ programId, series, buyer }) {
+  return instruction(programId, 12, [meta(buyer, true, true), meta(series, false, true),
+    meta(derivePosition(programId, series, buyer), false, true)]);
+}
+
+export function closeSeriesTokenInstruction({ programId, series, mint, issuer, kind }) {
+  if (kind !== 'collateral' && kind !== 'treasury') throw new Error('Unknown series token account');
+  const account = kind === 'collateral' ? deriveSeriesVault(mint, series) : deriveRegisteredTreasury(programId, series);
+  return instruction(programId, 13, [meta(series), meta(mint), meta(account, false, true),
+    meta(issuer, false, true), meta(TOKEN_2022_PROGRAM_ID)]);
+}
+
+function deriveSeriesVault(mint, series) {
+  return getAssociatedTokenAddressSync(key(mint), key(series), true, TOKEN_2022_PROGRAM_ID);
+}
+
+export function closeEmptyBuybackVaultInstruction({ programId, series, mint, issuer }) {
+  const vault = deriveBuybackVault(programId, series, mint);
+  return instruction(programId, 14, [meta(series), meta(vault.baseVault, false, true),
+    meta(vault.authority), meta(issuer, false, true), meta(TOKEN_2022_PROGRAM_ID)]);
+}
+
+export function closeSeriesInstruction({ programId, series, mint, issuer }) {
+  const vault = deriveBuybackVault(programId, series, mint);
+  return instruction(programId, 15, [meta(issuer, true, true), meta(series, false, true),
+    meta(deriveSeriesVault(mint, series)), meta(deriveRegisteredTreasury(programId, series)),
+    meta(vault.authority), meta(vault.baseVault), meta(vault.quoteVault)]);
+}
+
 export function decodeSeries(data) {
   const bytes = Buffer.from(data);
-  if (bytes.length !== 266 || bytes.subarray(0, 8).toString() !== 'HMONOPT3') throw new Error('Invalid h/monhook option series account');
+  if (bytes.length !== 274 || bytes.subarray(0, 8).toString() !== 'HMONOPT3') throw new Error('Invalid h/monhook option series account');
   if (bytes[8] > 2) throw new Error('Invalid h/monhook option series status');
   let offset = 10;
   const readU64 = () => { const value = bytes.readBigUInt64LE(offset); offset += 8; return value; };
   const readKey = () => { const value = new PublicKey(bytes.subarray(offset, offset + 32)); offset += 32; return value; };
   const result = { status: bytes[8], bump: bytes[9], nonce: readU64(), issuer: readKey(), mint: readKey(), vault: readKey(), treasury: readKey() };
-  for (const name of ['treasuryFloor', 'supplySnapshot', 'lotSize', 'totalLots', 'soldLots', 'exercisedLots', 'defaultClaimedLots', 'reclaimedLots', 'saleDeadlineSlot', 'expirySlot', 'strikeLamports', 'premiumLamports', 'premiumSpentLamports', 'premiumRefundedLamports', 'premiumRefundClaimedLots']) result[name] = readU64();
+  for (const name of ['treasuryFloor', 'supplySnapshot', 'lotSize', 'totalLots', 'soldLots', 'exercisedLots', 'defaultClaimedLots', 'reclaimedLots', 'saleDeadlineSlot', 'expirySlot', 'strikeLamports', 'premiumLamports', 'premiumSpentLamports', 'premiumRefundedLamports', 'premiumRefundClaimedLots', 'closedPositionLots']) result[name] = readU64();
   return result;
 }
 
@@ -195,7 +224,7 @@ export async function listVerifiedSeriesByMint(connection, programId, mint) {
   const mintKey = key(mint);
   const rows = await connection.getProgramAccounts(key(programId), {
     commitment: 'confirmed',
-    filters: [{ dataSize: 266 }, { memcmp: { offset: 50, bytes: mintKey.toBase58() } }],
+    filters: [{ dataSize: 274 }, { memcmp: { offset: 50, bytes: mintKey.toBase58() } }],
   });
   return rows.flatMap(({ pubkey, account }) => {
     try {

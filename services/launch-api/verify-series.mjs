@@ -12,7 +12,7 @@ export function verifiedV3Series(account, seriesAddress, expectedMint) {
     if (!account || account.owner !== OPTIONS_PROGRAM_ID.toBase58() || account.executable ||
         !Array.isArray(account.data) || account.data[1] !== 'base64') return null;
     const raw = atob(account.data[0]);
-    if (raw.length !== 266 || raw.slice(0, 8) !== 'HMONOPT3') return null;
+    if (raw.length !== 274 || raw.slice(0, 8) !== 'HMONOPT3') return null;
     const bytes = Uint8Array.from(raw, char => char.charCodeAt(0));
     const status = bytes[8];
     if (status > 2) return null;

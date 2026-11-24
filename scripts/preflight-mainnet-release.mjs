@@ -97,7 +97,8 @@ console.log(JSON.stringify({ network: 'mainnet-beta', readOnly: true,
       finalAccountRentLamports: finalAccountRentLamports ?? null,
       temporaryBufferRentLamports: temporaryBufferRentLamports ?? null })),
   machineCheckBlockers: blockers,
-  manualReleaseGates: ['funded public-cluster lifecycle tests', 'developer-sale evidence policy',
+  manualReleaseGates: ['full shutdown and SOL-rent recovery lifecycle test',
+    'funded public-cluster lifecycle tests', 'developer-sale evidence policy',
     'global same-name launch indexing', 'Privacy Rings implementation and verification',
     'independent security review', 'offline authority recovery backup', 'production RPC and monitoring']
 }, null, 2));

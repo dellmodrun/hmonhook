@@ -185,7 +185,7 @@ test('option directory accepts only a real V3 series PDA for an indexed Mint', a
   const issuer = Keypair.generate().publicKey;
   const nonce = 9n;
   const series = deriveSeries(OPTIONS_PROGRAM_ID, mint, issuer, nonce);
-  const bytes = Buffer.alloc(266);
+  const bytes = Buffer.alloc(274);
   bytes.write('HMONOPT3', 0);
   bytes[9] = series.bump;
   bytes.writeBigUInt64LE(nonce, 10);

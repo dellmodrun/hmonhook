@@ -80,6 +80,7 @@ pub struct Series {
     pub premium_spent_lamports: u64,
     pub premium_refunded_lamports: u64,
     pub premium_refund_claimed_lots: u64,
+    pub closed_position_lots: u64,
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, PartialEq, Eq)]
@@ -313,7 +314,7 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let expected_buyback = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id).0;
     if expected_buyback != *buyback_user.key || buyback_user.owner != &solana_system_interface::program::id() || buyback_user.data_len() != 0 { return Err(bad_account()); }
     let premium = strike / 10 + u64::from(strike % 10 != 0);
-    let series = Series { tag: SERIES_TAG, status: STATUS_ACTIVE, bump, nonce, issuer: *issuer.key, mint: *mint.key, vault: *vault.key, treasury: *treasury.key, treasury_floor: floor, supply_snapshot: supply, lot_size, total_lots: deposit / lot_size, sold_lots: 0, exercised_lots: 0, default_claimed_lots: 0, reclaimed_lots: 0, sale_deadline_slot: sale_deadline, expiry_slot: expiry, strike_lamports: strike, premium_lamports: premium, premium_spent_lamports: 0, premium_refunded_lamports: 0, premium_refund_claimed_lots: 0 };
+    let series = Series { tag: SERIES_TAG, status: STATUS_ACTIVE, bump, nonce, issuer: *issuer.key, mint: *mint.key, vault: *vault.key, treasury: *treasury.key, treasury_floor: floor, supply_snapshot: supply, lot_size, total_lots: deposit / lot_size, sold_lots: 0, exercised_lots: 0, default_claimed_lots: 0, reclaimed_lots: 0, sale_deadline_slot: sale_deadline, expiry_slot: expiry, strike_lamports: strike, premium_lamports: premium, premium_spent_lamports: 0, premium_refunded_lamports: 0, premium_refund_claimed_lots: 0, closed_position_lots: 0 };
     let size = borsh::to_vec(&series).map_err(|_| invalid())?.len();
     let seeds = [b"series".as_ref(), mint.key.as_ref(), issuer.key.as_ref(), &nonce.to_le_bytes(), &[bump]];
     create_pda(issuer, state, system, program_id, size, &seeds)?;
@@ -805,6 +806,112 @@ fn reclaim_buyback_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progra
     invoke_signed(&ix, &[buyback_user.clone(), issuer.clone(), system.clone()], &[&seeds])
 }
 
+// Program-owned rent is returned only after the position has no live token or
+// premium claim. The series stays open until every purchased lot is counted.
+fn close_position(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    if accounts.len() != 3 { return Err(invalid()); }
+    let buyer = &accounts[0];
+    let state = &accounts[1];
+    let position_account = &accounts[2];
+    if !buyer.is_signer || !buyer.is_writable || !state.is_writable || !position_account.is_writable {
+        return Err(bad_account());
+    }
+    let mut series = load_series(program_id, state)?;
+    if Clock::get()?.slot <= series.expiry_slot { return Err(invalid()); }
+    let position = load_position(program_id, position_account, state, buyer)?;
+    if series.status == STATUS_DEFAULT && position_remaining(&position)? != 0 { return Err(invalid()); }
+    let total = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
+    let settled = series.premium_spent_lamports.checked_add(series.premium_refunded_lamports).ok_or_else(overflow)?;
+    if position.premium_refunded == 0 && settled != total { return Err(invalid()); }
+    series.closed_position_lots = series.closed_position_lots.checked_add(position.bought_lots).ok_or_else(overflow)?;
+    if series.closed_position_lots > series.sold_lots { return Err(invalid()); }
+    save(state, &series)?;
+    close_program_account(position_account, buyer)
+}
+
+fn close_program_account(account: &AccountInfo, recipient: &AccountInfo) -> ProgramResult {
+    if account.key == recipient.key || !account.is_writable || !recipient.is_writable { return Err(bad_account()); }
+    let amount = account.lamports();
+    let new_balance = recipient.lamports().checked_add(amount).ok_or_else(overflow)?;
+    **recipient.try_borrow_mut_lamports()? = new_balance;
+    **account.try_borrow_mut_lamports()? = 0;
+    account.resize(0)?;
+    account.assign(&solana_system_interface::program::id());
+    Ok(())
+}
+
+fn close_empty_series_token(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    if accounts.len() != 5 { return Err(invalid()); }
+    let state = &accounts[0];
+    let mint = &accounts[1];
+    let token_account = &accounts[2];
+    let issuer = &accounts[3];
+    let token_program = &accounts[4];
+    let series = load_series(program_id, state)?;
+    if Clock::get()?.slot <= series.expiry_slot || *issuer.key != series.issuer ||
+        *mint.key != series.mint || !issuer.is_writable || !token_account.is_writable ||
+        token_program.key != &token_2022::id() ||
+        (*token_account.key != series.vault && *token_account.key != series.treasury) ||
+        vault_token_data(token_account, mint.key, state.key)? != 0 { return Err(invalid()); }
+    let nonce = series.nonce.to_le_bytes();
+    let bump = [series.bump];
+    let seeds = [b"series".as_ref(), mint.key.as_ref(), issuer.key.as_ref(), nonce.as_ref(), bump.as_ref()];
+    let close = Instruction { program_id: token_2022::id(), accounts: vec![
+        AccountMeta::new(*token_account.key, false), AccountMeta::new(*issuer.key, false),
+        AccountMeta::new_readonly(*state.key, true),
+    ], data: vec![9] };
+    invoke_signed(&close, &[token_account.clone(), issuer.clone(), state.clone(), token_program.clone()], &[&seeds])
+}
+
+fn close_empty_buyback_vault(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    if accounts.len() != 5 { return Err(invalid()); }
+    let state = &accounts[0];
+    let vault = &accounts[1];
+    let authority = &accounts[2];
+    let issuer = &accounts[3];
+    let token_program = &accounts[4];
+    let series = load_series(program_id, state)?;
+    let (expected, bump) = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id);
+    if Clock::get()?.slot <= series.expiry_slot || *issuer.key != series.issuer || !issuer.is_writable ||
+        *authority.key != expected || *vault.key != ata(&series.mint, &expected, &token_2022::id()) ||
+        !vault.is_writable || token_program.key != &token_2022::id() ||
+        vault_token_data(vault, &series.mint, &expected)? != 0 { return Err(invalid()); }
+    let bump_seed = [bump];
+    let seeds = [b"buyback".as_ref(), state.key.as_ref(), bump_seed.as_ref()];
+    let close = Instruction { program_id: token_2022::id(), accounts: vec![
+        AccountMeta::new(*vault.key, false), AccountMeta::new(*issuer.key, false),
+        AccountMeta::new_readonly(*authority.key, true),
+    ], data: vec![9] };
+    invoke_signed(&close, &[vault.clone(), issuer.clone(), authority.clone(), token_program.clone()], &[&seeds])
+}
+
+fn close_series(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    if accounts.len() != 7 { return Err(invalid()); }
+    let issuer = &accounts[0];
+    let state = &accounts[1];
+    let vault = &accounts[2];
+    let treasury = &accounts[3];
+    let buyback = &accounts[4];
+    let base_vault = &accounts[5];
+    let quote_vault = &accounts[6];
+    let series = load_series(program_id, state)?;
+    if !issuer.is_signer || !issuer.is_writable || !state.is_writable ||
+        *issuer.key != series.issuer || Clock::get()?.slot <= series.expiry_slot ||
+        series.closed_position_lots != series.sold_lots ||
+        *vault.key != series.vault || *treasury.key != series.treasury ||
+        *buyback.key != Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id).0 ||
+        *base_vault.key != ata(&series.mint, buyback.key, &token_2022::id()) ||
+        *quote_vault.key != ata(&wrapped_sol::id(), buyback.key, &token_legacy::id()) ||
+        vault.lamports() != 0 || treasury.lamports() != 0 || buyback.lamports() != 0 ||
+        base_vault.lamports() != 0 || quote_vault.lamports() != 0 { return Err(invalid()); }
+    let total = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
+    if series.premium_spent_lamports.checked_add(series.premium_refunded_lamports).ok_or_else(overflow)? != total ||
+        series.exercised_lots.checked_add(series.default_claimed_lots).and_then(|n| n.checked_add(series.reclaimed_lots)).ok_or_else(overflow)? != series.total_lots {
+        return Err(invalid());
+    }
+    close_program_account(state, issuer)
+}
+
 pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
     let (&op, payload) = data.split_first().ok_or_else(invalid)?;
     match op {
@@ -820,6 +927,10 @@ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], data: 
         9 => buyback_on_pump_swap(program_id, accounts, payload),
         10 if payload.is_empty() => reclaim_pump_swap_quote_rent(program_id, accounts),
         11 if payload.is_empty() => withdraw_registered_treasury(program_id, accounts),
+        12 if payload.is_empty() => close_position(program_id, accounts),
+        13 if payload.is_empty() => close_empty_series_token(program_id, accounts),
+        14 if payload.is_empty() => close_empty_buyback_vault(program_id, accounts),
+        15 if payload.is_empty() => close_series(program_id, accounts),
         _ => Err(invalid()),
     }
 }
@@ -885,7 +996,7 @@ mod tests {
             default_claimed_lots: 0, reclaimed_lots: 0,
             sale_deadline_slot: 10, expiry_slot: 20,
             strike_lamports: 100, premium_lamports: 10,
-            premium_spent_lamports: 0, premium_refunded_lamports: 0, premium_refund_claimed_lots: 0,
+            premium_spent_lamports: 0, premium_refunded_lamports: 0, premium_refund_claimed_lots: 0, closed_position_lots: 0,
         };
         let mut lamports = 1;
         let mut data = [0u8; 165];
@@ -954,7 +1065,7 @@ mod tests {
             sale_deadline_slot: 10, expiry_slot: 20,
             strike_lamports: 100, premium_lamports: 10,
             premium_spent_lamports: 6, premium_refunded_lamports: 0,
-            premium_refund_claimed_lots: 0,
+            premium_refund_claimed_lots: 0, closed_position_lots: 0,
         };
         let mut position = Position {
             tag: POSITION_TAG, bump: 0, series: Pubkey::new_unique(),
@@ -991,7 +1102,7 @@ mod tests {
             sale_deadline_slot: 10, expiry_slot: 20,
             strike_lamports: 10, premium_lamports: 1,
             premium_spent_lamports: 2, premium_refunded_lamports: 0,
-            premium_refund_claimed_lots: 0,
+            premium_refund_claimed_lots: 0, closed_position_lots: 0,
         };
         let position = Position {
             tag: POSITION_TAG, bump: 0, series: Pubkey::new_unique(),

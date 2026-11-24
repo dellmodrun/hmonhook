@@ -13,6 +13,8 @@ import {
   refundPremiumInstruction,
   deriveBuybackAuthority,
   reclaimBuybackRentInstruction,
+  derivePosition, closePositionInstruction, closeSeriesTokenInstruction, closeSeriesInstruction,
+  buybackVaultPrepInstructions, closeEmptyBuybackVaultInstruction,
   listVerifiedSeriesByMint,
 } from '../options-client.mjs';
 import { createMockPumpCurve } from './local-pump-curve.mjs';
@@ -129,6 +131,9 @@ const expiring = openSeriesInstructions({
   treasuryFloor: BigInt(900 * unit),
 });
 await send(expiring.instructions, [issuer]);
+const emptyBuybackVault = buybackVaultPrepInstructions({ programId, series: expiring.series.address,
+  mint, payer: issuer.publicKey });
+await send(emptyBuybackVault.instructions, [issuer]);
 await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, lots: 2n })], [buyer]);
 const refund = refundPremiumInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey });
 let prematureRefundRejected = false;
@@ -163,6 +168,10 @@ try { await send(exerciseInstructions({ programId, series: expiring.series.addre
 catch (_) { expiredExerciseRejected = true; }
 assert.ok(expiredExerciseRejected, 'exercise after expiry must fail');
 const expiringPremiumVault = deriveBuybackAuthority(programId, expiring.series.address);
+const closePosition = closePositionInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey });
+let pendingRefundCloseRejected = false;
+try { await send([closePosition], [buyer]); } catch (_) { pendingRefundCloseRejected = true; }
+assert.ok(pendingRefundCloseRejected, 'a Position cannot close while its premium refund remains claimable');
 const premiumBalanceBeforeRefund = await connection.getBalance(expiringPremiumVault, 'confirmed');
 const refundSignature = await send([refund], [buyer]);
 const refundedState = await fetchVerifiedSeries(connection, programId, expiring.series.address);
@@ -177,6 +186,31 @@ const rentBeforeReturn = await connection.getBalance(expiringPremiumVault, 'conf
 await send([rentReturn], [buyer]);
 assert.ok(rentBeforeReturn > 0);
 assert.equal(await connection.getBalance(expiringPremiumVault, 'confirmed'), 0);
+const closeSeries = closeSeriesInstruction({ programId, series: expiring.series.address, mint, issuer: issuer.publicKey });
+let prematureSeriesCloseRejected = false;
+try { await send([closeSeries], [issuer]); } catch (_) { prematureSeriesCloseRejected = true; }
+assert.ok(prematureSeriesCloseRejected, 'a Series cannot close while its Position and vaults remain');
+const positionAddress = derivePosition(programId, expiring.series.address, buyer.publicKey);
+const positionRent = await connection.getBalance(positionAddress, 'confirmed');
+assert.ok(positionRent > 0);
+await send([closePosition], [buyer]);
+assert.equal(await connection.getBalance(positionAddress, 'confirmed'), 0);
+assert.equal((await fetchVerifiedSeries(connection, programId, expiring.series.address)).closedPositionLots, 2n);
+await send([closeSeriesTokenInstruction({ programId, series: expiring.series.address, mint,
+  issuer: issuer.publicKey, kind: 'collateral' })], [issuer]);
+await send([closeSeriesTokenInstruction({ programId, series: expiring.series.address, mint,
+  issuer: issuer.publicKey, kind: 'treasury' })], [issuer]);
+assert.equal(await connection.getBalance(expiring.series.vault, 'confirmed'), 0);
+assert.equal(await connection.getBalance(expiring.series.treasury, 'confirmed'), 0);
+const buybackVaultRent = await connection.getBalance(emptyBuybackVault.vault.baseVault, 'confirmed');
+assert.ok(buybackVaultRent > 0);
+await send([closeEmptyBuybackVaultInstruction({ programId, series: expiring.series.address,
+  mint, issuer: issuer.publicKey })], [issuer]);
+assert.equal(await connection.getBalance(emptyBuybackVault.vault.baseVault, 'confirmed'), 0);
+const seriesRent = await connection.getBalance(expiring.series.address, 'confirmed');
+assert.ok(seriesRent > 0);
+await send([closeSeries], [issuer]);
+assert.equal(await connection.getBalance(expiring.series.address, 'confirmed'), 0);
 
 console.log(JSON.stringify({
   network: endpoint, programId: programId.toBase58(), series: opened.series.address.toBase58(),
@@ -185,4 +219,7 @@ console.log(JSON.stringify({
   unauthorizedWithdrawRejected, redirectedWithdrawRejected,
   duplicateClaimRejected, earlyReclaimSignature, reclaimSignature, expiredExerciseRejected,
   prematureRefundRejected, refundSignature, duplicateRefundRejected,
+  prematureSeriesCloseRejected, pendingRefundCloseRejected,
+  positionRentReturned: positionRent, seriesRentReturned: seriesRent,
+  buybackVaultRentReturned: buybackVaultRent,
 }, null, 2));
