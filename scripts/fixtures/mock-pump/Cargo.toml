@@ -1,0 +1,15 @@
+[package]
+name = "mock-pump-local-only"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+solana-program = "4.0"
+solana-system-interface = { version = "3.3", features = ["bincode"] }
+
+[profile.release]
+overflow-checks = true

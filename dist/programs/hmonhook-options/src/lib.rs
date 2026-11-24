@@ -14,6 +14,21 @@ use solana_system_interface::instruction as system_instruction;
 mod token_2022 {
     solana_program::declare_id!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
 }
+mod token_legacy {
+    solana_program::declare_id!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+}
+mod associated_token {
+    solana_program::declare_id!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+}
+mod wrapped_sol {
+    solana_program::declare_id!("So11111111111111111111111111111111111111112");
+}
+mod pump {
+    solana_program::declare_id!("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P");
+}
+mod pump_fee_config {
+    solana_program::declare_id!("8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt");
+}
 
 const SERIES_TAG: [u8; 8] = *b"HMONOPT2";
 const POSITION_TAG: [u8; 8] = *b"HMONPOS2";
@@ -173,6 +188,24 @@ fn transfer_sol<'a>(payer: &AccountInfo<'a>, recipient: &AccountInfo<'a>, system
     invoke(&ix, &[payer.clone(), recipient.clone(), system.clone()])
 }
 
+fn ata(mint: &Pubkey, owner: &Pubkey, token_program: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &associated_token::id()).0
+}
+
+fn pump_buyback_fee_recipient(address: &Pubkey) -> bool {
+    const RECIPIENTS: [&str; 8] = [
+        "5YxQFdt3Tr9zJLvkFccqXVUwhdTWJQc1fFg2YPbxvxeD",
+        "9M4giFFMxmFGXtc3feFzRai56WbBqehoSeRE5GK7gf7",
+        "GXPFM2caqTtQYC2cJ5yJRi9VDkpsYZXzYdwYpGnLmtDL",
+        "3BpXnfJaUTiwXnJNe7Ej1rcbzqTTQUvLShZaWazebsVR",
+        "5cjcW9wExnJJiqgLjq7DEG75Pm6JBgE1hNv4B2vHXUW6",
+        "EHAAiTxcdDwQ3U4bU6YcMsQGaekdzLS3B5SmYo46kJtL",
+        "5eHhjP8JaYkz83CWwvGU2uMUXefd3AazWGx4gpcuEEYD",
+        "A7hAgCzFw14fejgCp387JUJRMNyz4j89JKnhtKU8piqW",
+    ];
+    RECIPIENTS.iter().any(|value| value.parse::<Pubkey>().ok().as_ref() == Some(address))
+}
+
 fn position_remaining(position: &Position) -> Result<u64, ProgramError> {
     position.bought_lots.checked_sub(position.exercised_lots).and_then(|v| v.checked_sub(position.default_claimed_lots)).ok_or_else(overflow)
 }
@@ -192,9 +225,10 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let vault = next_account_info(&mut it)?;
     let treasury = next_account_info(&mut it)?;
     let state = next_account_info(&mut it)?;
+    let buyback_user = next_account_info(&mut it)?;
     let token_program = next_account_info(&mut it)?;
     let system = next_account_info(&mut it)?;
-    if !issuer.is_signer || !issuer.is_writable || !source.is_writable || !vault.is_writable || !state.is_writable { return Err(bad_account()); }
+    if !issuer.is_signer || !issuer.is_writable || !source.is_writable || !vault.is_writable || !state.is_writable || !buyback_user.is_writable { return Err(bad_account()); }
     let slot = Clock::get()?.slot;
     if sale_deadline <= slot || expiry <= sale_deadline || strike == 0 { return Err(invalid()); }
     let (supply, decimals) = mint_data(mint)?;
@@ -210,11 +244,16 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     if floor == 0 || floor > expected_remaining { return Err(invalid()); }
     let (expected, bump) = Pubkey::find_program_address(&[b"series", mint.key.as_ref(), issuer.key.as_ref(), &nonce.to_le_bytes()], program_id);
     if expected != *state.key { return Err(bad_account()); }
+    let expected_buyback = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id).0;
+    if expected_buyback != *buyback_user.key || buyback_user.owner != &solana_system_interface::program::id() || buyback_user.data_len() != 0 { return Err(bad_account()); }
     let premium = strike / 10 + u64::from(strike % 10 != 0);
     let series = Series { tag: SERIES_TAG, status: STATUS_ACTIVE, bump, nonce, issuer: *issuer.key, mint: *mint.key, vault: *vault.key, treasury: *treasury.key, treasury_floor: floor, supply_snapshot: supply, lot_size, total_lots: deposit / lot_size, sold_lots: 0, exercised_lots: 0, default_claimed_lots: 0, reclaimed_lots: 0, sale_deadline_slot: sale_deadline, expiry_slot: expiry, strike_lamports: strike, premium_lamports: premium, premium_spent_lamports: 0, premium_refunded_lamports: 0, premium_refund_claimed_lots: 0 };
     let size = borsh::to_vec(&series).map_err(|_| invalid())?.len();
     let seeds = [b"series".as_ref(), mint.key.as_ref(), issuer.key.as_ref(), &nonce.to_le_bytes(), &[bump]];
     create_pda(issuer, state, system, program_id, size, &seeds)?;
+    let rent_reserve = Rent::get()?.minimum_balance(0);
+    let rent_topup = rent_reserve.saturating_sub(buyback_user.lamports());
+    if rent_topup != 0 { transfer_sol(issuer, buyback_user, system, rent_topup)?; }
     let before = vault_token_data(vault, mint.key, state.key)?;
     transfer_tokens(source, vault, mint, issuer, token_program, deposit, decimals, None)?;
     let received = vault_token_data(vault, mint.key, state.key)?.checked_sub(before).ok_or_else(overflow)?;
@@ -232,9 +271,12 @@ fn buy(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramRes
     let state = next_account_info(&mut it)?;
     let position_account = next_account_info(&mut it)?;
     let treasury = next_account_info(&mut it)?;
+    let buyback_user = next_account_info(&mut it)?;
     let system = next_account_info(&mut it)?;
-    if !buyer.is_signer || !buyer.is_writable || !state.is_writable || !position_account.is_writable { return Err(bad_account()); }
+    if !buyer.is_signer || !buyer.is_writable || !state.is_writable || !position_account.is_writable || !buyback_user.is_writable { return Err(bad_account()); }
     let mut series = load_series(program_id, state)?;
+    let expected_buyback = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id).0;
+    if *buyback_user.key != expected_buyback || buyback_user.owner != &solana_system_interface::program::id() || buyback_user.data_len() != 0 { return Err(bad_account()); }
     if series.status != STATUS_ACTIVE || Clock::get()?.slot > series.sale_deadline_slot { return Err(invalid()); }
     if *treasury.key != series.treasury || treasury_breached(treasury, &series) { return Err(invalid()); }
     let sold = series.sold_lots.checked_add(lots).ok_or_else(overflow)?;
@@ -252,7 +294,7 @@ fn buy(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramRes
     };
     if position.tag != POSITION_TAG || position.series != *state.key || position.buyer != *buyer.key || position.bump != bump || position.premium_refunded != 0 { return Err(bad_account()); }
     let premium = lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
-    transfer_sol(buyer, state, system, premium)?;
+    transfer_sol(buyer, buyback_user, system, premium)?;
     position.bought_lots = position.bought_lots.checked_add(lots).ok_or_else(overflow)?;
     series.sold_lots = sold;
     save(position_account, &position)?;
@@ -377,10 +419,15 @@ fn claim_premium_refund(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progra
     let buyer = next_account_info(&mut it)?;
     let state = next_account_info(&mut it)?;
     let position_account = next_account_info(&mut it)?;
-    if !buyer.is_signer || !buyer.is_writable || !state.is_writable || !position_account.is_writable {
+    let buyback_user = next_account_info(&mut it)?;
+    let system = next_account_info(&mut it)?;
+    if !buyer.is_signer || !buyer.is_writable || !state.is_writable || !position_account.is_writable || !buyback_user.is_writable ||
+        system.key != &solana_system_interface::program::id() {
         return Err(bad_account());
     }
     let mut series = load_series(program_id, state)?;
+    let (expected_buyback, bump) = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id);
+    if *buyback_user.key != expected_buyback || buyback_user.owner != &solana_system_interface::program::id() || buyback_user.data_len() != 0 { return Err(bad_account()); }
     if Clock::get()?.slot <= series.expiry_slot { return Err(invalid()); }
     let mut position = load_position(program_id, position_account, state, buyer)?;
     let (amount, claimed_lots) = refund_entitlement(&series, &position)?;
@@ -388,19 +435,137 @@ fn claim_premium_refund(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progra
     let total = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
     let unspent = total.checked_sub(series.premium_spent_lamports).ok_or_else(overflow)?;
     let due = unspent.checked_sub(series.premium_refunded_lamports).ok_or_else(overflow)?;
-    let minimum = Rent::get()?.minimum_balance(state.data_len());
-    let before = state.lamports();
-    if before < minimum.checked_add(due).ok_or_else(overflow)? { return Err(bad_account()); }
-    let after = before.checked_sub(amount).ok_or_else(overflow)?;
-    let buyer_after = buyer.lamports().checked_add(amount).ok_or_else(overflow)?;
+    if buyback_user.lamports() < Rent::get()?.minimum_balance(0).checked_add(due).ok_or_else(overflow)? { return Err(bad_account()); }
     series.premium_refund_claimed_lots = claimed_lots;
     series.premium_refunded_lamports = series.premium_refunded_lamports.checked_add(amount).ok_or_else(overflow)?;
     position.premium_refunded = 1;
     save(position_account, &position)?;
     save(state, &series)?;
-    **state.try_borrow_mut_lamports()? = after;
-    **buyer.try_borrow_mut_lamports()? = buyer_after;
-    Ok(())
+    let bump_seed = [bump];
+    let seeds = [b"buyback".as_ref(), state.key.as_ref(), bump_seed.as_ref()];
+    let ix = system_instruction::transfer(buyback_user.key, buyer.key, amount);
+    invoke_signed(&ix, &[buyback_user.clone(), buyer.clone(), system.clone()], &[&seeds])
+}
+
+// The buyback PDA holds premiums paid in earlier purchase transactions. A
+// keeper pays Pump's incidental account rent from its own SOL. A successful
+// trade sends base
+// tokens to a PDA vault for which this program has no withdrawal instruction.
+fn buyback_on_pump(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
+    if data.len() != 24 || accounts.len() != 19 { return Err(invalid()); }
+    let spend = u64_at(data, 0)?;
+    let min_out = u64_at(data, 8)?;
+    let keeper_topup = u64_at(data, 16)?;
+    if spend == 0 || min_out == 0 || keeper_topup > 20_000_000 { return Err(invalid()); }
+    let keeper = &accounts[0];
+    let state = &accounts[1];
+    let route = &accounts[2..19];
+    if !keeper.is_signer || !keeper.is_writable || !state.is_writable { return Err(bad_account()); }
+    let mut series = load_series(program_id, state)?;
+    if series.status != STATUS_ACTIVE || series.sold_lots != series.total_lots ||
+        Clock::get()?.slot >= series.expiry_slot { return Err(invalid()); }
+    let received_premiums = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
+    let available = received_premiums.checked_sub(series.premium_spent_lamports)
+        .and_then(|v| v.checked_sub(series.premium_refunded_lamports)).ok_or_else(overflow)?;
+    if spend > available { return Err(invalid()); }
+    // The keeper may demand a stricter output, but never a trade worse than
+    // two times the series' published strike price, inclusive of Pump fees.
+    let ceiling = (series.strike_lamports as u128).checked_mul(2).ok_or_else(overflow)?;
+    let floor = ((spend as u128).checked_mul(series.lot_size as u128).ok_or_else(overflow)?
+        + ceiling - 1) / ceiling;
+    if (min_out as u128) < floor.max(1) { return Err(invalid()); }
+
+    let (buyback_user, bump) = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id);
+    let curve = Pubkey::find_program_address(&[b"bonding-curve", series.mint.as_ref()], &pump::id()).0;
+    let expected = [
+        Pubkey::find_program_address(&[b"global"], &pump::id()).0,
+        series.mint, wrapped_sol::id(), token_2022::id(), token_legacy::id(), curve,
+        ata(&series.mint, &curve, &token_2022::id()),
+        ata(&wrapped_sol::id(), &curve, &token_legacy::id()),
+        buyback_user,
+        ata(&series.mint, &buyback_user, &token_2022::id()),
+        ata(&wrapped_sol::id(), &buyback_user, &token_legacy::id()),
+        Pubkey::find_program_address(&[b"user_volume_accumulator", buyback_user.as_ref()], &pump::id()).0,
+        pump_fee_config::id(),
+        *route[13].key,
+        solana_system_interface::program::id(),
+        Pubkey::find_program_address(&[b"__event_authority"], &pump::id()).0,
+        pump::id(),
+    ];
+    if route.iter().zip(expected.iter()).any(|(account, key)| account.key != key) ||
+        !pump_buyback_fee_recipient(route[13].key) ||
+        route[8].owner != &solana_system_interface::program::id() || route[8].data_len() != 0 {
+        return Err(bad_account());
+    }
+    let before_tokens = vault_token_data(&route[9], &series.mint, &buyback_user)?;
+    let minimum = Rent::get()?.minimum_balance(state.data_len());
+    let state_before = state.lamports();
+    if state_before < minimum { return Err(bad_account()); }
+    let buyback_before = route[8].lamports();
+    if buyback_before < Rent::get()?.minimum_balance(0).checked_add(available).ok_or_else(overflow)? { return Err(bad_account()); }
+    if keeper_topup != 0 { transfer_sol(keeper, &route[8], &route[14], keeper_topup)?; }
+    let funded = route[8].lamports();
+    if funded != buyback_before.checked_add(keeper_topup).ok_or_else(overflow)? { return Err(bad_account()); }
+
+    let mut cpi_data = vec![0xe1, 0xf7, 0x50, 0x1e, 0xd5, 0xb3, 0x84, 0x88];
+    cpi_data.extend_from_slice(&spend.to_le_bytes());
+    cpi_data.extend_from_slice(&min_out.to_le_bytes());
+    cpi_data.push(0); // partial_fill = false
+    let writable = [5_usize, 6, 7, 8, 9, 10, 11, 13];
+    let metas = route.iter().enumerate().map(|(index, account)| {
+        if writable.contains(&index) { AccountMeta::new(*account.key, index == 8) }
+        else { AccountMeta::new_readonly(*account.key, false) }
+    }).collect();
+    let cpi = Instruction { program_id: pump::id(), accounts: metas, data: cpi_data };
+    let bump_seed = [bump];
+    let seeds = [b"buyback".as_ref(), state.key.as_ref(), bump_seed.as_ref()];
+    invoke_signed(&cpi, route, &[&seeds])?;
+
+    let tokens_out = vault_token_data(&route[9], &series.mint, &buyback_user)?
+        .checked_sub(before_tokens).ok_or_else(overflow)?;
+    if tokens_out < min_out || state.lamports() != state_before { return Err(bad_account()); }
+    let buyback_after = route[8].lamports();
+    let preserved = buyback_before.checked_sub(spend).ok_or_else(overflow)?;
+    let refund_keeper = buyback_after.checked_sub(preserved).ok_or_else(overflow)?;
+    if refund_keeper > keeper_topup { return Err(bad_account()); }
+    if refund_keeper != 0 {
+        let ix = system_instruction::transfer(route[8].key, keeper.key, refund_keeper);
+        invoke_signed(&ix, &[route[8].clone(), keeper.clone(), route[14].clone()], &[&seeds])?;
+    }
+    if route[8].lamports() != preserved ||
+        route[8].lamports() < Rent::get()?.minimum_balance(0).checked_add(available - spend).ok_or_else(overflow)? ||
+        state.lamports() < minimum {
+        return Err(bad_account());
+    }
+    series.premium_spent_lamports = series.premium_spent_lamports.checked_add(spend).ok_or_else(overflow)?;
+    save(state, &series)
+}
+
+fn reclaim_buyback_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    if accounts.len() != 4 { return Err(invalid()); }
+    let state = &accounts[0];
+    let buyback_user = &accounts[1];
+    let issuer = &accounts[2];
+    let system = &accounts[3];
+    let series = load_series(program_id, state)?;
+    if Clock::get()?.slot <= series.expiry_slot || *issuer.key != series.issuer || !issuer.is_writable ||
+        !buyback_user.is_writable || system.key != &solana_system_interface::program::id() {
+        return Err(invalid());
+    }
+    let (expected, bump) = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id);
+    if *buyback_user.key != expected || buyback_user.owner != &solana_system_interface::program::id() || buyback_user.data_len() != 0 {
+        return Err(bad_account());
+    }
+    let total = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
+    if total != series.premium_spent_lamports.checked_add(series.premium_refunded_lamports).ok_or_else(overflow)? {
+        return Err(invalid());
+    }
+    let amount = buyback_user.lamports();
+    if amount == 0 { return Err(invalid()); }
+    let bump_seed = [bump];
+    let seeds = [b"buyback".as_ref(), state.key.as_ref(), bump_seed.as_ref()];
+    let ix = system_instruction::transfer(buyback_user.key, issuer.key, amount);
+    invoke_signed(&ix, &[buyback_user.clone(), issuer.clone(), system.clone()], &[&seeds])
 }
 
 pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
@@ -413,6 +578,8 @@ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], data: 
         4 => settle(program_id, accounts, payload, true),
         5 if payload.is_empty() => reclaim(program_id, accounts),
         6 if payload.is_empty() => claim_premium_refund(program_id, accounts),
+        7 => buyback_on_pump(program_id, accounts, payload),
+        8 if payload.is_empty() => reclaim_buyback_rent(program_id, accounts),
         _ => Err(invalid()),
     }
 }

@@ -12,6 +12,8 @@ import {
   triggerDefaultInstruction, claimDefaultInstructions, fetchVerifiedSeries,
   reclaimInstructions,
   refundPremiumInstruction,
+  deriveBuybackAuthority,
+  reclaimBuybackRentInstruction,
   listVerifiedSeriesByMint,
 } from '../options-client.mjs';
 
@@ -64,11 +66,12 @@ try { await send([triggerDefaultInstruction({ programId, series: opened.series.a
 catch (_) { prematureDefaultRejected = true; }
 assert.ok(prematureDefaultRejected, 'default must require a breached registered treasury');
 
-const seriesLamportsBeforeBuy = await connection.getBalance(opened.series.address, 'confirmed');
+const premiumVault = deriveBuybackAuthority(programId, opened.series.address);
+const premiumsBeforeBuy = await connection.getBalance(premiumVault, 'confirmed');
 const buySignature = await send([buyOptionsInstruction({ programId, series: opened.series.address, buyer: buyer.publicKey, treasury, lots: 2n })], [buyer]);
 series = await fetchVerifiedSeries(connection, programId, opened.series.address);
 assert.equal(series.soldLots, 2n);
-assert.equal((await connection.getBalance(opened.series.address, 'confirmed')) - seriesLamportsBeforeBuy, 200);
+assert.equal((await connection.getBalance(premiumVault, 'confirmed')) - premiumsBeforeBuy, 200);
 
 const exercised = exerciseInstructions({ programId, series: opened.series.address, mint, vault: opened.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n });
 const diverted = exerciseInstructions({ programId, series: opened.series.address, mint, vault: opened.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n });
@@ -138,15 +141,21 @@ let expiredExerciseRejected = false;
 try { await send(exerciseInstructions({ programId, series: expiring.series.address, mint, vault: expiring.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n }).instructions, [buyer]); }
 catch (_) { expiredExerciseRejected = true; }
 assert.ok(expiredExerciseRejected, 'exercise after expiry must fail');
-const premiumBalanceBeforeRefund = await connection.getBalance(expiring.series.address, 'confirmed');
+const expiringPremiumVault = deriveBuybackAuthority(programId, expiring.series.address);
+const premiumBalanceBeforeRefund = await connection.getBalance(expiringPremiumVault, 'confirmed');
 const refundSignature = await send([refund], [buyer]);
 const refundedState = await fetchVerifiedSeries(connection, programId, expiring.series.address);
 assert.equal(refundedState.premiumRefundedLamports, 200n);
 assert.equal(refundedState.premiumRefundClaimedLots, 2n);
-assert.equal(premiumBalanceBeforeRefund - await connection.getBalance(expiring.series.address, 'confirmed'), 200);
+assert.equal(premiumBalanceBeforeRefund - await connection.getBalance(expiringPremiumVault, 'confirmed'), 200);
 let duplicateRefundRejected = false;
 try { await send([refund], [buyer]); } catch (_) { duplicateRefundRejected = true; }
 assert.ok(duplicateRefundRejected, 'the same position cannot claim a premium refund twice');
+const rentReturn = reclaimBuybackRentInstruction({ programId, series: expiring.series.address, issuer: issuer.publicKey });
+const rentBeforeReturn = await connection.getBalance(expiringPremiumVault, 'confirmed');
+await send([rentReturn], [buyer]);
+assert.ok(rentBeforeReturn > 0);
+assert.equal(await connection.getBalance(expiringPremiumVault, 'confirmed'), 0);
 
 console.log(JSON.stringify({
   network: endpoint, programId: programId.toBase58(), series: opened.series.address.toBase58(),

@@ -7,7 +7,8 @@ import {
   reclaimInstructions, refundPremiumInstruction, decodeSeries,
   fetchVerifiedSeries,
   listVerifiedSeriesByMint,
-  deriveBuybackVault, buybackVaultPrepInstructions, buildPumpBuybackRoute,
+  deriveBuybackVault, deriveBuybackAuthority, buybackVaultPrepInstructions, buildPumpBuybackRoute, pumpBuybackInstruction,
+  reclaimBuybackRentInstruction,
 } from '../options-client.mjs';
 
 const programId = Keypair.generate().publicKey;
@@ -50,6 +51,22 @@ test('Pump buyback route targets a separate program-owned vault', async () => {
   }), /positive/);
 });
 
+test('Pump buyback uses a keeper rent allowance while the PDA signs only inside the options program', async () => {
+  const built = await pumpBuybackInstruction({ programId, series, mint, keeper: issuer,
+    spendableQuoteIn: 1_000_000n, minTokensOut: 1_000_000n,
+    keeperTopupLamports: 2_000_000n, strikeLamports: 1_000_000n, lotSize: 1_000_000n });
+  assert.equal(built.instruction.data[0], 7);
+  assert.equal(built.instruction.keys.length, 19);
+  assert.equal(built.instruction.keys[10].pubkey.toBase58(), built.vault.authority.toBase58());
+  assert.equal(built.instruction.keys[10].isSigner, false);
+  assert.equal(built.instruction.keys[0].isSigner, true);
+  assert.equal(built.instruction.keys[1].isWritable, true);
+  assert.equal(built.instruction.data.readBigUInt64LE(17), 2_000_000n);
+  await assert.rejects(() => pumpBuybackInstruction({ programId, series, mint, keeper: issuer,
+    spendableQuoteIn: 1_000_000n, minTokensOut: 1n,
+    keeperTopupLamports: 2_000_000n, strikeLamports: 1_000_000n, lotSize: 1_000_000n }), /Minimum output/);
+});
+
 test('all option actions target the chosen new program with exact account order', () => {
   const open = openSeriesInstructions({ programId, issuer, mint, source, treasury, nonce, deposit: 20n, strikeLamports: 100n, saleDeadlineSlot: 200n, expirySlot: 300n, treasuryFloor: 40n });
   assert.equal(open.series.address.toBase58(), series.toBase58());
@@ -60,6 +77,7 @@ test('all option actions target the chosen new program with exact account order'
   assert.equal(buy.data[0], 1);
   assert.equal(buy.keys[2].pubkey.toBase58(), derivePosition(programId, series, buyer).toBase58());
   assert.equal(buy.keys[3].pubkey.toBase58(), treasury.toBase58());
+  assert.equal(buy.keys[4].pubkey.toBase58(), deriveBuybackAuthority(programId, series).toBase58());
   for (const [op, action] of [
     [2, exerciseInstructions({ programId, series, mint, vault, issuer, buyer, lots: 1n })],
     [4, claimDefaultInstructions({ programId, series, mint, vault, issuer, buyer, lots: 1n })],
@@ -72,6 +90,8 @@ test('all option actions target the chosen new program with exact account order'
   const refund = refundPremiumInstruction({ programId, series, buyer });
   assert.equal(refund.data[0], 6);
   assert.equal(refund.keys[2].pubkey.toBase58(), derivePosition(programId, series, buyer).toBase58());
+  assert.equal(refund.keys[3].pubkey.toBase58(), deriveBuybackAuthority(programId, series).toBase58());
+  assert.equal(reclaimBuybackRentInstruction({ programId, series, issuer }).data[0], 8);
 });
 
 test('series decoder rejects unrelated bytes and preserves base-unit terms', () => {

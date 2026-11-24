@@ -22,7 +22,7 @@ The proposed terms allow a developer to lock 2%–10% of supply and sell options
 
 This module is not deployed through h/monhook. No current market card, launch transaction or Jolt Guard receipt proves an issuer lock, option position, sale violation or claim. A production version needs audited contracts, an independently reviewable evidence and attestation path, an indexer and an explicit user interface for each right and risk.
 
-The development options contract now binds the collateral source to one monitored issuer treasury. A fall below that account's committed balance can be checked on-chain. It does not identify every wallet controlled by a developer or prove a historical sale after a balance is restored. The planned premium buyback must send acquired tokens to an unwithdrawable vault. Buyers can reclaim unspent premiums after expiry, but the contract still has no executable buyback route and must not accept real option purchases.
+The development options contract now binds the collateral source to one monitored issuer treasury. A fall below that account's committed balance can be checked on-chain. It does not identify every wallet controlled by a developer or prove a historical sale after a balance is restored. Its Pump curve premium buyback sends acquired tokens to a separate vault and has passed only a local test-double run. Buyers can reclaim unspent premiums after expiry, but real Pump and migrated PumpSwap paths, funded devnet tests and independent review are still needed before real option purchases.
 
 ## Optional user privacy: integration planned
 
