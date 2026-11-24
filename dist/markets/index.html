@@ -131,6 +131,7 @@ body{background:#000;background-image:none}
 .hero-banner{background:#050505}
 .ca-box,.dev-letter,.home-panel,.chapter,.route-card,.market-card,.market-command,.market-discovery,.research,.paper-origin{background:#0d0d0d}
 .official-market{margin-top:12px}.official-market-card{max-width:none;border-color:#b55b1a;background:linear-gradient(125deg,#17100b,#0d0d0d 62%)}.official-market-card .market-card-head{grid-template-columns:64px minmax(0,1fr)}.official-market-card .market-token-image img{object-fit:contain;padding:5px}.official-market-card .market-price{margin-top:18px}.official-market-card .market-ca code{overflow-wrap:anywhere;white-space:normal}.official-market-card [hidden]{display:none!important}
+.community-market-heading{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-top:28px}.community-market-heading span{font:11px "JetBrains Mono",monospace;color:var(--brand)}.community-market-heading h2{margin:7px 0 0;font:34px/1.1 "EB Garamond",serif;font-weight:400}.community-market-heading p{max-width:440px;margin:0;color:var(--muted);font-size:14px;line-height:1.5}.market-demo-card{border-style:dashed;opacity:.84}.market-demo-image{background:linear-gradient(145deg,#43220f,#15110e 55%,#312015)}.market-demo-image span{color:#ff9d38;font-size:18px}.market-demo-card .market-ca{grid-template-columns:auto minmax(0,1fr)}.market-demo-card .market-ca code{color:var(--muted)}@media(max-width:680px){.community-market-heading{display:block}.community-market-heading p{margin-top:10px}}
 .route-card:hover,.market-card:hover{border-color:#b55b1a;background:#15100d}
 .eyebrow,.chapter-label,.route-card small,.status-band .ready,.market-price em,.market-ca button{color:#ff932d}
 .ca-box strong,.status-line b,.market-badges b.live{color:#ff9d38}
@@ -281,7 +282,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="market-actions" id="official-market-actions" hidden><a class="button button-solid" id="official-market-trade" href="./intent/">trade with intent</a><a class="button" id="official-market-pump" href="https://pump.fun/" target="_blank" rel="noreferrer">pump market</a><a class="button" id="official-market-chart" href="https://dexscreener.com/solana" target="_blank" rel="noreferrer" hidden>live chart</a><a class="button" id="official-market-explorer" href="https://explorer.solana.com/" target="_blank" rel="noreferrer">explorer</a></div>
 <p class="market-source" id="official-market-note">The official CA has not been published. This reserved listing is not a live market.</p>
 </article></section>
-<section id="market-grid" class="market-grid" aria-live="polite"><div class="market-empty"><span>LOADING MARKET RECORDS</span><h2>Resolving market data…</h2></div></section>
+<div class="community-market-heading"><div><span>COMMUNITY LAUNCHES</span><h2>Coins launched by users</h2></div><p>User-created coins appear here, below the official token. The three preview slots are examples, not live coins.</p></div>
+<section id="market-grid" class="market-grid" aria-label="User-launched coin markets" aria-live="polite"><div class="market-empty"><span>LOADING MARKET RECORDS</span><h2>Resolving market data…</h2></div></section>
 
 <section class="section-block"><div class="section-head"><div><div class="eyebrow">WHAT THE LABELS MEAN</div><h2>What do these market labels mean?</h2></div><p>A market can be live without being the official h/monhook token. h/monhook therefore never infers provenance from a token name, ticker or trading venue.</p></div><div class="prose-block"><p><strong>Official token</strong> identifies the published h/monhook CA. <strong>Independent launch</strong> identifies a separate coin with a confirmed mainnet creation receipt; it does not make that coin an official h/monhook asset. A published registry entry makes either record discoverable across devices.</p><p><strong>Live market</strong> means a third-party indexer has observed a liquidity pool and trading data for the Mint. Price and volume are informational observations, not guarantees, endorsements or investment advice.</p></div><div class="callout"><b>ISSUER PROTECTION IS NOT YET A MARKET LABEL</b><p>The proposed same-name comparison, verified developer locks and option coverage are not active in this directory. Current cards do not certify that an issuer has locked supply, sold options or passed a developer-sale check. Those labels will appear only when the underlying contracts and evidence can be verified.</p></div></section>
 <details class="advanced-information"><summary>Learn about planned issuer protection and the market lifecycle</summary><div class="advanced-inner">
@@ -1327,6 +1329,18 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     });
   }
 
+  function demoCard(slot) {
+    var label = String(slot).padStart(2, "0");
+    return '<article class="market-card market-demo-card" aria-label="Example user launch slot ' + label + '">' +
+      '<div class="market-card-head"><div class="market-token-image market-demo-image"><span>' + label + '</span></div>' +
+      '<div><div class="market-badges"><b>DEMO SLOT</b><b class="pending">NOT LIVE</b></div><h2>Example coin ' + label + '</h2><p>User launch preview</p></div></div>' +
+      '<div class="market-price"><span>PRICE USD</span><strong>—</strong><em>Appears after a real launch</em></div>' +
+      '<div class="market-metrics"><div><span>MARKET CAP</span><b>—</b></div><div><span>LIQUIDITY</span><b>—</b></div><div><span>VOLUME 24H</span><b>—</b></div><div><span>LAUNCH DATE</span><b>—</b></div></div>' +
+      '<div class="market-ca"><span>MINT</span><code>No address — preview only</code></div>' +
+      '<p class="market-source">A real coin launched from h/monhook will take this position after its transaction is confirmed and listed.</p>' +
+      '</article>';
+  }
+
   function render() {
     var grid = byId("market-grid");
     var launches = state.launches.filter(function (item) {
@@ -1338,6 +1352,9 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       return true;
     });
     sortLaunches(launches);
+    var showDemos = state.filter === "all" && !sharedMint &&
+      !state.launches.some(function (item) { return item.source === "search"; });
+    var demoCount = showDemos ? Math.max(0, 3 - launches.length) : 0;
 
     var verifiedLaunches = state.launches.filter(function (item) { return item.source !== "search" && item.source !== "pending"; });
     var liveCount = verifiedLaunches.filter(function (item) { return state.pairs.has(item.mint); }).length;
@@ -1349,7 +1366,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     byId("market-liquidity").textContent = money(liquidity, true);
     byId("market-updated").textContent = "UPDATED " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    if (!launches.length) {
+    if (!launches.length && !demoCount) {
       grid.innerHTML = '<div class="market-empty"><span>NO MATCHING MARKETS</span><h2>Your next coin can start here.</h2><p>No verified launch matches this view yet. Create a coin or search a Mint above. Price data appears after a market is active and indexed.</p><a class="button button-solid" href="./launch/">launch a coin</a></div>';
       return;
     }
@@ -1374,6 +1391,8 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         '<div class="market-actions"><a class="button button-solid" href="./intent/?outputMint=' + encodeURIComponent(item.mint) + '">trade with intent</a><a class="button" href="' + escapeHtml(pump) + '" target="_blank" rel="noreferrer">pump market ↗</a>' + (marketUrl ? '<a class="button" href="' + escapeHtml(marketUrl) + '" target="_blank" rel="noreferrer">live chart ↗</a>' : '') + '<a class="button" href="' + escapeHtml(explorer) + '" target="_blank" rel="noreferrer">explorer ↗</a></div>' +
         '<p class="market-source">' + (item.source === "pending" ? 'The creation transaction was submitted, but confirmation is unresolved. Check its signature before trying again.' : item.official ? 'Verified official CA published by h/monhook.' : item.independent ? 'Independent mainnet launch with a finalized creation receipt; not the official h/monhook token.' : item.source === "verified-pump" ? 'Pump coin creation verified on-chain. This does not mean the developer locked tokens.' : item.source === "registry" ? 'Published h/monhook registry entry.' : item.source === "device" ? 'Launch receipt saved on this device after confirmation; verify its signature independently.' : 'Mint supplied for market discovery, not verified as an h/monhook launch.') + ' Market figures come from a third-party index and may be delayed.</p>' +
         '</article>';
+    }).join("") + Array.from({ length: demoCount }, function (_, index) {
+      return demoCard(launches.length + index + 1);
     }).join("");
   }
 

@@ -130,6 +130,18 @@
     });
   }
 
+  function demoCard(slot) {
+    var label = String(slot).padStart(2, "0");
+    return '<article class="market-card market-demo-card" aria-label="Example user launch slot ' + label + '">' +
+      '<div class="market-card-head"><div class="market-token-image market-demo-image"><span>' + label + '</span></div>' +
+      '<div><div class="market-badges"><b>DEMO SLOT</b><b class="pending">NOT LIVE</b></div><h2>Example coin ' + label + '</h2><p>User launch preview</p></div></div>' +
+      '<div class="market-price"><span>PRICE USD</span><strong>—</strong><em>Appears after a real launch</em></div>' +
+      '<div class="market-metrics"><div><span>MARKET CAP</span><b>—</b></div><div><span>LIQUIDITY</span><b>—</b></div><div><span>VOLUME 24H</span><b>—</b></div><div><span>LAUNCH DATE</span><b>—</b></div></div>' +
+      '<div class="market-ca"><span>MINT</span><code>No address — preview only</code></div>' +
+      '<p class="market-source">A real coin launched from h/monhook will take this position after its transaction is confirmed and listed.</p>' +
+      '</article>';
+  }
+
   function render() {
     var grid = byId("market-grid");
     var launches = state.launches.filter(function (item) {
@@ -141,6 +153,9 @@
       return true;
     });
     sortLaunches(launches);
+    var showDemos = state.filter === "all" && !sharedMint &&
+      !state.launches.some(function (item) { return item.source === "search"; });
+    var demoCount = showDemos ? Math.max(0, 3 - launches.length) : 0;
 
     var verifiedLaunches = state.launches.filter(function (item) { return item.source !== "search" && item.source !== "pending"; });
     var liveCount = verifiedLaunches.filter(function (item) { return state.pairs.has(item.mint); }).length;
@@ -152,7 +167,7 @@
     byId("market-liquidity").textContent = money(liquidity, true);
     byId("market-updated").textContent = "UPDATED " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    if (!launches.length) {
+    if (!launches.length && !demoCount) {
       grid.innerHTML = '<div class="market-empty"><span>NO MATCHING MARKETS</span><h2>Your next coin can start here.</h2><p>No verified launch matches this view yet. Create a coin or search a Mint above. Price data appears after a market is active and indexed.</p><a class="button button-solid" href="./launch/">launch a coin</a></div>';
       return;
     }
@@ -177,6 +192,8 @@
         '<div class="market-actions"><a class="button button-solid" href="./intent/?outputMint=' + encodeURIComponent(item.mint) + '">trade with intent</a><a class="button" href="' + escapeHtml(pump) + '" target="_blank" rel="noreferrer">pump market ↗</a>' + (marketUrl ? '<a class="button" href="' + escapeHtml(marketUrl) + '" target="_blank" rel="noreferrer">live chart ↗</a>' : '') + '<a class="button" href="' + escapeHtml(explorer) + '" target="_blank" rel="noreferrer">explorer ↗</a></div>' +
         '<p class="market-source">' + (item.source === "pending" ? 'The creation transaction was submitted, but confirmation is unresolved. Check its signature before trying again.' : item.official ? 'Verified official CA published by h/monhook.' : item.independent ? 'Independent mainnet launch with a finalized creation receipt; not the official h/monhook token.' : item.source === "verified-pump" ? 'Pump coin creation verified on-chain. This does not mean the developer locked tokens.' : item.source === "registry" ? 'Published h/monhook registry entry.' : item.source === "device" ? 'Launch receipt saved on this device after confirmation; verify its signature independently.' : 'Mint supplied for market discovery, not verified as an h/monhook launch.') + ' Market figures come from a third-party index and may be delayed.</p>' +
         '</article>';
+    }).join("") + Array.from({ length: demoCount }, function (_, index) {
+      return demoCard(launches.length + index + 1);
     }).join("");
   }
 
