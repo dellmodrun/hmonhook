@@ -1,6 +1,6 @@
 import { PUMP_PROGRAM_ID, PUMP_SDK } from '@pump-fun/pump-sdk';
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
-import { confirmPumpLaunch } from './launch-confirm.mjs';
+import { confirmPumpLaunch, LaunchPendingError } from './launch-confirm.mjs';
 
 export type PumpLaunchRequest = {
   provider: {
@@ -73,9 +73,15 @@ export async function createPumpCoin(request: PumpLaunchRequest) {
     throw new Error('Wallet did not return a valid transaction signature. Check the wallet before retrying.');
   }
 
-  await confirmPumpLaunch(connection, signature, latest, mint.publicKey.toBase58());
+  let status: 'confirmed' | 'pending' = 'confirmed';
+  try { await confirmPumpLaunch(connection, signature, latest, mint.publicKey.toBase58()); }
+  catch (error) {
+    if (!(error instanceof LaunchPendingError)) throw error;
+    status = 'pending';
+  }
 
   return {
+    status,
     mint: mint.publicKey.toBase58(),
     signature,
     explorer: `https://solscan.io/tx/${signature}`,

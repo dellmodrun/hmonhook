@@ -104,10 +104,18 @@ h1,h2,h3,strong,.statement,.equation i{font-style:normal!important}
 .form-sheet input[readonly],.form-sheet textarea[readonly]{background:#15100d;color:#c9b9aa;cursor:default}
 .metadata-upload{margin-top:14px;padding:14px;border:1px solid var(--line);background:var(--panel-2)}
 .metadata-upload .field-pair:first-child label{margin-top:0}
-.metadata-upload input[type=file]{font-size:14px}
-.metadata-upload input[type=file]::file-selector-button{margin-right:10px;padding:8px 11px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:14px "JetBrains Mono",monospace;cursor:pointer}
+.metadata-upload .upload-field{position:relative;cursor:pointer}
+.metadata-upload .file-picker{display:flex;align-items:center;gap:12px;min-height:46px;min-width:0;margin-top:8px;color:var(--muted);font-size:14px}
+.metadata-upload .file-picker-button{display:inline-flex;align-items:center;min-height:38px;flex:none;padding:7px 11px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:14px "JetBrains Mono",monospace}
+.metadata-upload .upload-field:hover .file-picker-button,.metadata-upload .upload-field:focus-within .file-picker-button{border-color:var(--brand);color:#ffad58}
+.metadata-upload #coin-upload-filename{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.metadata-upload input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
 .metadata-upload .button{margin-top:12px}
 .metadata-upload small{display:block;margin-top:9px;color:var(--muted);font:14px/1.5 "JetBrains Mono",monospace}
+.launch-status{margin:12px 0 2px;color:var(--text);font-size:15px;line-height:1.55}
+#launch-details{margin-top:12px;border-top:1px solid var(--line)}
+#launch-details summary{padding:12px 0;cursor:pointer;color:var(--brand);font:14px "JetBrains Mono",monospace}
+#launch-details .form-heading{margin-top:4px}
 .table-scroll{max-width:100%;overflow-x:auto}
 .table-scroll .integration-table{min-width:580px;margin:0}
 @media(max-width:1000px){.story-grid{grid-template-columns:1fr}.story-grid article{padding:22px}.story-grid a{margin-top:8px}}
@@ -151,6 +159,72 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   .menu-open:after{display:none}
   .app-page{width:min(100% - 24px,1232px);margin:0 auto;padding-top:22px}
 }
+
+/* Give the public pages a clear launchpad hierarchy. */
+.hero-copy h1{max-width:720px;font-size:clamp(48px,5vw,78px);line-height:1.02}
+.hero-copy>p:not(.hero-thesis){max-width:660px;font-size:18px;line-height:1.6}
+.section-head h2{font-size:clamp(30px,3.1vw,42px);line-height:1.12}
+.section-head p,.step-grid p,.fact-grid p,.market-command p,.market-discovery small{font-size:15px;line-height:1.65}
+.rail-nav a,.rail-action,.button,.form-sheet label,.form-sheet input,.form-sheet select,.form-sheet textarea{font-size:14px}
+.rail-brand small,.eyebrow,.chapter-label,.form-heading,.market-stats span{font-size:12px}
+.section-block{margin-top:18px}
+.home-step-cards,.home-feature-grid,.home-market-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.home-step-cards article,.home-feature-grid article,.home-market-card,.home-market-empty{min-width:0;padding:22px;border:1px solid var(--line);background:var(--panel-2)}
+.home-step-cards span,.home-feature-grid span,.home-market-card-top span{font:12px "JetBrains Mono",monospace;color:var(--brand)}
+.home-step-cards h3,.home-feature-grid h3{margin:20px 0 10px;font:30px/1.08 "EB Garamond",serif}
+.home-step-cards p,.home-feature-grid p,.home-market-empty p{margin:0;color:#d6cec5;font-size:16px;line-height:1.6}
+.home-feature-grid article{display:flex;flex-direction:column}
+.home-feature-grid a{align-self:flex-start;margin-top:auto;padding-top:20px;color:#ffad58;font-size:14px;text-decoration:none}
+.section-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.home-market-summary{display:grid;grid-template-columns:1fr 1fr auto;align-items:stretch;gap:10px;margin-bottom:14px}
+.home-market-summary>div,.home-market-summary>a{display:flex;flex-direction:column;justify-content:center;min-height:86px;padding:14px 18px;border:1px solid var(--line);background:var(--panel-2)}
+.home-market-summary span{color:var(--muted);font:12px "JetBrains Mono",monospace}
+.home-market-summary strong{margin-top:6px;color:var(--text);font-size:28px;line-height:1}
+.home-market-summary>a{color:#ffad58;text-align:center;text-decoration:none;font-size:14px}
+.home-market-empty{grid-column:1/-1;min-height:154px;display:flex;flex-direction:column;justify-content:center}
+.home-market-empty strong{font:29px "EB Garamond",serif}
+.home-market-empty p{margin-top:9px}
+.home-market-card{display:flex;flex-direction:column;gap:10px}
+.home-market-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.home-market-card-top strong{font:26px/1.1 "EB Garamond",serif}
+.home-market-card-top span{max-width:110px;text-align:right;font-size:11px}
+.home-market-card p{margin:0;color:var(--muted);font-size:14px}
+.home-market-card>b{margin-top:12px;font-size:21px}
+.home-market-card small{color:var(--muted);font-size:13px;line-height:1.5}
+.home-market-card a{align-self:flex-start;margin-top:auto;padding-top:10px;color:#ffad58;font-size:14px}
+.home-market-search{margin-top:16px;padding:18px;border:1px solid var(--line);background:var(--panel-2)}
+.home-market-search label{display:block;margin-bottom:9px;font-size:16px}
+.home-market-search>div{display:flex;gap:10px}
+.home-market-search input{flex:1;min-width:0;padding:11px 13px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:15px}
+.home-market-search small{display:block;margin-top:9px;color:var(--muted);font-size:13px}
+.home-example{margin-top:14px;padding:20px;border-left:3px solid var(--brand);background:var(--panel-2)}
+.home-example b{font:12px "JetBrains Mono",monospace;color:var(--brand)}
+.home-example p{max-width:900px;margin:10px 0 0;color:#d6cec5;font-size:16px;line-height:1.65}
+.home-dev-note{padding:32px}
+.home-dev-note h2{margin-bottom:16px;font-size:36px}
+.home-dev-note>p{font-size:17px;line-height:1.65}
+.home-dev-note .button{margin-top:8px}
+@media(max-width:1000px){.home-step-cards,.home-feature-grid,.home-market-list{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.home-step-cards,.home-feature-grid,.home-market-list,.home-market-summary{grid-template-columns:1fr}.home-market-search>div{flex-direction:column}.home-market-summary>a{text-align:left;min-height:54px}.hero-copy h1{font-size:clamp(40px,10vw,55px)}.home-dev-note{padding:24px}}
+.advanced-information{margin-top:18px;padding:0 24px;border:1px solid var(--line);background:var(--panel)}
+.advanced-information>summary{padding:22px 0;cursor:pointer;color:var(--text);font-size:17px;line-height:1.4}
+.advanced-information>summary::marker{color:var(--brand)}
+.advanced-inner{padding-bottom:22px;border-top:1px solid var(--line-soft)}
+.advanced-inner>.section-block,.advanced-inner>.chapter,.advanced-inner>.home-panel{margin-top:18px}
+.faq summary{font-size:16px;line-height:1.45}
+.faq details p,.callout p,.source-summary,.market-source{font-size:15px;line-height:1.65}
+.callout a,.callout code{overflow-wrap:anywhere;word-break:break-word}
+.page-title>p{max-width:800px;font-size:17px;line-height:1.6}
+.market-command h2{font-size:clamp(28px,3vw,38px)}
+.market-filters button,.market-controls label,.market-search-form label{font-size:13px}
+@media(max-width:700px){.advanced-information{padding:0 16px}.rail-label,.rail-action .rail-label{font-size:13px}}
+.launch-workbench{grid-template-columns:minmax(0,1fr)}
+.launch-workbench .output-sheet{min-height:0}
+.launch-workbench .output-sheet pre{min-height:120px}
+.form-advanced{margin-top:16px;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+.form-advanced>summary{padding:14px 0;cursor:pointer;color:#ffad58;font-size:15px}
+.form-advanced>summary::marker{color:var(--brand)}
+.form-advanced .form-note{margin-bottom:16px}
 </style>
 </head>
 <body>
@@ -189,7 +263,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <path d="M4 7h16M4 12h10M4 17h16M17 9l3 3-3 3"/>
 </svg>
 </span>
-<span class="rail-label">TRADE WITH INTENT</span>
+<span class="rail-label">TRADE LIMITS</span>
 </a>
 <a href="./protocol/">
 <span class="rail-icon">
@@ -197,7 +271,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <path d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7zM8 12l3 3 5-6"/>
 </svg>
 </span>
-<span class="rail-label">PROTOCOL</span>
+<span class="rail-label">HOW IT WORKS</span>
 </a>
 <a href="./code/">
 <span class="rail-icon">
@@ -213,7 +287,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/>
 </svg>
 </span>
-<span class="rail-label">RESEARCH PAPER</span>
+<span class="rail-label">RESEARCH</span>
 </a>
 </nav>
 <div class="rail-bottom">
@@ -249,7 +323,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <div class="page-title-row">
 <div>
 <div class="eyebrow">RESEARCH ORIGIN / ARXIV:2610.36682</div>
-<h1>Research Paper</h1>
+<h1>Why this matters</h1>
 </div>
 <span class="page-code">CS.CR / 27 OCT 2026 / V1</span>
 </div>
@@ -257,7 +331,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </header>
 <section class="paper-origin">
 <div class="eyebrow">HOW THIS PAPER RELATES TO H/MONHOOK</div>
-<h2>The paper identifies the problem. h/monhook is an independent engineering response.</h2>
+<h2>Trade previews can miss the final result. Here is the research behind h/monhook and what we are building from it.</h2>
 <p>
 <em>An Empirical Study of Undisclosed Charges in Hook-Based Decentralized Exchanges</em> measures how programmable DEX hooks can create charges that are not itemized by standard fee displays. Its central lesson is broader than one EVM exchange: a quote shown before execution is not enough when programmable logic can change the final economic result.</p>
 <p>h/monhook carries that insight to Solana by moving the protection boundary to the user’s complete transaction intent. Instead of trusting a pool-local label, the user commits to a maximum input, minimum output, route, expiry and optional policy. h/monhook Guard then measures the balances that actually changed and permits settlement only if the signed result is true. The paper does not describe or endorse h/monhook; it is the research origin and motivation for this separate protocol design.</p>
@@ -613,6 +687,14 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   var launchForm = byId("launch-form");
   var metadataCheck = byId("metadata-check");
   var metadataUpload = byId("metadata-upload");
+  function setLaunchStatus(message) {
+    if (byId("launch-status")) byId("launch-status").textContent = message;
+  }
+  var uploadImage = byId("coin-upload-image");
+  if (uploadImage) uploadImage.addEventListener("change", function () {
+    var selected = uploadImage.files && uploadImage.files[0];
+    byId("coin-upload-filename").textContent = selected ? selected.name : "No image selected";
+  });
   if (metadataUpload) metadataUpload.addEventListener("click", async function () {
     var image = byId("coin-upload-image").files[0];
     if (!image || image.size > 2000000 || !image.size) return showToast("Choose a PNG, JPEG or WebP image under 2 MB", "error");
@@ -623,6 +705,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       return showToast("Enter the coin name, ticker and description before uploading", "error");
     }
     metadataUpload.disabled = true;
+    setLaunchStatus("Uploading artwork and metadata...");
     metadataUpload.textContent = "uploading…";
     try {
       var configResponse = await fetch(new URL("launch/metadata-service.json", document.baseURI), { cache: "no-store" });
@@ -640,8 +723,12 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       byId("coin-uri").value = metadataUri(result.uri);
       byId("coin-uri").dispatchEvent(new Event("input", { bubbles: true }));
       metadataCheck.click();
+      setLaunchStatus("Artwork uploaded. Verifying the public metadata link...");
       showToast("Image and metadata uploaded. Verifying public URL…", "success");
-    } catch (error) { showToast(error && error.message ? error.message : "Metadata upload failed", "error"); }
+    } catch (error) {
+      setLaunchStatus("Artwork upload failed. Check the file and try again.");
+      showToast(error && error.message ? error.message : "Metadata upload failed", "error");
+    }
     finally { metadataUpload.disabled = false; metadataUpload.textContent = "upload image + metadata"; }
   });
   function clearMetadataPreview() {
@@ -684,11 +771,13 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       verifiedMetadata = metadata;
       state.textContent = "METADATA VERIFIED";
       state.classList.add("ready");
+      setLaunchStatus("Metadata verified. Compile the launch plan to review it before signing.");
       showToast("Public metadata verified", "success");
     } catch (error) {
       state.textContent = "METADATA INVALID";
       state.classList.remove("ready");
       preview.hidden = true;
+      setLaunchStatus("Metadata verification failed. Check the link and try again.");
       showToast(error.message + " · the host must allow browser access", "error");
     } finally {
       metadataCheck.disabled = false;
@@ -703,6 +792,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     if (byId("launch-market-link")) byId("launch-market-link").hidden = true;
     clearMetadataPreview();
     if (byId("metadata-state")) { byId("metadata-state").textContent = "METADATA NOT VERIFIED"; byId("metadata-state").classList.remove("ready"); }
+    setLaunchStatus("Metadata changed. Verify it again before signing.");
     setWalletAddress(walletAddress, activeProvider);
   }
   ["coin-uri", "coin-name", "coin-symbol"].forEach(function (id) {
@@ -713,6 +803,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     if (byId("launch-submit")) byId("launch-submit").disabled = true;
     if (byId("launch-market-link")) byId("launch-market-link").hidden = true;
     if (byId("launch-output")) byId("launch-output").textContent = "The local policy plan changed. Compile it again before creating the coin.";
+    setLaunchStatus("The launch plan changed. Compile it again before signing.");
   });
   if (launchForm) launchForm.addEventListener("submit", async function (event) {
     event.preventDefault();
@@ -722,11 +813,13 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     var symbol = byId("coin-symbol").value.trim().toUpperCase();
     if (!name || name.length > 32) {
       output.textContent = "error · coin name must contain 1–32 characters";
+      setLaunchStatus("Check the coin name before compiling.");
       showToast("Check the coin name", "error");
       return;
     }
     if (!/^[A-Z0-9_$.-]{1,13}$/.test(symbol)) {
       output.textContent = "error · symbol must contain 1–13 supported characters";
+      setLaunchStatus("Check the token symbol before compiling.");
       showToast("Check the token symbol", "error");
       return;
     }
@@ -734,11 +827,13 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     try { uri = metadataUri(byId("coin-uri").value.trim()); }
     catch (error) {
       output.textContent = "error · " + error.message;
+      setLaunchStatus("Check the metadata link before compiling.");
       showToast(error.message, "error");
       return;
     }
     if (uri !== verifiedMetadataUri || !verifiedMetadata || verifiedMetadata.name !== name || String(verifiedMetadata.symbol || "").toUpperCase() !== symbol) {
       output.textContent = "error · verify the public metadata JSON before compiling";
+      setLaunchStatus("Verify the public metadata before compiling.");
       showToast("Verify metadata first", "error");
       return;
     }
@@ -777,10 +872,32 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       signingAuthority: walletAddress || "connect wallet before transaction assembly"
     }, null, 2);
     launchManifestReady = true;
+    setLaunchStatus("Launch plan ready. Review the details, then approve the mainnet transaction in your wallet.");
     var launchSubmit = byId("launch-submit");
     if (launchSubmit) launchSubmit.disabled = !walletAddress;
     showToast("JLM1 launch manifest compiled", "success");
   });
+
+  async function publishConfirmedLaunch(record) {
+    try {
+      var response = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+      var endpoint = response.ok ? (await response.json()).endpoint : "";
+      if (!endpoint || new URL(endpoint).protocol !== "https:") return;
+      var registered = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ signature: record.signature, mint: record.mint, creator: record.creator }) });
+      if (!registered.ok) throw new Error("Directory registration pending");
+      try {
+        var saved = JSON.parse(localStorage.getItem("joltwork.launches.v1") || "[]");
+        if (Array.isArray(saved)) {
+          saved.forEach(function (item) { if (item && item.mint === record.mint) item.directoryPublished = true; });
+          localStorage.setItem("joltwork.launches.v1", JSON.stringify(saved));
+        }
+      } catch (_) { /* The on-chain launch and directory entry remain valid. */ }
+      setLaunchStatus("Coin created and added to the verified market directory. Mint: " + record.mint);
+    } catch (_) {
+      setLaunchStatus("Coin created on Solana. Directory listing is pending; your Mint link still works.");
+    }
+  }
 
   var launchSubmit = byId("launch-submit");
   if (launchSubmit) launchSubmit.addEventListener("click", async function () {
@@ -802,59 +919,72 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     }
     var accepted = window.confirm("Create this coin on Solana mainnet through the official Pump program? Your wallet will show the transaction and network cost before signing.");
     if (!accepted) return;
+    var launchName = byId("coin-name").value.trim();
+    var launchSymbol = byId("coin-symbol").value.trim().toUpperCase();
+    var launchUri = verifiedMetadataUri;
+    var launchMetadata = verifiedMetadata;
+    var launchRpc = byId("coin-rpc").value.trim();
     launchSubmit.disabled = true;
+    setLaunchStatus("Waiting for wallet approval and network confirmation...");
     launchSubmit.textContent = "waiting for wallet…";
     try {
       var result = await window.JoltworkLaunch.createPumpCoin({
         provider: provider,
         authority: authority,
-        name: byId("coin-name").value.trim(),
-        symbol: byId("coin-symbol").value.trim().toUpperCase(),
-        uri: metadataUri(byId("coin-uri").value.trim()),
-        rpcEndpoint: metadataUri(byId("coin-rpc").value.trim())
+        name: launchName,
+        symbol: launchSymbol,
+        uri: launchUri,
+        rpcEndpoint: metadataUri(launchRpc)
       });
+      launchManifestReady = false;
       output.textContent = JSON.stringify({
-        status: "confirmed",
+        status: result.status,
         network: "solana-mainnet-beta",
         mint: result.mint,
         signature: result.signature,
         solscan: result.explorer,
         pump: result.pump,
         shareableMarket: new URL(result.market, document.baseURI).href,
-        note: "The Pump coin was created on mainnet. The local JLM1 policy plan was not published or enforced by this transaction."
+        note: result.status === "pending" ? "The transaction was submitted, but confirmation is unresolved. Do not submit another creation. Check the signature and Mint first." : "The Pump coin was confirmed on mainnet. The local trade plan was not published or enforced."
       }, null, 2);
+      setLaunchStatus(result.status === "pending" ? "Transaction submitted; confirmation is pending. Do not create this coin again. Mint: " + result.mint : "Coin created on Solana mainnet. Mint: " + result.mint);
+      if (byId("launch-details")) byId("launch-details").open = true;
       var marketLink = byId("launch-market-link");
       if (marketLink) { marketLink.href = result.market; marketLink.hidden = false; }
-      try {
-        var launchRecord = {
+      var launchRecord = {
           format: "HMONHOOK_LAUNCH_RECEIPT_V1",
+          status: result.status,
           network: "solana-mainnet-beta",
           mint: result.mint,
           signature: result.signature,
           creator: authority,
-          name: byId("coin-name").value.trim(),
-          symbol: byId("coin-symbol").value.trim().toUpperCase(),
-          description: verifiedMetadata && verifiedMetadata.description || "",
-          image: verifiedMetadata && verifiedMetadata.image || "",
-          metadataUri: verifiedMetadataUri,
-          website: verifiedMetadata && verifiedMetadata.website || "",
-          twitter: verifiedMetadata && verifiedMetadata.twitter || "",
+          name: launchName,
+          symbol: launchSymbol,
+          description: launchMetadata && launchMetadata.description || "",
+          image: launchMetadata && launchMetadata.image || "",
+          metadataUri: launchUri,
+          website: launchMetadata && launchMetadata.website || "",
+          twitter: launchMetadata && launchMetadata.twitter || "",
           pump: result.pump,
           explorer: result.explorer,
           createdAt: Date.now()
         };
+      try {
         var storedLaunches = JSON.parse(localStorage.getItem("joltwork.launches.v1") || "[]");
         if (!Array.isArray(storedLaunches)) storedLaunches = [];
         storedLaunches = storedLaunches.filter(function (item) { return item && item.mint !== launchRecord.mint; });
         storedLaunches.unshift(launchRecord);
         localStorage.setItem("joltwork.launches.v1", JSON.stringify(storedLaunches.slice(0, 100)));
       } catch (_) { /* A confirmed launch remains valid if local storage is unavailable. */ }
-      showToast("Coin creation confirmed on Solana", "success");
+      if (result.status === "confirmed") void publishConfirmedLaunch(launchRecord);
+      showToast(result.status === "pending" ? "Confirmation pending. Check the Mint and signature before trying again." : "Coin creation confirmed on Solana", result.status === "pending" ? "" : "success");
     } catch (error) {
       output.textContent = "creation error · " + (error && error.message ? error.message : String(error));
+      setLaunchStatus("Coin creation was not confirmed. Open the details to review the error before retrying.");
+      if (byId("launch-details")) byId("launch-details").open = true;
       showToast(error && error.message ? error.message : "Coin creation failed", "error");
     } finally {
-      launchSubmit.disabled = false;
+      launchSubmit.disabled = !launchManifestReady;
       launchSubmit.textContent = "create coin on mainnet";
     }
   });

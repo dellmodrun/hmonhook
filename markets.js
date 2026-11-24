@@ -2,7 +2,7 @@
   "use strict";
 
   var STORAGE_KEY = "joltwork.launches.v1";
-  var state = { launches: [], pairs: new Map(), filter: "all", sort: "newest", loading: false };
+  var state = { launches: [], pairs: new Map(), filter: "all", sort: "newest", loading: false, publishing: false };
   var sharedMint = new URLSearchParams(window.location.search).get("mint");
   if (sharedMint && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedMint)) sharedMint = null;
   var byId = function (id) { return document.getElementById(id); };
@@ -48,20 +48,40 @@
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       return Array.isArray(parsed) ? parsed.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
-        return Object.assign({}, item, { source: "device", verified: true });
+        return Object.assign({}, item, { source: item.status === "pending" && !item.directoryPublished ? "pending" : "device",
+          verified: item.status !== "pending" || !!item.directoryPublished });
       }) : [];
     } catch (_) { return []; }
   }
 
   async function loadRegistry() {
+    var entries = [];
     try {
       var response = await fetch(new URL("markets/registry.json", document.baseURI), { cache: "no-store" });
       if (!response.ok) throw new Error("registry unavailable");
       var data = await response.json();
-      return Array.isArray(data.launches) ? data.launches.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
+      entries = Array.isArray(data.launches) ? data.launches.filter(function (item) { return validMint(item && item.mint); }).map(function (item) {
         return Object.assign({}, item, { source: "registry", verified: true });
       }) : [];
-    } catch (_) { return []; }
+    } catch (_) { /* The independent directory can still be available. */ }
+    try {
+      var configResponse = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+      var config = configResponse.ok ? await configResponse.json() : {};
+      if (config.endpoint && new URL(config.endpoint).protocol === "https:") {
+        var liveResponse = await fetch(config.endpoint, { cache: "no-store" });
+        if (!liveResponse.ok) throw new Error("verified directory unavailable");
+        var liveData = await liveResponse.json();
+        if (Array.isArray(liveData.launches)) entries = entries.concat(liveData.launches.filter(function (item) {
+          return validMint(item && item.mint);
+        }).map(function (item) {
+          return { mint: item.mint, signature: item.signature, creator: item.creator, name: item.name,
+            symbol: item.symbol, description: item.description, image: item.image,
+            website: item.website, twitter: item.twitter, createdAt: item.created_at,
+            source: "verified-pump", verified: true };
+        }));
+      }
+    } catch (_) { /* Keep the static and device receipts visible. */ }
+    return entries;
   }
 
   function mergeLaunches(items) {
@@ -116,12 +136,12 @@
       var live = state.pairs.has(item.mint);
       if (state.filter === "live") return live;
       if (state.filter === "awaiting") return !live;
-      if (state.filter === "device") return item.source === "device";
+      if (state.filter === "device") return item.source === "device" || item.source === "pending";
       return true;
     });
     sortLaunches(launches);
 
-    var verifiedLaunches = state.launches.filter(function (item) { return item.source !== "search"; });
+    var verifiedLaunches = state.launches.filter(function (item) { return item.source !== "search" && item.source !== "pending"; });
     var liveCount = verifiedLaunches.filter(function (item) { return state.pairs.has(item.mint); }).length;
     var volume = verifiedLaunches.reduce(function (sum, item) { var pair = state.pairs.get(item.mint); return sum + number(pair && pair.volume && pair.volume.h24); }, 0);
     var liquidity = verifiedLaunches.reduce(function (sum, item) { var pair = state.pairs.get(item.mint); return sum + number(pair && pair.liquidity && pair.liquidity.usd); }, 0);
@@ -132,7 +152,7 @@
     byId("market-updated").textContent = "UPDATED " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     if (!launches.length) {
-      grid.innerHTML = '<div class="market-empty"><span>NO MATCHING MARKETS</span><h2>No fabricated listings.</h2><p>Launch a coin through h/monhook on this device, or search a Solana Mint address above. Device receipts appear here after a confirmed launch; live price fields depend on third-party pool indexing.</p><a class="button button-solid" href="./launch/">launch a coin</a></div>';
+      grid.innerHTML = '<div class="market-empty"><span>NO MATCHING MARKETS</span><h2>Your next coin can start here.</h2><p>No verified launch matches this view yet. Create a coin or search a Mint above. Price data appears after a market is active and indexed.</p><a class="button button-solid" href="./launch/">launch a coin</a></div>';
       return;
     }
 
@@ -149,14 +169,44 @@
       var marketUrl = pair ? safeUrl(pair.url) : "";
       return '<article class="market-card">' +
         '<div class="market-card-head"><div class="market-token-image">' + (image ? '<img src="' + escapeHtml(image) + '" alt="" loading="lazy">' : '<span>' + escapeHtml(symbol.slice(0, 2)) + '</span>') + '</div>' +
-        '<div><div class="market-badges"><b>' + (item.source === "search" ? 'MARKET DISCOVERY' : item.official ? 'OFFICIAL TOKEN' : item.independent ? 'INDEPENDENT LAUNCH' : item.source === 'device' ? 'DEVICE RECEIPT' : 'REGISTRY ENTRY') + '</b><b class="' + (pair ? 'live' : 'pending') + '">' + (pair ? 'LIVE MARKET' : 'AWAITING INDEX') + '</b></div><h2>' + escapeHtml(name) + '</h2><p>$' + escapeHtml(symbol) + ' · ' + escapeHtml(short(item.mint)) + '</p></div></div>' +
+        '<div><div class="market-badges"><b>' + (item.source === "pending" ? 'CONFIRMATION PENDING' : item.source === "search" ? 'MINT SEARCH' : item.official ? 'OFFICIAL TOKEN' : item.independent ? 'INDEPENDENT LAUNCH' : item.source === 'verified-pump' ? 'VERIFIED LAUNCH' : item.source === 'device' ? 'YOUR DEVICE' : 'REGISTRY ENTRY') + '</b><b class="' + (pair ? 'live' : 'pending') + '">' + (pair ? 'LIVE MARKET' : 'AWAITING INDEX') + '</b></div><h2>' + escapeHtml(name) + '</h2><p>$' + escapeHtml(symbol) + ' · ' + escapeHtml(short(item.mint)) + '</p></div></div>' +
         '<div class="market-price"><span>PRICE USD</span><strong>' + money(pair && pair.priceUsd, false) + '</strong><em class="' + (change != null && change < 0 ? 'negative' : '') + '">' + (change == null ? 'not indexed' : signed(change) + ' / 24H') + '</em></div>' +
         '<div class="market-metrics"><div><span>MARKET CAP</span><b>' + money(pair && (pair.marketCap || pair.fdv), true) + '</b></div><div><span>LIQUIDITY</span><b>' + money(pair && pair.liquidity && pair.liquidity.usd, true) + '</b></div><div><span>VOLUME 24H</span><b>' + money(pair && pair.volume && pair.volume.h24, true) + '</b></div><div><span>' + (item.createdAt ? 'LAUNCH DATE' : 'PAIR DATE') + '</span><b>' + escapeHtml(time(item.createdAt || (pair && pair.pairCreatedAt))) + '</b></div></div>' +
         '<div class="market-ca"><span>MINT</span><code>' + escapeHtml(item.mint) + '</code><button type="button" data-copy-mint="' + escapeHtml(item.mint) + '">COPY</button></div>' +
         '<div class="market-actions"><a class="button button-solid" href="./intent/?outputMint=' + encodeURIComponent(item.mint) + '">trade with intent</a><a class="button" href="' + escapeHtml(pump) + '" target="_blank" rel="noreferrer">pump market ↗</a>' + (marketUrl ? '<a class="button" href="' + escapeHtml(marketUrl) + '" target="_blank" rel="noreferrer">live chart ↗</a>' : '') + '<a class="button" href="' + escapeHtml(explorer) + '" target="_blank" rel="noreferrer">explorer ↗</a></div>' +
-        '<p class="market-source">' + (item.official ? 'Verified official CA published by h/monhook.' : item.independent ? 'Independent mainnet launch with a finalized creation receipt; not the official h/monhook token.' : item.source === "registry" ? 'Published h/monhook registry entry.' : item.source === "device" ? 'Launch receipt saved on this device after confirmation; verify its signature independently.' : 'Mint supplied for live market discovery.') + ' Market figures are third-party indexed on-chain observations and may be delayed.</p>' +
+        '<p class="market-source">' + (item.source === "pending" ? 'The creation transaction was submitted, but confirmation is unresolved. Check its signature before trying again.' : item.official ? 'Verified official CA published by h/monhook.' : item.independent ? 'Independent mainnet launch with a finalized creation receipt; not the official h/monhook token.' : item.source === "verified-pump" ? 'Pump coin creation verified on-chain. This does not mean the developer locked tokens.' : item.source === "registry" ? 'Published h/monhook registry entry.' : item.source === "device" ? 'Launch receipt saved on this device after confirmation; verify its signature independently.' : 'Mint supplied for market discovery, not verified as an h/monhook launch.') + ' Market figures come from a third-party index and may be delayed.</p>' +
         '</article>';
     }).join("");
+  }
+
+  async function retryDirectoryReceipts() {
+    if (state.publishing) return;
+    state.publishing = true;
+    try {
+      var stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      if (!Array.isArray(stored)) return;
+      var pending = stored.filter(function (item) {
+        return item && !item.directoryPublished && validMint(item.mint) && validMint(item.creator) &&
+          /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(item.signature || "");
+      }).slice(0, 3);
+      if (!pending.length) return;
+      var configResponse = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+      var endpoint = configResponse.ok ? (await configResponse.json()).endpoint : "";
+      if (!endpoint || new URL(endpoint).protocol !== "https:") return;
+      var changed = false;
+      for (var item of pending) {
+        try {
+          var response = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ signature: item.signature, mint: item.mint, creator: item.creator }) });
+          if (response.ok) { item.directoryPublished = true; item.status = "confirmed"; changed = true; }
+        } catch (_) { /* Retry on a later visit. */ }
+      }
+      if (changed) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+        await refresh();
+      }
+    } catch (_) { /* Keep device receipts visible. */ }
+    finally { state.publishing = false; }
   }
 
   async function refresh() {
@@ -168,12 +218,13 @@
     var registry = await loadRegistry();
     var searched = state.launches.filter(function (item) { return item.source === "search"; });
     if (sharedMint && !searched.some(function (item) { return item.mint === sharedMint; })) searched.push({ mint: sharedMint, source: "search" });
-    state.launches = mergeLaunches(registry.concat(loadLocal(), searched));
+    state.launches = mergeLaunches(searched.concat(loadLocal(), registry));
     await fetchPairs(state.launches.map(function (item) { return item.mint; }));
     state.loading = false;
     button.disabled = false;
     button.textContent = "REFRESH DATA";
     render();
+    void retryDirectoryReceipts();
   }
 
   byId("market-refresh").addEventListener("click", refresh);

@@ -247,6 +247,14 @@
   var launchForm = byId("launch-form");
   var metadataCheck = byId("metadata-check");
   var metadataUpload = byId("metadata-upload");
+  function setLaunchStatus(message) {
+    if (byId("launch-status")) byId("launch-status").textContent = message;
+  }
+  var uploadImage = byId("coin-upload-image");
+  if (uploadImage) uploadImage.addEventListener("change", function () {
+    var selected = uploadImage.files && uploadImage.files[0];
+    byId("coin-upload-filename").textContent = selected ? selected.name : "No image selected";
+  });
   if (metadataUpload) metadataUpload.addEventListener("click", async function () {
     var image = byId("coin-upload-image").files[0];
     if (!image || image.size > 2000000 || !image.size) return showToast("Choose a PNG, JPEG or WebP image under 2 MB", "error");
@@ -257,6 +265,7 @@
       return showToast("Enter the coin name, ticker and description before uploading", "error");
     }
     metadataUpload.disabled = true;
+    setLaunchStatus("Uploading artwork and metadata...");
     metadataUpload.textContent = "uploading…";
     try {
       var configResponse = await fetch(new URL("launch/metadata-service.json", document.baseURI), { cache: "no-store" });
@@ -274,8 +283,12 @@
       byId("coin-uri").value = metadataUri(result.uri);
       byId("coin-uri").dispatchEvent(new Event("input", { bubbles: true }));
       metadataCheck.click();
+      setLaunchStatus("Artwork uploaded. Verifying the public metadata link...");
       showToast("Image and metadata uploaded. Verifying public URL…", "success");
-    } catch (error) { showToast(error && error.message ? error.message : "Metadata upload failed", "error"); }
+    } catch (error) {
+      setLaunchStatus("Artwork upload failed. Check the file and try again.");
+      showToast(error && error.message ? error.message : "Metadata upload failed", "error");
+    }
     finally { metadataUpload.disabled = false; metadataUpload.textContent = "upload image + metadata"; }
   });
   function clearMetadataPreview() {
@@ -318,11 +331,13 @@
       verifiedMetadata = metadata;
       state.textContent = "METADATA VERIFIED";
       state.classList.add("ready");
+      setLaunchStatus("Metadata verified. Compile the launch plan to review it before signing.");
       showToast("Public metadata verified", "success");
     } catch (error) {
       state.textContent = "METADATA INVALID";
       state.classList.remove("ready");
       preview.hidden = true;
+      setLaunchStatus("Metadata verification failed. Check the link and try again.");
       showToast(error.message + " · the host must allow browser access", "error");
     } finally {
       metadataCheck.disabled = false;
@@ -337,6 +352,7 @@
     if (byId("launch-market-link")) byId("launch-market-link").hidden = true;
     clearMetadataPreview();
     if (byId("metadata-state")) { byId("metadata-state").textContent = "METADATA NOT VERIFIED"; byId("metadata-state").classList.remove("ready"); }
+    setLaunchStatus("Metadata changed. Verify it again before signing.");
     setWalletAddress(walletAddress, activeProvider);
   }
   ["coin-uri", "coin-name", "coin-symbol"].forEach(function (id) {
@@ -347,6 +363,7 @@
     if (byId("launch-submit")) byId("launch-submit").disabled = true;
     if (byId("launch-market-link")) byId("launch-market-link").hidden = true;
     if (byId("launch-output")) byId("launch-output").textContent = "The local policy plan changed. Compile it again before creating the coin.";
+    setLaunchStatus("The launch plan changed. Compile it again before signing.");
   });
   if (launchForm) launchForm.addEventListener("submit", async function (event) {
     event.preventDefault();
@@ -356,11 +373,13 @@
     var symbol = byId("coin-symbol").value.trim().toUpperCase();
     if (!name || name.length > 32) {
       output.textContent = "error · coin name must contain 1–32 characters";
+      setLaunchStatus("Check the coin name before compiling.");
       showToast("Check the coin name", "error");
       return;
     }
     if (!/^[A-Z0-9_$.-]{1,13}$/.test(symbol)) {
       output.textContent = "error · symbol must contain 1–13 supported characters";
+      setLaunchStatus("Check the token symbol before compiling.");
       showToast("Check the token symbol", "error");
       return;
     }
@@ -368,11 +387,13 @@
     try { uri = metadataUri(byId("coin-uri").value.trim()); }
     catch (error) {
       output.textContent = "error · " + error.message;
+      setLaunchStatus("Check the metadata link before compiling.");
       showToast(error.message, "error");
       return;
     }
     if (uri !== verifiedMetadataUri || !verifiedMetadata || verifiedMetadata.name !== name || String(verifiedMetadata.symbol || "").toUpperCase() !== symbol) {
       output.textContent = "error · verify the public metadata JSON before compiling";
+      setLaunchStatus("Verify the public metadata before compiling.");
       showToast("Verify metadata first", "error");
       return;
     }
@@ -411,10 +432,32 @@
       signingAuthority: walletAddress || "connect wallet before transaction assembly"
     }, null, 2);
     launchManifestReady = true;
+    setLaunchStatus("Launch plan ready. Review the details, then approve the mainnet transaction in your wallet.");
     var launchSubmit = byId("launch-submit");
     if (launchSubmit) launchSubmit.disabled = !walletAddress;
     showToast("JLM1 launch manifest compiled", "success");
   });
+
+  async function publishConfirmedLaunch(record) {
+    try {
+      var response = await fetch(new URL("markets/registry-service.json", document.baseURI), { cache: "no-store" });
+      var endpoint = response.ok ? (await response.json()).endpoint : "";
+      if (!endpoint || new URL(endpoint).protocol !== "https:") return;
+      var registered = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ signature: record.signature, mint: record.mint, creator: record.creator }) });
+      if (!registered.ok) throw new Error("Directory registration pending");
+      try {
+        var saved = JSON.parse(localStorage.getItem("joltwork.launches.v1") || "[]");
+        if (Array.isArray(saved)) {
+          saved.forEach(function (item) { if (item && item.mint === record.mint) item.directoryPublished = true; });
+          localStorage.setItem("joltwork.launches.v1", JSON.stringify(saved));
+        }
+      } catch (_) { /* The on-chain launch and directory entry remain valid. */ }
+      setLaunchStatus("Coin created and added to the verified market directory. Mint: " + record.mint);
+    } catch (_) {
+      setLaunchStatus("Coin created on Solana. Directory listing is pending; your Mint link still works.");
+    }
+  }
 
   var launchSubmit = byId("launch-submit");
   if (launchSubmit) launchSubmit.addEventListener("click", async function () {
@@ -436,59 +479,72 @@
     }
     var accepted = window.confirm("Create this coin on Solana mainnet through the official Pump program? Your wallet will show the transaction and network cost before signing.");
     if (!accepted) return;
+    var launchName = byId("coin-name").value.trim();
+    var launchSymbol = byId("coin-symbol").value.trim().toUpperCase();
+    var launchUri = verifiedMetadataUri;
+    var launchMetadata = verifiedMetadata;
+    var launchRpc = byId("coin-rpc").value.trim();
     launchSubmit.disabled = true;
+    setLaunchStatus("Waiting for wallet approval and network confirmation...");
     launchSubmit.textContent = "waiting for wallet…";
     try {
       var result = await window.JoltworkLaunch.createPumpCoin({
         provider: provider,
         authority: authority,
-        name: byId("coin-name").value.trim(),
-        symbol: byId("coin-symbol").value.trim().toUpperCase(),
-        uri: metadataUri(byId("coin-uri").value.trim()),
-        rpcEndpoint: metadataUri(byId("coin-rpc").value.trim())
+        name: launchName,
+        symbol: launchSymbol,
+        uri: launchUri,
+        rpcEndpoint: metadataUri(launchRpc)
       });
+      launchManifestReady = false;
       output.textContent = JSON.stringify({
-        status: "confirmed",
+        status: result.status,
         network: "solana-mainnet-beta",
         mint: result.mint,
         signature: result.signature,
         solscan: result.explorer,
         pump: result.pump,
         shareableMarket: new URL(result.market, document.baseURI).href,
-        note: "The Pump coin was created on mainnet. The local JLM1 policy plan was not published or enforced by this transaction."
+        note: result.status === "pending" ? "The transaction was submitted, but confirmation is unresolved. Do not submit another creation. Check the signature and Mint first." : "The Pump coin was confirmed on mainnet. The local trade plan was not published or enforced."
       }, null, 2);
+      setLaunchStatus(result.status === "pending" ? "Transaction submitted; confirmation is pending. Do not create this coin again. Mint: " + result.mint : "Coin created on Solana mainnet. Mint: " + result.mint);
+      if (byId("launch-details")) byId("launch-details").open = true;
       var marketLink = byId("launch-market-link");
       if (marketLink) { marketLink.href = result.market; marketLink.hidden = false; }
-      try {
-        var launchRecord = {
+      var launchRecord = {
           format: "HMONHOOK_LAUNCH_RECEIPT_V1",
+          status: result.status,
           network: "solana-mainnet-beta",
           mint: result.mint,
           signature: result.signature,
           creator: authority,
-          name: byId("coin-name").value.trim(),
-          symbol: byId("coin-symbol").value.trim().toUpperCase(),
-          description: verifiedMetadata && verifiedMetadata.description || "",
-          image: verifiedMetadata && verifiedMetadata.image || "",
-          metadataUri: verifiedMetadataUri,
-          website: verifiedMetadata && verifiedMetadata.website || "",
-          twitter: verifiedMetadata && verifiedMetadata.twitter || "",
+          name: launchName,
+          symbol: launchSymbol,
+          description: launchMetadata && launchMetadata.description || "",
+          image: launchMetadata && launchMetadata.image || "",
+          metadataUri: launchUri,
+          website: launchMetadata && launchMetadata.website || "",
+          twitter: launchMetadata && launchMetadata.twitter || "",
           pump: result.pump,
           explorer: result.explorer,
           createdAt: Date.now()
         };
+      try {
         var storedLaunches = JSON.parse(localStorage.getItem("joltwork.launches.v1") || "[]");
         if (!Array.isArray(storedLaunches)) storedLaunches = [];
         storedLaunches = storedLaunches.filter(function (item) { return item && item.mint !== launchRecord.mint; });
         storedLaunches.unshift(launchRecord);
         localStorage.setItem("joltwork.launches.v1", JSON.stringify(storedLaunches.slice(0, 100)));
       } catch (_) { /* A confirmed launch remains valid if local storage is unavailable. */ }
-      showToast("Coin creation confirmed on Solana", "success");
+      if (result.status === "confirmed") void publishConfirmedLaunch(launchRecord);
+      showToast(result.status === "pending" ? "Confirmation pending. Check the Mint and signature before trying again." : "Coin creation confirmed on Solana", result.status === "pending" ? "" : "success");
     } catch (error) {
       output.textContent = "creation error · " + (error && error.message ? error.message : String(error));
+      setLaunchStatus("Coin creation was not confirmed. Open the details to review the error before retrying.");
+      if (byId("launch-details")) byId("launch-details").open = true;
       showToast(error && error.message ? error.message : "Coin creation failed", "error");
     } finally {
-      launchSubmit.disabled = false;
+      launchSubmit.disabled = !launchManifestReady;
       launchSubmit.textContent = "create coin on mainnet";
     }
   });

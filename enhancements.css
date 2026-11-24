@@ -80,10 +80,18 @@ h1,h2,h3,strong,.statement,.equation i{font-style:normal!important}
 .form-sheet input[readonly],.form-sheet textarea[readonly]{background:#15100d;color:#c9b9aa;cursor:default}
 .metadata-upload{margin-top:14px;padding:14px;border:1px solid var(--line);background:var(--panel-2)}
 .metadata-upload .field-pair:first-child label{margin-top:0}
-.metadata-upload input[type=file]{font-size:14px}
-.metadata-upload input[type=file]::file-selector-button{margin-right:10px;padding:8px 11px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:14px "JetBrains Mono",monospace;cursor:pointer}
+.metadata-upload .upload-field{position:relative;cursor:pointer}
+.metadata-upload .file-picker{display:flex;align-items:center;gap:12px;min-height:46px;min-width:0;margin-top:8px;color:var(--muted);font-size:14px}
+.metadata-upload .file-picker-button{display:inline-flex;align-items:center;min-height:38px;flex:none;padding:7px 11px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:14px "JetBrains Mono",monospace}
+.metadata-upload .upload-field:hover .file-picker-button,.metadata-upload .upload-field:focus-within .file-picker-button{border-color:var(--brand);color:#ffad58}
+.metadata-upload #coin-upload-filename{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.metadata-upload input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
 .metadata-upload .button{margin-top:12px}
 .metadata-upload small{display:block;margin-top:9px;color:var(--muted);font:14px/1.5 "JetBrains Mono",monospace}
+.launch-status{margin:12px 0 2px;color:var(--text);font-size:15px;line-height:1.55}
+#launch-details{margin-top:12px;border-top:1px solid var(--line)}
+#launch-details summary{padding:12px 0;cursor:pointer;color:var(--brand);font:14px "JetBrains Mono",monospace}
+#launch-details .form-heading{margin-top:4px}
 .table-scroll{max-width:100%;overflow-x:auto}
 .table-scroll .integration-table{min-width:580px;margin:0}
 @media(max-width:1000px){.story-grid{grid-template-columns:1fr}.story-grid article{padding:22px}.story-grid a{margin-top:8px}}
@@ -127,3 +135,69 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   .menu-open:after{display:none}
   .app-page{width:min(100% - 24px,1232px);margin:0 auto;padding-top:22px}
 }
+
+/* Give the public pages a clear launchpad hierarchy. */
+.hero-copy h1{max-width:720px;font-size:clamp(48px,5vw,78px);line-height:1.02}
+.hero-copy>p:not(.hero-thesis){max-width:660px;font-size:18px;line-height:1.6}
+.section-head h2{font-size:clamp(30px,3.1vw,42px);line-height:1.12}
+.section-head p,.step-grid p,.fact-grid p,.market-command p,.market-discovery small{font-size:15px;line-height:1.65}
+.rail-nav a,.rail-action,.button,.form-sheet label,.form-sheet input,.form-sheet select,.form-sheet textarea{font-size:14px}
+.rail-brand small,.eyebrow,.chapter-label,.form-heading,.market-stats span{font-size:12px}
+.section-block{margin-top:18px}
+.home-step-cards,.home-feature-grid,.home-market-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.home-step-cards article,.home-feature-grid article,.home-market-card,.home-market-empty{min-width:0;padding:22px;border:1px solid var(--line);background:var(--panel-2)}
+.home-step-cards span,.home-feature-grid span,.home-market-card-top span{font:12px "JetBrains Mono",monospace;color:var(--brand)}
+.home-step-cards h3,.home-feature-grid h3{margin:20px 0 10px;font:30px/1.08 "EB Garamond",serif}
+.home-step-cards p,.home-feature-grid p,.home-market-empty p{margin:0;color:#d6cec5;font-size:16px;line-height:1.6}
+.home-feature-grid article{display:flex;flex-direction:column}
+.home-feature-grid a{align-self:flex-start;margin-top:auto;padding-top:20px;color:#ffad58;font-size:14px;text-decoration:none}
+.section-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.home-market-summary{display:grid;grid-template-columns:1fr 1fr auto;align-items:stretch;gap:10px;margin-bottom:14px}
+.home-market-summary>div,.home-market-summary>a{display:flex;flex-direction:column;justify-content:center;min-height:86px;padding:14px 18px;border:1px solid var(--line);background:var(--panel-2)}
+.home-market-summary span{color:var(--muted);font:12px "JetBrains Mono",monospace}
+.home-market-summary strong{margin-top:6px;color:var(--text);font-size:28px;line-height:1}
+.home-market-summary>a{color:#ffad58;text-align:center;text-decoration:none;font-size:14px}
+.home-market-empty{grid-column:1/-1;min-height:154px;display:flex;flex-direction:column;justify-content:center}
+.home-market-empty strong{font:29px "EB Garamond",serif}
+.home-market-empty p{margin-top:9px}
+.home-market-card{display:flex;flex-direction:column;gap:10px}
+.home-market-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.home-market-card-top strong{font:26px/1.1 "EB Garamond",serif}
+.home-market-card-top span{max-width:110px;text-align:right;font-size:11px}
+.home-market-card p{margin:0;color:var(--muted);font-size:14px}
+.home-market-card>b{margin-top:12px;font-size:21px}
+.home-market-card small{color:var(--muted);font-size:13px;line-height:1.5}
+.home-market-card a{align-self:flex-start;margin-top:auto;padding-top:10px;color:#ffad58;font-size:14px}
+.home-market-search{margin-top:16px;padding:18px;border:1px solid var(--line);background:var(--panel-2)}
+.home-market-search label{display:block;margin-bottom:9px;font-size:16px}
+.home-market-search>div{display:flex;gap:10px}
+.home-market-search input{flex:1;min-width:0;padding:11px 13px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:15px}
+.home-market-search small{display:block;margin-top:9px;color:var(--muted);font-size:13px}
+.home-example{margin-top:14px;padding:20px;border-left:3px solid var(--brand);background:var(--panel-2)}
+.home-example b{font:12px "JetBrains Mono",monospace;color:var(--brand)}
+.home-example p{max-width:900px;margin:10px 0 0;color:#d6cec5;font-size:16px;line-height:1.65}
+.home-dev-note{padding:32px}
+.home-dev-note h2{margin-bottom:16px;font-size:36px}
+.home-dev-note>p{font-size:17px;line-height:1.65}
+.home-dev-note .button{margin-top:8px}
+@media(max-width:1000px){.home-step-cards,.home-feature-grid,.home-market-list{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.home-step-cards,.home-feature-grid,.home-market-list,.home-market-summary{grid-template-columns:1fr}.home-market-search>div{flex-direction:column}.home-market-summary>a{text-align:left;min-height:54px}.hero-copy h1{font-size:clamp(40px,10vw,55px)}.home-dev-note{padding:24px}}
+.advanced-information{margin-top:18px;padding:0 24px;border:1px solid var(--line);background:var(--panel)}
+.advanced-information>summary{padding:22px 0;cursor:pointer;color:var(--text);font-size:17px;line-height:1.4}
+.advanced-information>summary::marker{color:var(--brand)}
+.advanced-inner{padding-bottom:22px;border-top:1px solid var(--line-soft)}
+.advanced-inner>.section-block,.advanced-inner>.chapter,.advanced-inner>.home-panel{margin-top:18px}
+.faq summary{font-size:16px;line-height:1.45}
+.faq details p,.callout p,.source-summary,.market-source{font-size:15px;line-height:1.65}
+.callout a,.callout code{overflow-wrap:anywhere;word-break:break-word}
+.page-title>p{max-width:800px;font-size:17px;line-height:1.6}
+.market-command h2{font-size:clamp(28px,3vw,38px)}
+.market-filters button,.market-controls label,.market-search-form label{font-size:13px}
+@media(max-width:700px){.advanced-information{padding:0 16px}.rail-label,.rail-action .rail-label{font-size:13px}}
+.launch-workbench{grid-template-columns:minmax(0,1fr)}
+.launch-workbench .output-sheet{min-height:0}
+.launch-workbench .output-sheet pre{min-height:120px}
+.form-advanced{margin-top:16px;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+.form-advanced>summary{padding:14px 0;cursor:pointer;color:#ffad58;font-size:15px}
+.form-advanced>summary::marker{color:var(--brand)}
+.form-advanced .form-note{margin-bottom:16px}

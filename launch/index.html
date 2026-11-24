@@ -46,7 +46,7 @@
 <path d="M4 7h16M4 12h10M4 17h16M17 9l3 3-3 3"/>
 </svg>
 </span>
-<span class="rail-label">TRADE WITH INTENT</span>
+<span class="rail-label">TRADE LIMITS</span>
 </a>
 <a href="./protocol/">
 <span class="rail-icon">
@@ -54,7 +54,7 @@
 <path d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7zM8 12l3 3 5-6"/>
 </svg>
 </span>
-<span class="rail-label">PROTOCOL</span>
+<span class="rail-label">HOW IT WORKS</span>
 </a>
 <a href="./code/">
 <span class="rail-icon">
@@ -70,7 +70,7 @@
 <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/>
 </svg>
 </span>
-<span class="rail-label">RESEARCH PAPER</span>
+<span class="rail-label">RESEARCH</span>
 </a>
 </nav>
 <div class="rail-bottom">
@@ -106,52 +106,53 @@
 <div class="page-title-row">
 <div>
 <div class="eyebrow">PRODUCT / TOKEN LAUNCHER</div>
-<h1>Launch Coin</h1>
+<h1>Launch your coin</h1>
 </div>
 <span class="page-code">JLM1 / TOKEN-2022 / SOLANA</span>
 </div>
-<p>Create a Solana token through Pump's mainnet route and review a separate JLM1 policy plan. The plan is local until a supported publisher or wallet integrates it; issuer lock and option protection are still in design.</p>
+<p>Add your coin details, upload an image and review the transaction before your wallet signs. Issuer locks and options are not included in a launch today.</p>
 </header>
 
 <section class="chapter">
-<div class="chapter-label">LAUNCH WORKBENCH</div>
-<h2>One focused path: asset, market, policy, review.</h2>
-<div class="prose-block"><p>The live path creates a Token-2022 coin through Pump. The JLM1 output beside it is a local review plan for token metadata, route and an intended trading policy. Creating the coin does not publish that policy or enroll the issuer in option protection.</p><p>First verify public metadata and compile the plan. The separate mainnet button then builds Pump's <code>create_v2</code> instruction and asks the connected wallet to sign. Nothing is sent without wallet approval; the wallet pays the network and creation costs.</p></div>
+<div class="chapter-label">COIN LAUNCH</div>
+<h2>Everything you need to create a coin.</h2>
+<div class="prose-block"><p>Choose a name and ticker, upload your image and description, then verify the public coin details.</p><p>Review the launch plan before you sign. Your wallet shows the transaction and cost. Launching a coin does not lock developer tokens or activate options.</p></div>
 <div class="wallet-context">
 <span>SIGNING AUTHORITY</span>
 <b data-wallet-state>not connected</b>
 <small>The creator wallet will be written into the compiled manifest.</small>
 </div>
-<div class="workbench">
+<div class="workbench launch-workbench">
 <form id="launch-form" class="form-sheet">
 <div class="form-heading">
-<span>LAUNCH MANIFEST</span>
+<span>COIN DETAILS</span>
 <span>JLM1</span>
 </div>
 <div class="field-pair">
 <label>COIN NAME<input id="coin-name" maxlength="32" placeholder="Your coin name" required>
 </label>
-<label>SYMBOL<input id="coin-symbol" maxlength="13" placeholder="TICKER" required>
+<label>TICKER<input id="coin-symbol" maxlength="13" placeholder="TICKER" required>
 </label>
 </div>
-<label>DESCRIPTION / FROM METADATA<textarea id="coin-description" maxlength="500" placeholder="Loaded from verified metadata JSON" readonly required></textarea></label>
-<div class="field-pair">
-<label>IMAGE URL / FROM METADATA<input id="coin-image" type="url" placeholder="Loaded from verified metadata JSON" readonly required></label>
-<label>WEBSITE / FROM METADATA<input id="coin-website" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
-</div>
-<div class="field-pair">
-<label>X / FROM METADATA<input id="coin-twitter" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
-<label>TELEGRAM / FROM METADATA<input id="coin-telegram" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
-</div>
-<label>METADATA JSON URI<input id="coin-uri" type="url" placeholder="https://ipfs.io/ipfs/…" required></label>
 <div class="metadata-upload">
-<div class="field-pair"><label>UPLOAD ARTWORK<input id="coin-upload-image" type="file" accept="image/png,image/jpeg,image/webp"></label><label>DESCRIPTION FOR UPLOAD<textarea id="coin-upload-description" maxlength="500" placeholder="Describe the coin shown in its public metadata"></textarea></label></div>
+<div class="field-pair"><label class="upload-field">UPLOAD ARTWORK<span class="file-picker"><span class="file-picker-button">choose image</span><span id="coin-upload-filename" aria-live="polite">No image selected</span></span><input id="coin-upload-image" type="file" accept="image/png,image/jpeg,image/webp"></label><label>DESCRIPTION FOR UPLOAD<textarea id="coin-upload-description" maxlength="500" placeholder="Describe the coin shown in its public metadata"></textarea></label></div>
 <div class="field-pair"><label>WEBSITE / OPTIONAL<input id="coin-upload-website" type="url" placeholder="https://…"></label><label>X / OPTIONAL<input id="coin-upload-twitter" type="url" placeholder="https://x.com/…"></label></div>
 <label>TELEGRAM / OPTIONAL<input id="coin-upload-telegram" type="url" placeholder="https://t.me/…"></label>
 <button type="button" id="metadata-upload" class="button">upload image + metadata</button>
 <small>Upload a PNG, JPEG or WebP image up to 2 MB. The public metadata link is filled in automatically. You can also provide an existing metadata JSON URI.</small>
 </div>
+<label>PUBLIC DESCRIPTION<textarea id="coin-description" maxlength="500" placeholder="Loaded from verified metadata JSON" readonly required></textarea></label>
+<div class="field-pair">
+<label>IMAGE LINK<input id="coin-image" type="url" placeholder="Loaded from verified metadata JSON" readonly required></label>
+<label>WEBSITE<input id="coin-website" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
+</div>
+<div class="field-pair">
+<label>X PROFILE<input id="coin-twitter" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
+<label>TELEGRAM<input id="coin-telegram" type="url" placeholder="Loaded from verified metadata JSON" readonly></label>
+</div>
+<label>PUBLIC METADATA LINK<input id="coin-uri" type="url" placeholder="https://ipfs.io/ipfs/…" required></label>
 <div class="metadata-review"><img id="coin-image-preview" alt="Coin artwork preview" hidden><div><b id="metadata-state">METADATA NOT VERIFIED</b><p>The JSON must contain matching name, symbol, description and a public image URL.</p></div><button type="button" id="metadata-check" class="button">verify metadata</button></div>
+<details class="form-advanced"><summary>Advanced settings (optional)</summary>
 <div class="field-pair">
 <label>QUOTE ASSET / LIVE ROUTE<select id="coin-quote">
 <option value="SOL">SOL</option>
@@ -163,7 +164,7 @@
 </label>
 </div>
 <div class="field-pair">
-<label>INTENDED POLICY / LOCAL PLAN<select id="coin-policy">
+<label>OPTIONAL TRADE PLAN / NOT ACTIVE<select id="coin-policy">
 <option value="max-cost">MAXIMUM TOTAL COST</option>
 <option value="allowed-route">ALLOWED ROUTE</option>
 <option value="token-fee-cap">TOKEN FEE CEILING</option>
@@ -174,36 +175,45 @@
 </div>
 <label>RPC ENDPOINT<input id="coin-rpc" type="url" value="https://solana-rpc.publicnode.com" required></label>
 <p class="form-note">The verified metadata JSON supplies the description, image and social links above. Change those fields at the metadata source, then verify again. The selected policy is exported in the JLM1 plan; the Pump creation transaction does not publish or enforce it.</p>
+</details>
 <div class="form-actions">
 <button type="button" class="button" data-wallet-connect>connect wallet</button>
-<button type="submit" class="button button-solid">compile launch plan</button>
+<button type="submit" class="button button-solid">review launch details</button>
 <button type="button" id="launch-submit" class="button button-solid" disabled>create coin on mainnet</button>
 <a id="launch-market-link" class="button" href="./markets/" hidden>view shareable market</a>
 </div>
 </form>
 <div class="output-sheet">
+<div class="form-heading"><span>LAUNCH STATUS</span></div>
+<p id="launch-status" class="launch-status" role="status" aria-live="polite">Upload artwork or verify metadata, then review your launch plan before signing.</p>
+<details id="launch-details"><summary>View launch plan and transaction details</summary>
 <div class="form-heading">
-<span>COMPILED OUTPUT</span>
+<span>TECHNICAL DETAILS</span>
 <span class="output-tools">
 <button class="text-button" data-copy="launch-output">copy</button>
 <button class="text-button" data-download="launch-output" data-filename="hmonhook-launch-manifest.json">download</button>
 </span>
 </div>
 <pre id="launch-output">Verify the public metadata and compile a local JLM1 plan before signing.</pre>
+</details>
 </div>
 </div>
 <div class="callout">
-<b>SIGNING BOUNDARY</b>
+<b>BEFORE YOU SIGN</b>
 <p>Verify the public metadata JSON, compile the plan, then use the separate mainnet action. h/monhook assembles Pump's official <code>create_v2</code> instruction, generates the new Mint signer in this browser and asks the connected wallet to review and pay. The transaction creates the coin only; h/monhook Guard policy publication and issuer options require separate integrations.</p>
 </div>
 <div class="callout"><b>RPC AND PRIVACY</b><p>The default browser-compatible RPC is operated by PublicNode, not h/monhook or Solana. It receives ordinary RPC requests and the signed transaction when submitted. Production operators should replace it with their own trusted Solana RPC endpoint before launch.</p></div>
 </section>
 <section id="issuer-protection" class="section-block protection-story" aria-labelledby="issuer-protection-title">
-<div class="section-head"><div><div class="eyebrow">ISSUER ACCOUNTABILITY / DESIGN STAGE</div><h2 id="issuer-protection-title">Let buyers compare the promise before they trade.</h2></div></div>
-<div class="prose-block"><p>The issuer layer adapts the Vamend protection design to h/monhook launches. It compares same-name Mints and makes a developer's collateral and option terms inspectable before anyone relies on a protection label.</p><p>These are conditional rights, not a price guarantee. A buyer can lose the premium. A developer-sale violation needs independently verifiable evidence and a reviewed forfeiture rule; a lock by itself does not make the market safe.</p></div>
-<div class="story-grid"><article><span>01 / COMPARE <em>PROPOSED</em></span><h3>One name, every Mint</h3><p>Keep same-name launches together. Show developer identity, Mint, lock percentage and the exact option terms so a familiar name cannot stand in for verified provenance.</p></article><article><span>02 / COMMIT <em>PROPOSED</em></span><h3>Lock and price the option</h3><p>A developer would lock 2%–10% of supply. The proposed premium is 10% of the strike price per option; the strike follows a published Pump-style bonding-curve rule. Both formula and expiry need to be fixed before sale.</p></article><article><span>03 / SETTLE <em>PROPOSED</em></span><h3>Exercise or claim</h3><p>If the market exceeds the strike, an eligible holder could exercise at the strike. A verified early developer sale could trigger collateral forfeiture. If the strike is not reached, the buyer risks the premium. Buybacks from premiums after the locked allocation sells out require a separate execution path.</p></article></div>
-<div class="callout"><b>NOT AN ACTIVE LAUNCH FEATURE</b><p>This page currently creates a token and compiles a JLM1 intent-policy plan. It does not lock issuer supply, sell options, detect developer sales, issue forfeiture claims or route option premiums into buybacks. Those steps need a production contract, reliable violation evidence, an independently reviewed settlement path and dedicated interfaces.</p></div>
+<div class="section-head"><div><div class="eyebrow">PLANNED / ISSUER PROTECTION</div><h2 id="issuer-protection-title">Make developer promises easier to check.</h2></div><p>This feature is still being built. Launching a coin today does not add a lock or option.</p></div>
+<div class="story-grid">
+<article><span>01 / COMPARE</span><h3>See who launched it</h3><p>Coins with the same name should be shown side by side with their Mint and creator, so a familiar name is not mistaken for proof.</p></article>
+<article><span>02 / LOCK</span><h3>Check the commitment</h3><p>A future issuer may lock a stated share of tokens and publish clear option terms. Unlocked coins will be labeled as unlocked.</p></article>
+<article><span>03 / SETTLE</span><h3>Know the outcome</h3><p>Option buyers need clear rules for exercise, expiry and any claim. These rules must be verified on-chain before they are offered.</p></article>
+</div>
+<div class="callout"><b>NOT LIVE YET</b><p>The current launcher does not lock supply, sell options or guarantee a developer's behavior. An option premium can be lost, and no future protection is a price guarantee.</p></div>
 </section>
+<details class="advanced-information"><summary>Explore launch rules and technical details</summary><div class="advanced-inner">
 <section class="home-panel">
 <div class="eyebrow">WHAT GETS CREATED</div>
 <h2>One launch, three protocol artifacts.</h2>
@@ -285,6 +295,7 @@
 </div>
 </section>
 <section class="section-block"><div class="section-head"><div><div class="eyebrow">VERIFIABLE DEPENDENCIES</div><h2>The launch path is tied to Pump’s published interface.</h2></div><p>Users can review the exact program, route and instruction name inside the compiled launch plan before approving a mainnet transaction.</p></div><div class="prose-block compact"><p>h/monhook uses Pump’s published <code>create_v2</code> interface and checks that the assembled instruction targets <code>6EF8r…F6P</code>, the Pump program address used on mainnet and devnet. The new Token-2022 Mint keypair is generated only in the browser, partially signs the creation transaction, and is never transmitted as a reusable secret. The connected wallet remains the payer and final transaction signer.</p><p>The compiler exposes the instruction discriminator, ordered accounts, selected quote asset, metadata URI and target program before signing. This keeps the dependency review inside the product instead of sending creators to an external code-hosting account.</p></div><div class="source-links"><div><span>LAUNCH INSTRUCTION</span><strong>create_v2 coin creation</strong><code>account order / instruction data</code></div><div><span>TARGET PROGRAM</span><strong>Pump program</strong><code>6EF8r…F6P</code></div></div></section>
+</div></details>
 <section class="section-block">
 <div class="section-head">
 <div>

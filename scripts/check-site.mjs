@@ -42,6 +42,9 @@ assert.match(protocol, /currently deployed Guard is the earlier Jolt Guard/, "Pr
 for (const id of ["code-view", "code-filter", "code-copy", "code-download"]) {
   assert.match(code, new RegExp(`id=["']${id}["']`), `code browser missing ${id}`);
 }
+for (const source of ["programs/jolt-guard/src/lib.rs", "sdk/src/index.ts", "docs/PRODUCT_SCOPE.md"]) {
+  assert.ok(existsSync(resolve(root, "dist", source)), `standalone code browser misses ${source}`);
+}
 const app = readFileSync(resolve(root, "app.js"), "utf8");
 const marketsClient = readFileSync(resolve(root, "markets.js"), "utf8");
 assert.ok(existsSync(resolve(root, "docs/PRODUCT_SCOPE.md")), "product scope document missing");
@@ -54,6 +57,7 @@ const home = readFileSync(resolve(root, "index.html"), "utf8");
 assert.match(home, /id=["']official-ca["']>TBA</, "official CA placeholder missing from home page");
 assert.ok(!home.match(/id=["']official-ca["']>[1-9A-HJ-NP-Za-km-z]{32,44}</), "a live official CA remains on home page");
 const publicFrontend = [...pages.map((page) => readFileSync(resolve(root, page), "utf8")), app, marketsClient].join("\n");
+assert.ok(!/[\u4e00-\u9fff]/.test(publicFrontend), "public site contains Chinese copy");
 for (const forbidden of ["github.com", "raw.githubusercontent.com", "dellmodrun", "github.io"]) {
   assert.ok(!publicFrontend.toLowerCase().includes(forbidden), `public frontend exposes forbidden host or account: ${forbidden}`);
 }
@@ -70,17 +74,30 @@ assert.ok(existsSync(resolve(root, "dist/launch/metadata-service.json")), "publi
 for (const id of ["coin-description", "coin-image", "coin-uri", "metadata-check", "launch-submit"]) {
   assert.match(launch, new RegExp(`id=["']${id}["']`), `launch workbench missing ${id}`);
 }
-for (const id of ["coin-upload-image", "coin-upload-description", "metadata-upload"]) {
+for (const id of ["coin-upload-image", "coin-upload-filename", "coin-upload-description", "metadata-upload", "launch-status", "launch-details"]) {
   assert.match(launch, new RegExp(`id=["']${id}["']`), `launch upload control missing ${id}`);
 }
+assert.match(launch, /class="file-picker-button">choose image</, "upload picker must have site-controlled English text");
+assert.doesNotMatch(launch, /COMPILED OUTPUT/, "technical output should have a user-facing status label");
 assert.ok(!launch.includes('<option value="USDC">') && !launch.includes('<option value="PUMP_COIN">'), "launcher offers unsupported live quote assets");
-assert.match(launch, /INTENDED POLICY \/ LOCAL PLAN/, "launcher policy status is unclear");
+assert.match(launch, /OPTIONAL TRADE PLAN \/ NOT ACTIVE/, "launcher policy status is unclear");
 assert.match(launch, /id="issuer-protection"/, "issuer concept missing from launch page");
+assert.match(launch, /COIN DETAILS/, "launch form should begin with user-facing coin details");
+assert.match(launch, /Explore launch rules and technical details/, "technical launch content needs a secondary path");
 const markets = readFileSync(resolve(root, "markets/index.html"), "utf8");
 for (const id of ["market-grid", "market-search", "market-refresh", "market-sort", "market-total"]) {
   assert.match(markets, new RegExp(`id=["']${id}["']`), `markets page missing ${id}`);
 }
 assert.match(marketsClient, /api\.dexscreener\.com\/tokens\/v1\/solana/, "markets must resolve live Solana market data");
+assert.match(marketsClient, /registry-service\.json/, "markets must load the verified shared directory");
+const homeMarkets = readFileSync(resolve(root, "home-markets.js"), "utf8");
+const registryService = JSON.parse(readFileSync(resolve(root, "markets/registry-service.json"), "utf8"));
+assert.match(registryService.endpoint, /^https:\/\/.+\/launch-registry$/, "verified launch directory endpoint missing");
+assert.ok(existsSync(resolve(root, "dist/markets/registry-service.json")), "bundled site misses market directory configuration");
+for (const id of ["home-market-list", "home-market-count", "home-market-live", "home-market-search"]) {
+  assert.match(home, new RegExp(`id=["']${id}["']`), `home market preview missing ${id}`);
+}
+assert.match(homeMarkets, /api\.dexscreener\.com\/tokens\/v1\/solana/, "home preview must use observed market data");
 assert.ok(!marketsClient.includes('source: "search", createdAt: Date.now()'), "market search must not invent a launch date");
 assert.match(app, /joltwork\.launches\.v1/, "confirmed launches must be persisted for market discovery");
 const marketRegistry = JSON.parse(readFileSync(resolve(root, "markets/registry.json"), "utf8"));

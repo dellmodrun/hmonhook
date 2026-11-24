@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { confirmPumpLaunch } from '../launch-confirm.mjs';
+import { confirmPumpLaunch, LaunchPendingError } from '../launch-confirm.mjs';
 
 const latest = { blockhash: 'blockhash', lastValidBlockHeight: 100 };
 const signature = 'signed-transaction';
@@ -24,7 +24,9 @@ test('reports a pending signature and Mint rather than calling it a failed launc
     confirmTransaction: async () => { throw new Error('timeout'); },
     getSignatureStatus: async () => ({ value: null }),
   };
-  await assert.rejects(confirmPumpLaunch(connection, signature, latest, mint), /Check signature signed-transaction and Mint new-mint before retrying/);
+  await assert.rejects(confirmPumpLaunch(connection, signature, latest, mint), (error) =>
+    error instanceof LaunchPendingError && error.pending === true &&
+    error.signature === signature && error.mintAddress === mint);
 });
 
 test('rejects a confirmed on-chain transaction failure', async () => {
