@@ -144,6 +144,30 @@ export async function submitOptionsInstructions({ connection, provider, authorit
 }
 
 export async function submitIssuerSeries(prepared: Awaited<ReturnType<typeof previewIssuerSeries>>, provider: any) {
+  const current = await prepared.connection.getMultipleAccountsInfoAndContext([
+    prepared.mint, bondingCurvePda(prepared.mint), prepared.treasury,
+  ], 'confirmed');
+  const [mintInfo, curveInfo, treasuryInfo] = current.value;
+  if (!mintInfo?.owner.equals(TOKEN_2022_PROGRAM_ID) || mintInfo.data.length < 82 ||
+      mintInfo.data.readUInt32LE(0) !== 0 || mintInfo.data.readUInt32LE(46) !== 0 ||
+      mintInfo.data[45] !== 1 || !validMintExtensions(mintInfo.data) ||
+      mintInfo.data.readBigUInt64LE(36) !== prepared.supply ||
+      !curveInfo?.owner.equals(PUMP_PROGRAM_ID) || !treasuryInfo?.owner.equals(TOKEN_2022_PROGRAM_ID)) {
+    throw new Error('Mint, curve or issuer treasury changed. Review the lock again.');
+  }
+  const curve = new PumpSdk().decodeBondingCurve(curveInfo);
+  if (!isSolLikeQuoteMint(curve.quoteMint)) throw new Error('Pump quote Mint changed. Review the lock again.');
+  const strike = strikeFromPumpReserves({ virtualQuoteReserves: curve.virtualQuoteReserves.toString(),
+    virtualTokenReserves: curve.virtualTokenReserves.toString(), realTokenReserves: curve.realTokenReserves.toString(),
+    decimals: mintInfo.data[44], complete: curve.complete });
+  if (strike.strikeLamports !== prepared.strikeLamports || strike.lotSize !== prepared.lotSize) {
+    throw new Error('Pump price changed. Review the lock again.');
+  }
+  const treasury = await getAccount(prepared.connection, prepared.treasury, 'confirmed', TOKEN_2022_PROGRAM_ID);
+  if (!treasury.owner.equals(prepared.issuer) || !treasury.mint.equals(prepared.mint) ||
+      treasury.isFrozen || treasury.delegate || treasury.amount !== prepared.treasuryBefore) {
+    throw new Error('Issuer treasury changed. Review the lock again.');
+  }
   const result = await submitOptionsInstructions({ connection: prepared.connection, provider,
     authority: prepared.issuer, instructions: prepared.instructions });
   if (result.status === 'confirmed') await fetchVerifiedSeries(prepared.connection, prepared.programId, prepared.series);
