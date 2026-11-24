@@ -16,7 +16,7 @@ Adapters are part of the security boundary. A malicious or incorrectly decoded r
 
 The same published **legacy Jolt Guard** SBF digest is deployed on mainnet and devnet. The mainnet deployment is executable and independently inspectable, but it is not presented as independently audited. The separate h/monhook Guard and options programs have temporary Devnet deployments only; their byte identity and invalid-instruction smoke checks do not establish a safe money path. Integrators should review the applicable program, adapters and deployment manifest before enabling production value.
 
-The development options program checks one registered issuer treasury's current token balance. A sale followed by a refill before default is registered leaves no historical evidence in that account. Its present rule must not be described as detecting every developer sale. The forfeiture evidence policy remains a release blocker.
+The `options-custody-v3` development branch replaces the freely controlled issuer-account balance check with a separately registered, program-controlled token account. An issuer withdrawal before expiry marks that series in default in the same transaction, so a later refill cannot erase the event. This covers only tokens actually deposited into that custody account; the contract cannot identify unrelated wallets owned by the same developer. V3 has not passed a funded public-cluster lifecycle or independent review and is not enabled on the public site.
 
 ## Reporting
 

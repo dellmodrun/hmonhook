@@ -94,6 +94,16 @@ assert.equal((await getAccount(connection, opened.series.vault, 'confirmed', TOK
 const exerciseSignature = await send(exercised.instructions, [buyer]);
 assert.equal((await getAccount(connection, exercised.destination, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(unit));
 
+let unauthorizedWithdrawRejected = false;
+try { await send([withdrawRegisteredTreasuryInstruction({ programId, issuer: buyer.publicKey,
+  series: opened.series.address, mint, destination: exercised.destination })], [buyer]); }
+catch (_) { unauthorizedWithdrawRejected = true; }
+assert.ok(unauthorizedWithdrawRejected, 'only the issuer may withdraw the registered allocation');
+let redirectedWithdrawRejected = false;
+try { await send([withdrawRegisteredTreasuryInstruction({ programId, issuer: issuer.publicKey,
+  series: opened.series.address, mint, destination: exercised.destination })], [issuer]); }
+catch (_) { redirectedWithdrawRejected = true; }
+assert.ok(redirectedWithdrawRejected, 'the issuer cannot redirect custody to a buyer token account');
 const defaultSignature = await send([withdrawRegisteredTreasuryInstruction({ programId, issuer: issuer.publicKey,
   series: opened.series.address, mint, destination: source })], [issuer]);
 assert.equal((await getAccount(connection, source, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(950 * unit));
@@ -106,7 +116,7 @@ assert.equal(series.status, 1);
 
 const claimed = claimDefaultInstructions({ programId, series: opened.series.address, mint, vault: opened.series.vault, issuer: issuer.publicKey, buyer: buyer.publicKey, lots: 1n });
 const claimSignature = await send(claimed.instructions, [buyer]);
-assert.equal((await getAccount(connection, claimed.destination, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(3 * unit));
+assert.equal((await getAccount(connection, claimed.destination, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(2 * unit));
 let duplicateClaimRejected = false;
 try { await send(claimed.instructions, [buyer]); } catch (_) { duplicateClaimRejected = true; }
 assert.ok(duplicateClaimRejected, 'duplicate default claim must fail');
@@ -172,6 +182,7 @@ console.log(JSON.stringify({
   network: endpoint, programId: programId.toBase58(), series: opened.series.address.toBase58(),
   openSignature, buySignature, exerciseSignature, defaultSignature, claimSignature,
   prematureDefaultRejected, unmonitoredSourceRejected, postBreachPurchaseRejected, divertedExerciseRejected, expiredSaleRejected, unauthorizedReclaimRejected,
+  unauthorizedWithdrawRejected, redirectedWithdrawRejected,
   duplicateClaimRejected, earlyReclaimSignature, reclaimSignature, expiredExerciseRejected,
   prematureRefundRejected, refundSignature, duplicateRefundRejected,
 }, null, 2));
