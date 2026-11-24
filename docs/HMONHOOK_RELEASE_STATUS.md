@@ -6,6 +6,10 @@ The public GitHub Pages site is still using the existing deployed Guard program.
 
 The owner chose to finish the product and launch its money-facing features as one release. The old Guard-only deployment script is inspection-only; its `-Deploy` switch deliberately fails. A standalone, public metadata and directory service has been deployed for non-funding integration tests; this does not activate new on-chain programs or publish the development front end. The final release still needs one plan covering both program binaries, market and privacy integrations, site configuration, authority backup, funding, and post-deployment transactions. No mainnet release date or SOL amount is established yet.
 
+As of 2026-11-24, the two current SBF binaries are 33,064 and 148,080 bytes. A mainnet RPC rent query returned 0.16884396 and 0.75312524 SOL for their respective ProgramData accounts, or 0.92196920 SOL together. Program accounts, temporary deployment buffers, transaction fees and user-created accounts are additional; 0.5 SOL cannot cover both deployments. Recalculate from the final audited binaries before funding. CI-generated program keypairs are disposable and must never become mainnet program identities; the SBF artifact workflow now publishes only binaries and hashes.
+
+The remaining hard gates are: (1) enforce or explicitly redesign the curve-derived strike rule in the program; the new Rust parser has unit coverage but is not yet called by series initialization; (2) choose a durable, truthful developer-sale rule, since a treasury outflow followed by a refill is not currently provable; (3) run the full launch, lock, purchase, exercise/default, refund and buyback paths with funded public-cluster transactions and real pools; (4) obtain independent security review, prepare separately controlled deployment and upgrade authorities, verify deployed SBF hashes, and then enable the mainnet configuration. Privacy Rings is still an unimplemented integration and cannot be advertised as active.
+
 ## Verified locally
 
 - `programs/hmonhook-guard` builds to SBF. Its own wire marker is `HMON`, and `hmonhook-sdk` builds matching instructions and receipts.
