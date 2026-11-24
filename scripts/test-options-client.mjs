@@ -46,6 +46,7 @@ test('Pump buyback route targets a separate program-owned vault', async () => {
   assert.equal(route.keys[9].pubkey.toBase58(), buyback.baseVault.toBase58());
   assert.equal(route.keys[10].pubkey.toBase58(), buyback.quoteVault.toBase58());
   assert.equal(route.keys[12].pubkey.toBase58(), '8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt');
+  assert.equal(route.keys[13].pubkey.toBase58(), '5YxQFdt3Tr9zJLvkFccqXVUwhdTWJQc1fFg2YPbxvxeD');
   await assert.rejects(() => buildPumpBuybackRoute({
     programId, series, mint, spendableQuoteIn: 0n, minTokensOut: 1n,
   }), /positive/);

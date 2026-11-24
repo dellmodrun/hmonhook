@@ -12,6 +12,7 @@ export { fetchPumpStrikeSuggestion } from './options-strike.mjs';
 const encoder = new TextEncoder();
 const MAX_U64 = (1n << 64n) - 1n;
 const OFFICIAL_PUMP_PROGRAM_ID = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
+const PUMP_BUYBACK_FEE_RECIPIENT = new PublicKey('5YxQFdt3Tr9zJLvkFccqXVUwhdTWJQc1fFg2YPbxvxeD');
 
 function key(value) { return value instanceof PublicKey ? value : new PublicKey(value); }
 function u64(value) {
@@ -71,10 +72,12 @@ export async function buildPumpBuybackRoute({ programId, series, mint, spendable
     spendableQuoteIn: new BN(String(spendableQuoteIn)),
     minTokensOut: new BN(String(minTokensOut)),
   });
+  route.keys[13] = { ...route.keys[13], pubkey: PUMP_BUYBACK_FEE_RECIPIENT };
   const expected = [
     [1, key(mint)], [2, NATIVE_MINT], [3, TOKEN_2022_PROGRAM_ID],
     [4, TOKEN_PROGRAM_ID], [8, vault.authority], [9, vault.baseVault], [10, vault.quoteVault],
     [12, new PublicKey('8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt')],
+    [13, PUMP_BUYBACK_FEE_RECIPIENT],
     [14, SystemProgram.programId], [16, OFFICIAL_PUMP_PROGRAM_ID],
   ];
   if (!PUMP_PROGRAM_ID.equals(OFFICIAL_PUMP_PROGRAM_ID) || !route.programId.equals(OFFICIAL_PUMP_PROGRAM_ID) || route.keys.length !== 17 ||
