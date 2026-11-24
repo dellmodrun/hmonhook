@@ -12,7 +12,7 @@ export { submitOptionsInstructions } from './options-transaction-core.mjs';
 import { openSeriesInstructions, buyOptionsInstruction, exerciseInstructions,
   claimDefaultInstructions, refundPremiumInstruction, triggerDefaultInstruction,
   reclaimInstructions, withdrawRegisteredTreasuryInstruction, fetchVerifiedSeries,
-  derivePosition, fetchVerifiedPosition } from './options-core.mjs';
+  derivePosition, fetchVerifiedPosition, listVerifiedSeriesByMint } from './options-core.mjs';
 
 const MAX_U64 = (1n << 64n) - 1n;
 
@@ -63,6 +63,13 @@ async function requireTreasuryAboveFloor(connection: Connection, terms: Awaited<
 export async function loadOptionsProgram(connection: Connection, config: { enabled: boolean; programId?: string;
   programSha256?: string; upgradeAuthority?: string | null }) {
   return verifyOptionsProgram(connection, config);
+}
+
+export async function listOptionSeriesForMint({ rpcEndpoint, programId, mint }:
+  { rpcEndpoint: string; programId: string; mint: string }) {
+  const connection = rpcConnection(rpcEndpoint);
+  const rows = await listVerifiedSeriesByMint(connection, publicKey(programId), publicKey(mint));
+  return rows.sort((a, b) => a.expirySlot === b.expirySlot ? 0 : a.expirySlot > b.expirySlot ? -1 : 1);
 }
 
 export async function previewIssuerSeries({ rpcEndpoint, programId, issuer, mint, percent, registeredTokens, saleWindowSlots,

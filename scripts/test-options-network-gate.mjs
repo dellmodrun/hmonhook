@@ -15,7 +15,8 @@ async function inspectWithGenesis(genesis) {
     'options-market-release', 'issuer-options-controls', 'options-market-controls',
     'options-open', 'options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim',
     'options-refund', 'options-register-default', 'options-withdraw-registered', 'options-reclaim', 'options-view-series',
-    'options-series', 'options-market-rpc', 'options-lots', 'options-market-output']) {
+    'options-series', 'options-find-mint', 'options-find-series', 'options-series-results',
+    'options-market-rpc', 'options-lots', 'options-market-output']) {
     elements.set(id, { value: id === 'options-market-rpc' ? 'https://api.mainnet-beta.solana.com' : '1',
       hidden: true, textContent: '', addEventListener(type, fn) { handlers.set(`${id}:${type}`, fn); } });
   }

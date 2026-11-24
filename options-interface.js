@@ -86,6 +86,34 @@
   if (marketForm) {
     sharedSeries = new URL(location.href).searchParams.get('series');
     if (sharedSeries && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedSeries)) byId('options-series').value = sharedSeries;
+    var sharedMint = new URL(location.href).searchParams.get('mint');
+    if (sharedMint && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedMint)) byId('options-find-mint').value = sharedMint;
+    byId('options-find-series').addEventListener('click', async function () {
+      var results = byId('options-series-results');
+      results.replaceChildren();
+      try {
+        var mint = value('options-find-mint'); var rpc = value('options-market-rpc');
+        if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) throw new Error('Enter a Solana Mint address.');
+        await release(rpc);
+        var rows = await api.listOptionSeriesForMint({ rpcEndpoint: rpc, programId: config.programId, mint: mint });
+        if (mint !== value('options-find-mint') || rpc !== value('options-market-rpc')) throw new Error('Search inputs changed. Search again.');
+        if (!rows.length) { results.textContent = 'No verified V3 option series found for this Mint.'; return; }
+        var heading = document.createElement('p');
+        heading.textContent = rows.length + ' verified V3 series found. Select one to inspect its current terms.';
+        results.appendChild(heading);
+        rows.slice(0, 20).forEach(function (row) {
+          var button = document.createElement('button');
+          button.className = 'button'; button.type = 'button';
+          button.textContent = String(row.address) + ' / ' + ['ACTIVE', 'DEFAULT', 'CLOSED'][row.status];
+          button.addEventListener('click', function () {
+            byId('options-series').value = String(row.address);
+            inspectMarketSeries().catch(function (err) { error('options-market-output', err); });
+          });
+          results.appendChild(button);
+        });
+        if (rows.length > 20) { var more = document.createElement('p'); more.textContent = 'Showing the first 20 series. Search by exact series address for others.'; results.appendChild(more); }
+      } catch (err) { results.textContent = 'ERROR: ' + (err && err.message || err); }
+    });
     var actionIds = ['options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund', 'options-register-default', 'options-withdraw-registered', 'options-reclaim'];
     function disableActions() { actionIds.forEach(function (id) { byId(id).disabled = true; }); purchaseReview = null; }
     marketForm.addEventListener('input', disableActions);

@@ -10,7 +10,8 @@ function page(config, href = 'https://example.test/markets/') {
   for (const id of ['issuer-options-form', 'options-market-form', 'options-release-state',
     'options-market-release', 'issuer-options-controls', 'options-market-controls',
     'options-open', 'options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund',
-    'options-register-default', 'options-withdraw-registered', 'options-reclaim', 'options-view-series', 'options-series']) {
+    'options-register-default', 'options-withdraw-registered', 'options-reclaim', 'options-view-series',
+    'options-series', 'options-find-mint', 'options-find-series', 'options-series-results']) {
     elements.set(id, { addEventListener() {}, hidden: id.endsWith('controls'), textContent: '' });
   }
   const context = {
