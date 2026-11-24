@@ -68,7 +68,16 @@ export async function loadOptionsProgram(connection: Connection, config: { enabl
 export async function listOptionSeriesForMint({ rpcEndpoint, programId, mint }:
   { rpcEndpoint: string; programId: string; mint: string }) {
   const connection = rpcConnection(rpcEndpoint);
-  const rows = await listVerifiedSeriesByMint(connection, publicKey(programId), publicKey(mint));
+  const programKey = publicKey(programId);
+  const mintKey = publicKey(mint);
+  let rows;
+  try { rows = await listVerifiedSeriesByMint(connection, programKey, mintKey); }
+  catch (error) {
+    if (new URL(rpcEndpoint).origin !== 'https://solana-rpc.publicnode.com') throw error;
+    // PublicNode currently rejects getProgramAccounts while serving other RPC methods.
+    const official = rpcConnection('https://api.mainnet-beta.solana.com');
+    rows = await listVerifiedSeriesByMint(official, programKey, mintKey);
+  }
   return rows.sort((a, b) => a.expirySlot === b.expirySlot ? 0 : a.expirySlot > b.expirySlot ? -1 : 1);
 }
 
