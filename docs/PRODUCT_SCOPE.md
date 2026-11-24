@@ -28,7 +28,7 @@ The browser suggests a curve-derived strike and rechecks its quote before signin
 
 ## Optional user privacy: integration planned
 
-Helius Privacy Rings are an external technology that may support confidential transfers for eligible user assets. According to Helius's [Privacy Rings explanation](https://www.helius.dev/blog/solana-privacy-rings), the default Ring can conceal asset and amount while wallet addresses remain visible. h/monhook has not integrated these transfers into the launcher, intent composer or Jolt Guard program.
+Helius's [Solana Privacy Rings documentation](https://www.helius.dev/docs/privacy) says its permissionless default Ring is live on mainnet. The default Ring conceals asset and amount while sender and recipient addresses remain visible; custom anonymous Rings are a separate product. Helius's [current documentation index](https://www.helius.dev/docs/llms.txt) lists an API key and SDK as integration requirements. h/monhook has not integrated these transfers into the launcher, intent composer or Guard program, and has not verified a real private transaction through its own interface.
 
 Issuer collateral, option terms and evidence of an alleged violation need to stay verifiable. A confidential transfer cannot be treated as proof of a developer sale, and hidden amounts cannot be advertised as automatically monitored. Any future private payout or transfer flow must preserve the public facts needed to adjudicate claims.
 
