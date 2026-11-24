@@ -9,6 +9,8 @@
   var issuerReview;
   var purchaseReview;
   var marketView;
+  var inspectMarketSeries;
+  var sharedSeries;
   function byId(id) { return document.getElementById(id); }
   function value(id) { return byId(id).value.trim(); }
   function wallet() {
@@ -39,7 +41,7 @@
     return (amount / 1000000000n) + '.' + String(amount % 1000000000n).padStart(9, '0') + ' SOL';
   }
   if (issuerForm) {
-    issuerForm.addEventListener('input', function () { issuerReview = null; byId('options-open').disabled = true; });
+    issuerForm.addEventListener('input', function () { issuerReview = null; byId('options-open').disabled = true; byId('options-view-series').hidden = true; });
     issuerForm.addEventListener('submit', async function (event) {
       event.preventDefault(); issuerReview = null; byId('options-open').disabled = true;
       try {
@@ -71,14 +73,20 @@
         show('options-issuer-output', ['STATUS: ' + result.status, 'SERIES: ' + result.series, 'SIGNATURE: ' + result.signature,
           result.status === 'confirmed' ? 'Collateral lock verified on chain.' : 'Check the signature in a Solana explorer before retrying.']);
         issuerReview = null;
+        if (result.status === 'confirmed') {
+          byId('options-view-series').href = './markets/?series=' + encodeURIComponent(result.series);
+          byId('options-view-series').hidden = false;
+        }
       } catch (err) { error('options-issuer-output', err); }
     });
   }
   if (marketForm) {
+    sharedSeries = new URL(location.href).searchParams.get('series');
+    if (sharedSeries && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedSeries)) byId('options-series').value = sharedSeries;
     var actionIds = ['options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund', 'options-register-default', 'options-reclaim'];
     function disableActions() { actionIds.forEach(function (id) { byId(id).disabled = true; }); purchaseReview = null; }
     marketForm.addEventListener('input', disableActions);
-    async function inspect() {
+    inspectMarketSeries = async function () {
       disableActions(); marketView = null;
       var submittedInputs = marketInputs();
       await release(value('options-market-rpc'));
@@ -91,6 +99,15 @@
       var t = view.terms; var p = view.position;
       var available = t.totalLots - t.soldLots;
       var owned = p ? p.boughtLots - p.exercisedLots - p.defaultClaimedLots : 0n;
+      var refundable = 0n;
+      if (p && !p.premiumRefunded && t.soldLots > 0n) {
+        var grossUnspent = t.soldLots * t.premiumLamports - t.premiumSpentLamports;
+        var unclaimed = grossUnspent - t.premiumRefundedLamports;
+        if (grossUnspent < 0n || unclaimed < 0n) throw new Error('On-chain premium accounting is inconsistent.');
+        refundable = t.premiumRefundClaimedLots + p.boughtLots === t.soldLots
+          ? unclaimed : grossUnspent * p.boughtLots / t.soldLots;
+        if (refundable > unclaimed) refundable = 0n;
+      }
       show('options-market-output', ['MINT: ' + t.mint, 'ISSUER: ' + t.issuer, 'SERIES STATUS: ' + ['ACTIVE', 'DEFAULT', 'CLOSED'][t.status],
         'CURRENT SLOT: ' + view.slot, 'VAULT COLLATERAL: ' + view.vaultAmount + ' base units',
         'REGISTERED TREASURY: ' + view.treasuryAmount + ' base units', 'TREASURY FLOOR: ' + t.treasuryFloor + ' base units',
@@ -99,18 +116,19 @@
         'STRIKE / LOT: ' + formatSol(t.strikeLamports), 'PREMIUM / LOT: ' + formatSol(t.premiumLamports),
         'SALE DEADLINE SLOT: ' + t.saleDeadlineSlot, 'EXERCISE EXPIRY SLOT: ' + t.expirySlot,
         'YOUR OPEN LOTS: ' + owned, 'YOUR REFUND CLAIMED: ' + (p ? !!p.premiumRefunded : 'NO POSITION'),
+        'ESTIMATED UNSPENT PREMIUM REFUND: ' + formatSol(refundable) + ' / AFTER EXPIRY ONLY',
         'The option premium may be lost. Inspect terms and market price independently.']);
       if (connected && t.status === 0 && BigInt(view.slot) <= t.saleDeadlineSlot && available > 0n && !view.registeredTreasuryBreached) byId('options-buy').disabled = false;
       if (connected && owned > 0n && t.status === 0 && BigInt(view.slot) <= t.expirySlot) byId('options-exercise').disabled = false;
       if (connected && owned > 0n && t.status === 1) byId('options-claim').disabled = false;
-      if (connected && p && !p.premiumRefunded && BigInt(view.slot) > t.expirySlot) byId('options-refund').disabled = false;
+      if (connected && p && !p.premiumRefunded && refundable > 0n && BigInt(view.slot) > t.expirySlot) byId('options-refund').disabled = false;
       if (connected && t.status === 0 && BigInt(view.slot) <= t.expirySlot && view.registeredTreasuryBreached) byId('options-register-default').disabled = false;
       var reclaimable = t.status === 1 || BigInt(view.slot) <= t.expirySlot
         ? t.totalLots - t.soldLots - t.reclaimedLots : t.totalLots - t.exercisedLots - t.reclaimedLots;
       if (connected && String(t.issuer) === connected && BigInt(view.slot) > t.saleDeadlineSlot && t.status !== 2 && reclaimable > 0n && view.vaultAmount >= reclaimable * t.lotSize) byId('options-reclaim').disabled = false;
       return view;
-    }
-    marketForm.addEventListener('submit', async function (event) { event.preventDefault(); try { await inspect(); } catch (err) { error('options-market-output', err); } });
+    };
+    marketForm.addEventListener('submit', async function (event) { event.preventDefault(); try { await inspectMarketSeries(); } catch (err) { error('options-market-output', err); } });
     byId('options-buy').addEventListener('click', async function () {
       try {
         var who = wallet(); if (!marketView || marketView.inputs !== marketInputs() || marketView.address !== who.address) throw new Error('Refresh the series after changing inputs or wallet.');
@@ -171,7 +189,11 @@
     config = loaded;
     var active = loaded.enabled === true && loaded.cluster === 'mainnet-beta' && !!loaded.programId;
     if (issuerForm) { byId('options-release-state').textContent = active ? 'Contract configured. Review the on-chain program and terms before signing.' : 'Options trading is not enabled. Contract deployment and independent review are pending.'; byId('issuer-options-controls').hidden = !active; }
-    if (marketForm) { byId('options-market-release').textContent = active ? 'Contract configured. Inspect a verified series before buying.' : 'Options trading is not enabled. Contract deployment and independent review are pending.'; byId('options-market-controls').hidden = !active; }
+    if (marketForm) {
+      byId('options-market-release').textContent = active ? 'Contract configured. Inspect a verified series before buying.' : 'Options trading is not enabled. Contract deployment and independent review are pending.';
+      byId('options-market-controls').hidden = !active;
+      if (active && sharedSeries) inspectMarketSeries().catch(function (err) { error('options-market-output', err); });
+    }
   }).catch(function (err) {
     if (issuerForm) byId('options-release-state').textContent = err.message;
     if (marketForm) byId('options-market-release').textContent = err.message;

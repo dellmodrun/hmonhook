@@ -61,6 +61,8 @@ for (const page of ["launch/index.html", "markets/index.html"]) {
   assert.match(html, /src="\.\/options-interface\.js"/, `options interface missing: ${page}`);
   assert.match(html, /src="\.\/options-browser-client\.js"/, `options browser client missing: ${page}`);
 }
+assert.match(readFileSync(resolve(root, "launch/index.html"), "utf8"), /id="options-view-series"[^>]*hidden/,
+  "unconfirmed option series link must stay hidden");
 assert.match(readFileSync(resolve(root, "enhancements.css"), "utf8"), /#issuer-options-controls\[hidden\],#options-market-controls\[hidden\]\{display:none!important\}/,
   "disabled options controls must stay hidden");
 assert.ok(existsSync(resolve(root, "dist/options/program.json")), "packaged options release gate missing");

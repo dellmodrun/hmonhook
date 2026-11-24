@@ -129,3 +129,4 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 }
 
 #issuer-options-controls[hidden],#options-market-controls[hidden]{display:none!important}
+#options-view-series[hidden]{display:none!important}
