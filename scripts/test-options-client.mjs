@@ -6,6 +6,7 @@ import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedToke
 import {
   deriveSeries, derivePosition, openSeriesInstructions, buyOptionsInstruction,
   exerciseInstructions, claimDefaultInstructions, triggerDefaultInstruction,
+  withdrawRegisteredTreasuryInstruction,
   reclaimInstructions, refundPremiumInstruction, decodeSeries,
   fetchVerifiedSeries,
   listVerifiedSeriesByMint,
@@ -20,21 +21,23 @@ const issuer = Keypair.generate().publicKey;
 const buyer = Keypair.generate().publicKey;
 const mint = Keypair.generate().publicKey;
 const source = Keypair.generate().publicKey;
-const treasury = source;
 const nonce = 7n;
-const { address: series, vault } = deriveSeries(programId, mint, issuer, nonce);
+const { address: series, vault, treasury } = deriveSeries(programId, mint, issuer, nonce);
 
 test('series and position PDAs bind mint, issuer and buyer', () => {
   assert.notEqual(series.toBase58(), deriveSeries(programId, mint, buyer, nonce).address.toBase58());
   assert.notEqual(derivePosition(programId, series, buyer).toBase58(), derivePosition(programId, series, issuer).toBase58());
 });
 
-test('opening cannot use a different unmonitored collateral source', () => {
-  assert.throws(() => openSeriesInstructions({
-    programId, issuer, mint, source, treasury: Keypair.generate().publicKey,
+test('opening derives a separate program-controlled registered treasury', () => {
+  const opened = openSeriesInstructions({
+    programId, issuer, mint, source,
     nonce, deposit: 20n, strikeLamports: 100n, saleDeadlineSlot: 200n,
     expirySlot: 300n, treasuryFloor: 40n,
-  }), /collateral source must be the monitored issuer treasury/);
+  });
+  assert.ok(!opened.series.treasury.equals(source));
+  assert.ok(!opened.series.treasury.equals(opened.series.vault));
+  assert.equal(opened.instructions[1].keys[4].pubkey.toBase58(), treasury.toBase58());
 });
 
 test('Pump buyback route targets a separate program-owned vault', async () => {
@@ -119,7 +122,10 @@ test('all option actions target the chosen new program with exact account order'
     assert.equal(action.instructions[1].data[0], op);
     assert.equal(action.instructions[1].keys[5].pubkey.toBase58(), vault.toBase58());
   }
-  assert.equal(triggerDefaultInstruction({ programId, series, treasury }).data[0], 3);
+  assert.equal(triggerDefaultInstruction({ programId, series }).data[0], 3);
+  const withdraw = withdrawRegisteredTreasuryInstruction({ programId, issuer, series, mint, destination: source });
+  assert.equal(withdraw.data[0], 11);
+  assert.equal(withdraw.keys[3].pubkey.toBase58(), treasury.toBase58());
   assert.equal(reclaimInstructions({ programId, issuer, series, mint, vault }).instructions[1].data[0], 5);
   const refund = refundPremiumInstruction({ programId, series, buyer });
   assert.equal(refund.data[0], 6);
@@ -130,7 +136,7 @@ test('all option actions target the chosen new program with exact account order'
 
 test('series decoder rejects unrelated bytes and preserves base-unit terms', () => {
   const bytes = Buffer.alloc(266);
-  bytes.write('HMONOPT2', 0);
+  bytes.write('HMONOPT3', 0);
   bytes[8] = 1;
   bytes[9] = 255;
   bytes.writeBigUInt64LE(7n, 10);
@@ -154,7 +160,7 @@ test('series decoder rejects unrelated bytes and preserves base-unit terms', () 
 
 test('remote series must be owned by the expected program and match its PDA', async () => {
   const bytes = Buffer.alloc(266);
-  bytes.write('HMONOPT2', 0);
+  bytes.write('HMONOPT3', 0);
   bytes[9] = deriveSeries(programId, mint, issuer, nonce).bump;
   bytes.writeBigUInt64LE(nonce, 10);
   for (let index = 0; index < 4; index++) bytes.set([issuer, mint, vault, treasury][index].toBuffer(), 18 + index * 32);

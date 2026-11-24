@@ -5,11 +5,10 @@ import {
   TOKEN_2022_PROGRAM_ID, AuthorityType, createMint, createAccount,
   getOrCreateAssociatedTokenAccount, getAccount, mintTo, setAuthority,
   createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync,
-  createTransferCheckedInstruction,
 } from '@solana/spl-token';
 import {
   openSeriesInstructions, buyOptionsInstruction, exerciseInstructions,
-  triggerDefaultInstruction, claimDefaultInstructions, fetchVerifiedSeries,
+  triggerDefaultInstruction, withdrawRegisteredTreasuryInstruction, claimDefaultInstructions, fetchVerifiedSeries,
   reclaimInstructions,
   refundPremiumInstruction,
   deriveBuybackAuthority,
@@ -32,7 +31,6 @@ await fund(issuer);
 await fund(buyer);
 const mint = await createMint(connection, issuer, issuer.publicKey, issuer.publicKey, decimals, undefined, undefined, TOKEN_2022_PROGRAM_ID);
 const source = (await getOrCreateAssociatedTokenAccount(connection, issuer, mint, issuer.publicKey, false, 'confirmed', undefined, TOKEN_2022_PROGRAM_ID)).address;
-const treasury = source;
 const unmonitored = await createAccount(connection, issuer, mint, issuer.publicKey, Keypair.generate(), undefined, TOKEN_2022_PROGRAM_ID);
 await mintTo(connection, issuer, mint, source, issuer, 1000 * unit, [], undefined, TOKEN_2022_PROGRAM_ID);
 await setAuthority(connection, issuer, mint, issuer, AuthorityType.MintTokens, null, [], undefined, TOKEN_2022_PROGRAM_ID);
@@ -41,7 +39,7 @@ await send([createMockPumpCurve({ payer: issuer.publicKey, mint }).instruction],
 
 const slot = await connection.getSlot('confirmed');
 const wrongStrike = openSeriesInstructions({
-  programId, issuer: issuer.publicKey, mint, source, treasury, nonce: 5n,
+  programId, issuer: issuer.publicKey, mint, source, nonce: 5n,
   deposit: BigInt(50 * unit), strikeLamports: 999n,
   saleDeadlineSlot: BigInt(slot + 1_000), expirySlot: BigInt(slot + 2_000),
   treasuryFloor: BigInt(950 * unit),
@@ -51,7 +49,7 @@ try { await send(wrongStrike.instructions, [issuer]); }
 catch (_) { wrongStrikeRejected = true; }
 assert.ok(wrongStrikeRejected, 'the contract must reject a strike that differs from the Pump curve');
 const rejectedSource = openSeriesInstructions({
-  programId, issuer: issuer.publicKey, mint, source, treasury, nonce: 6n,
+  programId, issuer: issuer.publicKey, mint, source, nonce: 6n,
   deposit: BigInt(50 * unit), strikeLamports: 1_000n,
   saleDeadlineSlot: BigInt(slot + 1_000), expirySlot: BigInt(slot + 2_000),
   treasuryFloor: BigInt(950 * unit),
@@ -62,7 +60,7 @@ try { await send(rejectedSource.instructions, [issuer]); }
 catch (_) { unmonitoredSourceRejected = true; }
 assert.ok(unmonitoredSourceRejected, 'the collateral source must be the monitored treasury');
 const opened = openSeriesInstructions({
-  programId, issuer: issuer.publicKey, mint, source, treasury, nonce: 7n,
+  programId, issuer: issuer.publicKey, mint, source, nonce: 7n,
   deposit: BigInt(50 * unit), strikeLamports: 1_000n,
   saleDeadlineSlot: BigInt(slot + 1_000), expirySlot: BigInt(slot + 2_000),
   treasuryFloor: BigInt(950 * unit),
@@ -72,15 +70,16 @@ let series = await fetchVerifiedSeries(connection, programId, opened.series.addr
 assert.equal(series.totalLots, 50n);
 assert.ok((await listVerifiedSeriesByMint(connection, programId, mint)).some((row) => row.address.equals(opened.series.address)));
 assert.equal((await getAccount(connection, opened.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(50 * unit));
+assert.equal((await getAccount(connection, opened.series.treasury, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(950 * unit));
 
 let prematureDefaultRejected = false;
-try { await send([triggerDefaultInstruction({ programId, series: opened.series.address, treasury })], [buyer]); }
+try { await send([triggerDefaultInstruction({ programId, series: opened.series.address })], [buyer]); }
 catch (_) { prematureDefaultRejected = true; }
 assert.ok(prematureDefaultRejected, 'default must require a breached registered treasury');
 
 const premiumVault = deriveBuybackAuthority(programId, opened.series.address);
 const premiumsBeforeBuy = await connection.getBalance(premiumVault, 'confirmed');
-const buySignature = await send([buyOptionsInstruction({ programId, series: opened.series.address, buyer: buyer.publicKey, treasury, lots: 2n })], [buyer]);
+const buySignature = await send([buyOptionsInstruction({ programId, series: opened.series.address, buyer: buyer.publicKey, lots: 2n })], [buyer]);
 series = await fetchVerifiedSeries(connection, programId, opened.series.address);
 assert.equal(series.soldLots, 2n);
 assert.equal((await connection.getBalance(premiumVault, 'confirmed')) - premiumsBeforeBuy, 200);
@@ -95,16 +94,13 @@ assert.equal((await getAccount(connection, opened.series.vault, 'confirmed', TOK
 const exerciseSignature = await send(exercised.instructions, [buyer]);
 assert.equal((await getAccount(connection, exercised.destination, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(unit));
 
-const buyerTreasuryDestination = getAssociatedTokenAddressSync(mint, buyer.publicKey, false, TOKEN_2022_PROGRAM_ID);
-await send([
-  createAssociatedTokenAccountIdempotentInstruction(issuer.publicKey, buyerTreasuryDestination, buyer.publicKey, mint, TOKEN_2022_PROGRAM_ID),
-  createTransferCheckedInstruction(treasury, mint, buyerTreasuryDestination, issuer.publicKey, unit, decimals, [], TOKEN_2022_PROGRAM_ID),
-], [issuer]);
+const defaultSignature = await send([withdrawRegisteredTreasuryInstruction({ programId, issuer: issuer.publicKey,
+  series: opened.series.address, mint, destination: source })], [issuer]);
+assert.equal((await getAccount(connection, source, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, BigInt(950 * unit));
 let postBreachPurchaseRejected = false;
-try { await send([buyOptionsInstruction({ programId, series: opened.series.address, buyer: buyer.publicKey, treasury, lots: 1n })], [buyer]); }
+try { await send([buyOptionsInstruction({ programId, series: opened.series.address, buyer: buyer.publicKey, lots: 1n })], [buyer]); }
 catch (_) { postBreachPurchaseRejected = true; }
 assert.ok(postBreachPurchaseRejected, 'new options cannot be bought after registered treasury outflow');
-const defaultSignature = await send([triggerDefaultInstruction({ programId, series: opened.series.address, treasury })], [buyer]);
 series = await fetchVerifiedSeries(connection, programId, opened.series.address);
 assert.equal(series.status, 1);
 
@@ -117,20 +113,20 @@ assert.ok(duplicateClaimRejected, 'duplicate default claim must fail');
 
 const expiryStart = await connection.getSlot('confirmed');
 const expiring = openSeriesInstructions({
-  programId, issuer: issuer.publicKey, mint, source, treasury, nonce: 8n,
+  programId, issuer: issuer.publicKey, mint, source, nonce: 8n,
   deposit: BigInt(50 * unit), strikeLamports: 1_000n,
   saleDeadlineSlot: BigInt(expiryStart + 10), expirySlot: BigInt(expiryStart + 50),
-  treasuryFloor: BigInt(899 * unit),
+  treasuryFloor: BigInt(900 * unit),
 });
 await send(expiring.instructions, [issuer]);
-await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, treasury, lots: 2n })], [buyer]);
+await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, lots: 2n })], [buyer]);
 const refund = refundPremiumInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey });
 let prematureRefundRejected = false;
 try { await send([refund], [buyer]); } catch (_) { prematureRefundRejected = true; }
 assert.ok(prematureRefundRejected, 'premium refunds cannot precede expiry');
 while ((await connection.getSlot('confirmed')) <= expiryStart + 10) await new Promise((resolve) => setTimeout(resolve, 350));
 let expiredSaleRejected = false;
-try { await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, treasury, lots: 1n })], [buyer]); }
+try { await send([buyOptionsInstruction({ programId, series: expiring.series.address, buyer: buyer.publicKey, lots: 1n })], [buyer]); }
 catch (_) { expiredSaleRejected = true; }
 assert.ok(expiredSaleRejected, 'option purchases after the sale deadline must fail');
 const unauthorized = reclaimInstructions({ programId, issuer: buyer.publicKey, series: expiring.series.address, mint, vault: expiring.series.vault });
@@ -147,6 +143,9 @@ while ((await connection.getSlot('confirmed')) <= expiryStart + 50) await new Pr
 const reclaimSignature = await send(reclaim.instructions, [issuer]);
 const expiringState = await fetchVerifiedSeries(connection, programId, expiring.series.address);
 assert.equal(expiringState.status, 2);
+await send([withdrawRegisteredTreasuryInstruction({ programId, issuer: issuer.publicKey,
+  series: expiring.series.address, mint, destination: source })], [issuer]);
+assert.equal((await fetchVerifiedSeries(connection, programId, expiring.series.address)).status, 2);
 assert.equal(expiringState.reclaimedLots, 49n);
 assert.equal((await getAccount(connection, expiring.series.vault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, 0n);
 let expiredExerciseRejected = false;

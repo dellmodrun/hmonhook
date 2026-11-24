@@ -29,14 +29,14 @@ await setAuthority(connection, issuer, mint, issuer, AuthorityType.FreezeAccount
 const slot = await connection.getSlot('confirmed');
 const opened = openSeriesInstructions({ programId, issuer: issuer.publicKey, mint, source, treasury: source,
   nonce: 201n, deposit: 50_000_000n, strikeLamports: 1_000n,
-  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 900_000_000n });
+  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 100_000_000n });
 await send(opened.instructions, [issuer]);
 const series = opened.series.address;
 const prep = buybackVaultPrepInstructions({ programId, series, mint, payer: issuer.publicKey });
 await send(prep.instructions, [issuer]);
 const partial = openSeriesInstructions({ programId, issuer: issuer.publicKey, mint, source, treasury: source,
   nonce: 202n, deposit: 50_000_000n, strikeLamports: 1_000n,
-  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 850_000_000n });
+  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 100_000_000n });
 await send(partial.instructions, [issuer]);
 await send([buyOptionsInstruction({ programId, series: partial.series.address, buyer: buyer.publicKey, treasury: source, lots: 2n })], [buyer]);
 const partialBuyback = await pumpBuybackInstruction({ programId, series: partial.series.address, mint, keeper: buyer.publicKey,
@@ -48,7 +48,7 @@ assert.equal((await fetchVerifiedSeries(connection, programId, partial.series.ad
 await send([buyOptionsInstruction({ programId, series, buyer: buyer.publicKey, treasury: source, lots: 50n })], [buyer]);
 const rounding = openSeriesInstructions({ programId, issuer: issuer.publicKey, mint, source, treasury: source,
   nonce: 203n, deposit: 50_000_000n, strikeLamports: 1_000n,
-  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 800_000_000n });
+  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 100_000_000n });
 await send(rounding.instructions, [issuer]);
 await send(buybackVaultPrepInstructions({ programId, series: rounding.series.address, mint, payer: issuer.publicKey }).instructions, [issuer]);
 await send([buyOptionsInstruction({ programId, series: rounding.series.address, buyer: smallBuyer.publicKey, treasury: source, lots: 1n })], [smallBuyer]);

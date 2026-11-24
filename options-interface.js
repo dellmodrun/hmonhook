@@ -35,7 +35,7 @@
     await api.loadOptionsProgram(connection, config);
     return connection;
   }
-  function issuerInputs() { return [value('options-mint'), value('options-percent'), value('options-rpc'), value('options-sale-slots'), value('options-expiry-slots')].join('|'); }
+  function issuerInputs() { return [value('options-mint'), value('options-percent'), value('options-registered-tokens'), value('options-rpc'), value('options-sale-slots'), value('options-expiry-slots')].join('|'); }
   function marketInputs() { return [value('options-series'), value('options-market-rpc'), value('options-lots')].join('|'); }
   function formatSol(lamports) {
     var amount = BigInt(lamports);
@@ -50,17 +50,19 @@
         show('options-issuer-output', 'Reading Mint, Pump curve and issuer treasury...');
         var prepared = await api.previewIssuerSeries({ rpcEndpoint: rpc, programId: config.programId,
           issuer: who.address, mint: value('options-mint'), percent: Number(value('options-percent')),
+          registeredTokens: value('options-registered-tokens'),
           saleWindowSlots: Number(value('options-sale-slots')), expiryWindowSlots: Number(value('options-expiry-slots')) });
         if (submittedInputs !== issuerInputs() || who.address !== wallet().address) throw new Error('Inputs or wallet changed during review. Review again.');
         issuerReview = { prepared: prepared, inputs: issuerInputs(), address: who.address };
         show('options-issuer-output', ['MINT: ' + prepared.mint, 'ISSUER: ' + prepared.issuer,
           'SERIES: ' + prepared.series, 'SNAPSHOT SLOT: ' + prepared.snapshotSlot,
-          'LOCK: ' + prepared.deposit + ' base units / ' + prepared.totalLots + ' lots',
-          'REGISTERED TREASURY: ' + prepared.treasury, 'TREASURY FLOOR: ' + prepared.treasuryFloor + ' base units',
+          'OPTION COLLATERAL: ' + prepared.deposit + ' base units / ' + prepared.totalLots + ' lots',
+          'REGISTERED CUSTODY: ' + prepared.treasury, 'ADDITIONAL TOKENS HELD: ' + prepared.treasuryFloor + ' base units',
           'STRIKE / LOT: ' + formatSol(prepared.strikeLamports),
           'PREMIUM / LOT: ' + formatSol(prepared.premiumLamports),
           'SALE DEADLINE SLOT: ' + prepared.saleDeadlineSlot, 'EXERCISE EXPIRY SLOT: ' + prepared.expirySlot,
-          'Review the Mint and terms before signing. Locking does not guarantee market price.']);
+          'Both amounts leave your wallet when signing. Withdrawing registered tokens before expiry permanently defaults this series.',
+          'Only this registered allocation is monitored; unrelated wallets are outside this protection.']);
         byId('options-open').disabled = false;
       } catch (err) { error('options-issuer-output', err); }
     });
@@ -84,7 +86,7 @@
   if (marketForm) {
     sharedSeries = new URL(location.href).searchParams.get('series');
     if (sharedSeries && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedSeries)) byId('options-series').value = sharedSeries;
-    var actionIds = ['options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund', 'options-register-default', 'options-reclaim'];
+    var actionIds = ['options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund', 'options-register-default', 'options-withdraw-registered', 'options-reclaim'];
     function disableActions() { actionIds.forEach(function (id) { byId(id).disabled = true; }); purchaseReview = null; }
     marketForm.addEventListener('input', disableActions);
     inspectMarketSeries = async function () {
@@ -111,7 +113,7 @@
       }
       show('options-market-output', ['MINT: ' + t.mint, 'ISSUER: ' + t.issuer, 'SERIES STATUS: ' + ['ACTIVE', 'DEFAULT', 'CLOSED'][t.status],
         'CURRENT SLOT: ' + view.slot, 'VAULT COLLATERAL: ' + view.vaultAmount + ' base units',
-        'REGISTERED TREASURY: ' + view.treasuryAmount + ' base units', 'TREASURY FLOOR: ' + t.treasuryFloor + ' base units',
+        'REGISTERED CUSTODY: ' + view.treasuryAmount + ' base units', 'REGISTERED ALLOCATION: ' + t.treasuryFloor + ' base units',
         'TREASURY BELOW FLOOR: ' + (view.registeredTreasuryBreached ? 'YES' : 'NO'),
         'LOT SIZE: ' + t.lotSize + ' base units', 'AVAILABLE LOTS: ' + available,
         'STRIKE / LOT: ' + formatSol(t.strikeLamports), 'PREMIUM / LOT: ' + formatSol(t.premiumLamports),
@@ -119,12 +121,14 @@
         'YOUR OPEN LOTS: ' + owned, 'YOUR REFUND CLAIMED: ' + (p ? !!p.premiumRefunded : 'NO POSITION'),
         'ESTIMATED UNSPENT PREMIUM REFUND: ' + formatSol(refundable) + ' / AFTER EXPIRY ONLY',
         ...(p && !p.premiumRefunded && refundable === 0n ? ['Your refund may round to zero. Claiming still records that your position has settled.'] : []),
+        'Only the registered allocation is covered. Issuer withdrawal before expiry permanently defaults this series.',
         'The option premium may be lost. Inspect terms and market price independently.']);
       if (connected && t.status === 0 && BigInt(view.slot) <= t.saleDeadlineSlot && available > 0n && !view.registeredTreasuryBreached) byId('options-buy').disabled = false;
       if (connected && owned > 0n && t.status === 0 && BigInt(view.slot) <= t.expirySlot) byId('options-exercise').disabled = false;
       if (connected && owned > 0n && t.status === 1) byId('options-claim').disabled = false;
       if (connected && p && !p.premiumRefunded && BigInt(view.slot) > t.expirySlot) byId('options-refund').disabled = false;
       if (connected && t.status === 0 && BigInt(view.slot) <= t.expirySlot && view.registeredTreasuryBreached) byId('options-register-default').disabled = false;
+      if (connected && String(t.issuer) === connected && view.treasuryAmount > 0n) byId('options-withdraw-registered').disabled = false;
       var reclaimable = t.status === 1 || BigInt(view.slot) <= t.expirySlot
         ? t.totalLots - t.soldLots - t.reclaimedLots : t.totalLots - t.exercisedLots - t.reclaimedLots;
       if (connected && String(t.issuer) === connected && BigInt(view.slot) > t.saleDeadlineSlot && t.status !== 2 && reclaimable > 0n && view.vaultAmount >= reclaimable * t.lotSize) byId('options-reclaim').disabled = false;
@@ -170,10 +174,12 @@
         } catch (err) { error('options-market-output', err); }
       });
     });
-    [['options-register-default','register-default'],['options-reclaim','reclaim']].forEach(function (pair) {
+    [['options-register-default','register-default'],['options-withdraw-registered','withdraw-registered'],['options-reclaim','reclaim']].forEach(function (pair) {
       byId(pair[0]).addEventListener('click', async function () {
         try {
           var who = wallet(); if (!marketView || marketView.inputs !== marketInputs() || marketView.address !== who.address) throw new Error('Refresh the series after changing inputs or wallet.');
+          if (pair[1] === 'withdraw-registered' && BigInt(marketView.view.slot) <= marketView.view.terms.expirySlot &&
+              !window.confirm('Withdrawing registered tokens before expiry permanently defaults this series. Option buyers may claim collateral. Continue?')) return;
           await release(value('options-market-rpc')); byId(pair[0]).disabled = true;
           show('options-market-output', 'Waiting for wallet confirmation...');
           var result = await api.submitSeriesAction({ rpcEndpoint: value('options-market-rpc'), programId: config.programId,

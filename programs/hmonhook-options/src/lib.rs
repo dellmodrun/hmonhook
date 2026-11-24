@@ -39,8 +39,8 @@ mod pump_fee_config {
     solana_program::declare_id!("8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt");
 }
 
-const SERIES_TAG: [u8; 8] = *b"HMONOPT2";
-const POSITION_TAG: [u8; 8] = *b"HMONPOS2";
+const SERIES_TAG: [u8; 8] = *b"HMONOPT3";
+const POSITION_TAG: [u8; 8] = *b"HMONPOS3";
 const STATUS_ACTIVE: u8 = 0;
 const STATUS_DEFAULT: u8 = 1;
 const STATUS_CLOSED: u8 = 2;
@@ -160,10 +160,10 @@ fn legacy_vault_token_data(account: &AccountInfo, mint: &Pubkey, authority: &Pub
     u64_at(&data, 64)
 }
 
-fn treasury_breached(account: &AccountInfo, series: &Series) -> bool {
-    // An emptied and closed registered treasury is also a breach. Requiring
-    // a valid token account here would let the issuer evade the rule by closing it.
-    match token_data(account, &series.mint, &series.issuer) {
+fn treasury_breached(account: &AccountInfo, series: &Series, authority: &Pubkey) -> bool {
+    // Registered holdings are held under the Series PDA. No issuer-controlled
+    // token transfer can lower this balance without a program instruction.
+    match vault_token_data(account, &series.mint, authority) {
         Ok(amount) => amount < series.treasury_floor,
         Err(_) => true,
     }
@@ -237,6 +237,22 @@ fn create_pda<'a>(payer: &AccountInfo<'a>, target: &AccountInfo<'a>, system: &Ac
     invoke_signed(&ix, &[payer.clone(), target.clone(), system.clone()], &[seeds])
 }
 
+fn create_treasury<'a>(issuer: &AccountInfo<'a>, treasury: &AccountInfo<'a>, mint: &AccountInfo<'a>,
+    state: &AccountInfo<'a>, token_program: &AccountInfo<'a>, system: &AccountInfo<'a>, seeds: &[&[u8]]) -> ProgramResult {
+    if token_program.key != &token_2022::id() || system.key != &solana_system_interface::program::id() ||
+        treasury.owner != system.key || treasury.data_len() != 0 || !treasury.is_writable { return Err(bad_account()); }
+    let size = 165_usize;
+    let lamports = Rent::get()?.minimum_balance(size);
+    let create = system_instruction::create_account(issuer.key, treasury.key, lamports, size as u64, token_program.key);
+    invoke_signed(&create, &[issuer.clone(), treasury.clone(), system.clone()], &[seeds])?;
+    let mut data = vec![18]; // Token-2022 InitializeAccount3: authority follows the tag.
+    data.extend_from_slice(state.key.as_ref());
+    let initialize = Instruction { program_id: token_2022::id(), accounts: vec![
+        AccountMeta::new(*treasury.key, false), AccountMeta::new_readonly(*mint.key, false),
+    ], data };
+    invoke(&initialize, &[treasury.clone(), mint.clone(), token_program.clone()])
+}
+
 fn transfer_sol<'a>(payer: &AccountInfo<'a>, recipient: &AccountInfo<'a>, system: &AccountInfo<'a>, amount: u64) -> ProgramResult {
     if system.key != &solana_system_interface::program::id() || !payer.is_signer { return Err(bad_account()); }
     let ix = system_instruction::transfer(payer.key, recipient.key, amount);
@@ -274,7 +290,7 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let token_program = next_account_info(&mut it)?;
     let system = next_account_info(&mut it)?;
     let curve = next_account_info(&mut it)?;
-    if !issuer.is_signer || !issuer.is_writable || !source.is_writable || !vault.is_writable || !state.is_writable || !buyback_user.is_writable { return Err(bad_account()); }
+    if !issuer.is_signer || !issuer.is_writable || !source.is_writable || !vault.is_writable || !treasury.is_writable || !state.is_writable || !buyback_user.is_writable { return Err(bad_account()); }
     let slot = Clock::get()?.slot;
     if sale_deadline <= slot || expiry <= sale_deadline || strike == 0 { return Err(invalid()); }
     let (supply, decimals) = mint_data(mint)?;
@@ -285,16 +301,15 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
         return Err(bad_account());
     }
     if supply == 0 || deposit == 0 || deposit % lot_size != 0 || (deposit as u128) * 100 < (supply as u128) * 2 || (deposit as u128) * 100 > (supply as u128) * 10 { return Err(invalid()); }
-    // The same account must supply collateral and remain under observation.
-    // Otherwise the issuer could sell from the unmonitored source while the
-    // registered treasury stays above its floor.
-    if source.key != treasury.key { return Err(invalid()); }
+    if *source.key != ata(mint.key, issuer.key, &token_2022::id()) { return Err(bad_account()); }
     let source_amount = token_data(source, mint.key, issuer.key)?;
     if vault_token_data(vault, mint.key, state.key)? != 0 { return Err(bad_account()); }
     let expected_remaining = source_amount.checked_sub(deposit).ok_or_else(invalid)?;
     if floor == 0 || floor > expected_remaining { return Err(invalid()); }
     let (expected, bump) = Pubkey::find_program_address(&[b"series", mint.key.as_ref(), issuer.key.as_ref(), &nonce.to_le_bytes()], program_id);
     if expected != *state.key { return Err(bad_account()); }
+    let (expected_treasury, treasury_bump) = Pubkey::find_program_address(&[b"treasury", state.key.as_ref()], program_id);
+    if expected_treasury != *treasury.key { return Err(bad_account()); }
     let expected_buyback = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id).0;
     if expected_buyback != *buyback_user.key || buyback_user.owner != &solana_system_interface::program::id() || buyback_user.data_len() != 0 { return Err(bad_account()); }
     let premium = strike / 10 + u64::from(strike % 10 != 0);
@@ -302,6 +317,9 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let size = borsh::to_vec(&series).map_err(|_| invalid())?.len();
     let seeds = [b"series".as_ref(), mint.key.as_ref(), issuer.key.as_ref(), &nonce.to_le_bytes(), &[bump]];
     create_pda(issuer, state, system, program_id, size, &seeds)?;
+    let treasury_bump_seed = [treasury_bump];
+    let treasury_seeds = [b"treasury".as_ref(), state.key.as_ref(), treasury_bump_seed.as_ref()];
+    create_treasury(issuer, treasury, mint, state, token_program, system, &treasury_seeds)?;
     let rent_reserve = Rent::get()?.minimum_balance(0);
     let rent_topup = rent_reserve.saturating_sub(buyback_user.lamports());
     if rent_topup != 0 { transfer_sol(issuer, buyback_user, system, rent_topup)?; }
@@ -309,7 +327,9 @@ fn initialize(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     transfer_tokens(source, vault, mint, issuer, token_program, deposit, decimals, None)?;
     let received = vault_token_data(vault, mint.key, state.key)?.checked_sub(before).ok_or_else(overflow)?;
     if received != deposit { return Err(bad_account()); }
-    if token_data(treasury, mint.key, issuer.key)? != expected_remaining { return Err(bad_account()); }
+    transfer_tokens(source, treasury, mint, issuer, token_program, floor, decimals, None)?;
+    if token_data(source, mint.key, issuer.key)? != expected_remaining - floor ||
+        vault_token_data(treasury, mint.key, state.key)? != floor { return Err(bad_account()); }
     save(state, &series)
 }
 
@@ -329,7 +349,7 @@ fn buy(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramRes
     let expected_buyback = Pubkey::find_program_address(&[b"buyback", state.key.as_ref()], program_id).0;
     if *buyback_user.key != expected_buyback || buyback_user.owner != &solana_system_interface::program::id() || buyback_user.data_len() != 0 { return Err(bad_account()); }
     if series.status != STATUS_ACTIVE || Clock::get()?.slot > series.sale_deadline_slot { return Err(invalid()); }
-    if *treasury.key != series.treasury || treasury_breached(treasury, &series) { return Err(invalid()); }
+    if *treasury.key != series.treasury || treasury_breached(treasury, &series, state.key) { return Err(invalid()); }
     let sold = series.sold_lots.checked_add(lots).ok_or_else(overflow)?;
     if sold > series.total_lots { return Err(invalid()); }
     let (expected, bump) = Pubkey::find_program_address(&[b"position", state.key.as_ref(), buyer.key.as_ref()], program_id);
@@ -410,8 +430,40 @@ fn trigger_default(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
     if !state.is_writable { return Err(bad_account()); }
     let mut series = load_series(program_id, state)?;
     if series.status != STATUS_ACTIVE || Clock::get()?.slot > series.expiry_slot || *treasury.key != series.treasury { return Err(invalid()); }
-    if !treasury_breached(treasury, &series) { return Err(invalid()); }
+    if !treasury_breached(treasury, &series, state.key) { return Err(invalid()); }
     series.status = STATUS_DEFAULT;
+    save(state, &series)
+}
+
+// Releasing the registered allocation before expiry irrevocably defaults the
+// option series. The issuer cannot move tokens from this PDA by any other path.
+fn withdraw_registered_treasury(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    if accounts.len() != 6 { return Err(invalid()); }
+    let issuer = &accounts[0];
+    let state = &accounts[1];
+    let mint = &accounts[2];
+    let treasury = &accounts[3];
+    let destination = &accounts[4];
+    let token_program = &accounts[5];
+    if !issuer.is_signer || !state.is_writable || !treasury.is_writable || !destination.is_writable {
+        return Err(bad_account());
+    }
+    let mut series = load_series(program_id, state)?;
+    if *issuer.key != series.issuer || *mint.key != series.mint || *treasury.key != series.treasury {
+        return Err(bad_account());
+    }
+    token_data(destination, mint.key, issuer.key)?;
+    let amount = vault_token_data(treasury, mint.key, state.key)?;
+    if amount == 0 { return Err(invalid()); }
+    let (_, decimals) = mint_data(mint)?;
+    let nonce = series.nonce.to_le_bytes();
+    let bump = [series.bump];
+    let seeds = [b"series".as_ref(), mint.key.as_ref(), issuer.key.as_ref(), nonce.as_ref(), bump.as_ref()];
+    if Clock::get()?.slot <= series.expiry_slot && series.status == STATUS_ACTIVE {
+        series.status = STATUS_DEFAULT;
+    }
+    transfer_tokens(treasury, destination, mint, state, token_program, amount, decimals, Some(&seeds))?;
+    if vault_token_data(treasury, mint.key, state.key)? != 0 { return Err(bad_account()); }
     save(state, &series)
 }
 
@@ -767,6 +819,7 @@ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], data: 
         8 if payload.is_empty() => reclaim_buyback_rent(program_id, accounts),
         9 => buyback_on_pump_swap(program_id, accounts, payload),
         10 if payload.is_empty() => reclaim_pump_swap_quote_rent(program_id, accounts),
+        11 if payload.is_empty() => withdraw_registered_treasury(program_id, accounts),
         _ => Err(invalid()),
     }
 }
@@ -819,10 +872,11 @@ mod tests {
     }
 
     #[test]
-    fn closed_registered_treasury_counts_as_an_outflow() {
+    fn missing_custody_treasury_counts_as_a_breach() {
         let issuer = Pubkey::new_unique();
         let mint = Pubkey::new_unique();
         let treasury = Pubkey::new_unique();
+        let authority = Pubkey::new_unique();
         let series = Series {
             tag: SERIES_TAG, status: STATUS_ACTIVE, bump: 0, nonce: 0,
             issuer, mint, vault: Pubkey::new_unique(), treasury,
@@ -836,19 +890,19 @@ mod tests {
         let mut lamports = 1;
         let mut data = [0u8; 165];
         data[..32].copy_from_slice(mint.as_ref());
-        data[32..64].copy_from_slice(issuer.as_ref());
+        data[32..64].copy_from_slice(authority.as_ref());
         data[64..72].copy_from_slice(&50_u64.to_le_bytes());
         data[108] = 1;
         let token_id = token_2022::id();
         let account = AccountInfo::new(&treasury, false, false, &mut lamports, &mut data, &token_id, false);
-        assert!(!treasury_breached(&account, &series));
+        assert!(!treasury_breached(&account, &series, &authority));
         account.try_borrow_mut_data().unwrap()[64..72].copy_from_slice(&49_u64.to_le_bytes());
-        assert!(treasury_breached(&account, &series));
+        assert!(treasury_breached(&account, &series, &authority));
         drop(account);
         let mut closed_data = [];
         let system_id = solana_system_interface::program::id();
         let closed = AccountInfo::new(&treasury, false, false, &mut lamports, &mut closed_data, &system_id, false);
-        assert!(treasury_breached(&closed, &series));
+        assert!(treasury_breached(&closed, &series, &authority));
     }
 
     #[test]

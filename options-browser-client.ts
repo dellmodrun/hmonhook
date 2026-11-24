@@ -1,7 +1,8 @@
 import { Buffer } from 'buffer';
 import { Connection, PublicKey } from '@solana/web3.js';
 export { Connection } from '@solana/web3.js';
-import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountIdempotentInstruction } from '@solana/spl-token';
 import { PumpSdk, PUMP_PROGRAM_ID, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
 import { strikeFromPumpReserves } from './options-strike-core.mjs';
 export { SOLANA_MAINNET_GENESIS_HASH } from './options-network-core.mjs';
@@ -10,7 +11,7 @@ import { submitOptionsInstructions } from './options-transaction-core.mjs';
 export { submitOptionsInstructions } from './options-transaction-core.mjs';
 import { openSeriesInstructions, buyOptionsInstruction, exerciseInstructions,
   claimDefaultInstructions, refundPremiumInstruction, triggerDefaultInstruction,
-  reclaimInstructions, fetchVerifiedSeries,
+  reclaimInstructions, withdrawRegisteredTreasuryInstruction, fetchVerifiedSeries,
   derivePosition, fetchVerifiedPosition } from './options-core.mjs';
 
 const MAX_U64 = (1n << 64n) - 1n;
@@ -49,11 +50,11 @@ function rpcConnection(endpoint: string): Connection {
   }
   return new Connection(parsed.href, 'confirmed');
 }
-async function requireTreasuryAboveFloor(connection: Connection, terms: Awaited<ReturnType<typeof fetchVerifiedSeries>>) {
+async function requireTreasuryAboveFloor(connection: Connection, terms: Awaited<ReturnType<typeof fetchVerifiedSeries>>, seriesKey: PublicKey) {
   let treasury;
   try { treasury = await getAccount(connection, terms.treasury, 'confirmed', TOKEN_2022_PROGRAM_ID); }
   catch (_) { throw new Error('The registered issuer treasury is missing or unreadable. Purchase is blocked.'); }
-  if (!treasury.mint.equals(terms.mint) || !treasury.owner.equals(terms.issuer) ||
+  if (!treasury.mint.equals(terms.mint) || !treasury.owner.equals(seriesKey) ||
       treasury.amount < terms.treasuryFloor) {
     throw new Error('The registered issuer treasury is below its commitment. Purchase is blocked.');
   }
@@ -64,9 +65,9 @@ export async function loadOptionsProgram(connection: Connection, config: { enabl
   return verifyOptionsProgram(connection, config);
 }
 
-export async function previewIssuerSeries({ rpcEndpoint, programId, issuer, mint, percent, saleWindowSlots,
+export async function previewIssuerSeries({ rpcEndpoint, programId, issuer, mint, percent, registeredTokens, saleWindowSlots,
   expiryWindowSlots }: { rpcEndpoint: string; programId: string; issuer: string; mint: string;
-  percent: number; saleWindowSlots: number; expiryWindowSlots: number }) {
+  percent: number; registeredTokens: string; saleWindowSlots: number; expiryWindowSlots: number }) {
   if (!Number.isInteger(percent) || percent < 2 || percent > 10) throw new Error('Lock 2% to 10% of the Mint supply.');
   if (!Number.isSafeInteger(saleWindowSlots) || saleWindowSlots < 1000 ||
       !Number.isSafeInteger(expiryWindowSlots) || expiryWindowSlots <= saleWindowSlots) {
@@ -93,20 +94,21 @@ export async function previewIssuerSeries({ rpcEndpoint, programId, issuer, mint
   const lots = (supply * BigInt(percent) + 100n * strike.lotSize - 1n) / (100n * strike.lotSize);
   const deposit = lots * strike.lotSize;
   if (deposit === 0n || deposit * 100n > supply * 10n) throw new Error('Whole-token lots cannot represent this lock percentage.');
-  const treasury = getAssociatedTokenAddressSync(mintKey, issuerKey, false, TOKEN_2022_PROGRAM_ID);
-  const source = await getAccount(connection, treasury, 'confirmed', TOKEN_2022_PROGRAM_ID);
+  const sourceAddress = getAssociatedTokenAddressSync(mintKey, issuerKey, false, TOKEN_2022_PROGRAM_ID);
+  const source = await getAccount(connection, sourceAddress, 'confirmed', TOKEN_2022_PROGRAM_ID);
   if (!source.owner.equals(issuerKey) || !source.mint.equals(mintKey) || source.isFrozen || source.delegate) {
     throw new Error('Issuer treasury is not an unrestricted token account for this Mint.');
   }
-  const floor = source.amount - deposit;
-  if (floor <= 0n) throw new Error('Issuer treasury must retain tokens after the lock.');
+  const floor = positiveInteger(registeredTokens, 'Registered tokens') * strike.lotSize;
+  if (floor > MAX_U64 || floor > source.amount - deposit) throw new Error('Issuer balance cannot cover both collateral and the registered allocation.');
   const nonce = randomNonce();
   const saleDeadlineSlot = BigInt(response.context.slot) + BigInt(saleWindowSlots);
   const expirySlot = BigInt(response.context.slot) + BigInt(expiryWindowSlots);
   const opened = openSeriesInstructions({ programId: publicKey(programId), issuer: issuerKey, mint: mintKey,
-    source: treasury, treasury, nonce, deposit, strikeLamports: strike.strikeLamports,
+    source: sourceAddress, nonce, deposit, strikeLamports: strike.strikeLamports,
     saleDeadlineSlot, expirySlot, treasuryFloor: floor });
-  return { connection, programId: publicKey(programId), issuer: issuerKey, mint: mintKey, treasury,
+  return { connection, programId: publicKey(programId), issuer: issuerKey, mint: mintKey,
+    source: sourceAddress, treasury: opened.series.treasury,
     nonce, series: opened.series.address, instructions: opened.instructions, supply, deposit,
     treasuryBefore: source.amount, treasuryFloor: floor, strikeLamports: strike.strikeLamports,
     premiumLamports: strike.premiumLamports, lotSize: strike.lotSize, totalLots: lots,
@@ -115,7 +117,7 @@ export async function previewIssuerSeries({ rpcEndpoint, programId, issuer, mint
 
 export async function submitIssuerSeries(prepared: Awaited<ReturnType<typeof previewIssuerSeries>>, provider: any) {
   const current = await prepared.connection.getMultipleAccountsInfoAndContext([
-    prepared.mint, bondingCurvePda(prepared.mint), prepared.treasury,
+    prepared.mint, bondingCurvePda(prepared.mint), prepared.source,
   ], 'confirmed');
   const [mintInfo, curveInfo, treasuryInfo] = current.value;
   if (!mintInfo?.owner.equals(TOKEN_2022_PROGRAM_ID) || mintInfo.data.length < 82 ||
@@ -133,9 +135,9 @@ export async function submitIssuerSeries(prepared: Awaited<ReturnType<typeof pre
   if (strike.strikeLamports !== prepared.strikeLamports || strike.lotSize !== prepared.lotSize) {
     throw new Error('Pump price changed. Review the lock again.');
   }
-  const treasury = await getAccount(prepared.connection, prepared.treasury, 'confirmed', TOKEN_2022_PROGRAM_ID);
-  if (!treasury.owner.equals(prepared.issuer) || !treasury.mint.equals(prepared.mint) ||
-      treasury.isFrozen || treasury.delegate || treasury.amount !== prepared.treasuryBefore) {
+  const source = await getAccount(prepared.connection, prepared.source, 'confirmed', TOKEN_2022_PROGRAM_ID);
+  if (!source.owner.equals(prepared.issuer) || !source.mint.equals(prepared.mint) ||
+      source.isFrozen || source.delegate || source.amount !== prepared.treasuryBefore) {
     throw new Error('Issuer treasury changed. Review the lock again.');
   }
   const result = await submitOptionsInstructions({ connection: prepared.connection, provider,
@@ -155,7 +157,7 @@ export async function previewBuyerPosition({ rpcEndpoint, programId, series, buy
   const slot = await connection.getSlot('confirmed');
   if (terms.status !== 0 || BigInt(slot) > terms.saleDeadlineSlot ||
       count > terms.totalLots - terms.soldLots) throw new Error('The requested option lots are not on sale.');
-  await requireTreasuryAboveFloor(connection, terms);
+  await requireTreasuryAboveFloor(connection, terms, seriesKey);
   return { connection, programId: programKey, series: seriesKey, buyer: buyerKey, terms,
     lots: count, premiumLamports: terms.premiumLamports * count,
     position: derivePosition(programKey, seriesKey, buyerKey) };
@@ -175,7 +177,7 @@ export async function inspectOptionSeries({ rpcEndpoint, programId, series, buye
   let treasuryAmount = 0n;
   try {
     const treasury = await getAccount(connection, terms.treasury, 'confirmed', TOKEN_2022_PROGRAM_ID);
-    if (treasury.mint.equals(terms.mint) && treasury.owner.equals(terms.issuer)) treasuryAmount = treasury.amount;
+    if (treasury.mint.equals(terms.mint) && treasury.owner.equals(seriesKey)) treasuryAmount = treasury.amount;
   } catch (_) { /* A closed treasury counts as breached. */ }
   const position = buyer ? await fetchVerifiedPosition(connection, programKey, seriesKey, publicKey(buyer)) : null;
   return { terms, slot, vaultAmount: vault.amount, treasuryAmount, position,
@@ -190,9 +192,9 @@ export async function submitBuyerPosition(prepared: Awaited<ReturnType<typeof pr
       prepared.lots > current.totalLots - current.soldLots) {
     throw new Error('Option availability changed. Review a fresh quote.');
   }
-  await requireTreasuryAboveFloor(prepared.connection, current);
+  await requireTreasuryAboveFloor(prepared.connection, current, prepared.series);
   const instruction = buyOptionsInstruction({ programId: prepared.programId, series: prepared.series,
-    buyer: prepared.buyer, treasury: current.treasury, lots: prepared.lots });
+    buyer: prepared.buyer, lots: prepared.lots });
   const result = await submitOptionsInstructions({ connection: prepared.connection, provider,
     authority: prepared.buyer, instructions: [instruction] });
   return { ...result, position: prepared.position.toBase58(), premiumLamports: prepared.premiumLamports.toString() };
@@ -219,7 +221,7 @@ export async function submitPositionAction({ rpcEndpoint, programId, series, buy
 
 export async function submitSeriesAction({ rpcEndpoint, programId, series, signer, provider, action }:
   { rpcEndpoint: string; programId: string; series: string; signer: string; provider: any;
-    action: 'register-default' | 'reclaim' }) {
+    action: 'register-default' | 'reclaim' | 'withdraw-registered' }) {
   const connection = rpcConnection(rpcEndpoint);
   const programKey = publicKey(programId);
   const seriesKey = publicKey(series);
@@ -228,7 +230,13 @@ export async function submitSeriesAction({ rpcEndpoint, programId, series, signe
   let instructions;
   if (action === 'register-default') {
     if (terms.status !== 0) throw new Error('Only an active series can register a treasury breach.');
-    instructions = [triggerDefaultInstruction({ programId: programKey, series: seriesKey, treasury: terms.treasury })];
+    instructions = [triggerDefaultInstruction({ programId: programKey, series: seriesKey })];
+  } else if (action === 'withdraw-registered') {
+    if (!terms.issuer.equals(signerKey)) throw new Error('Only the issuer can withdraw the registered allocation.');
+    const destination = getAssociatedTokenAddressSync(terms.mint, signerKey, false, TOKEN_2022_PROGRAM_ID);
+    instructions = [createAssociatedTokenAccountIdempotentInstruction(signerKey, destination, signerKey, terms.mint, TOKEN_2022_PROGRAM_ID),
+      withdrawRegisteredTreasuryInstruction({ programId: programKey, issuer: signerKey, series: seriesKey,
+        mint: terms.mint, destination })];
   } else if (action === 'reclaim') {
     if (!terms.issuer.equals(signerKey)) throw new Error('Only the issuer can reclaim eligible collateral.');
     instructions = reclaimInstructions({ programId: programKey, issuer: signerKey, series: seriesKey,
