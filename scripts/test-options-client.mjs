@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createRequire } from 'node:module';
 import { Keypair, PublicKey } from '@solana/web3.js';
+import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import {
   deriveSeries, derivePosition, openSeriesInstructions, buyOptionsInstruction,
   exerciseInstructions, claimDefaultInstructions, triggerDefaultInstruction,
@@ -8,8 +10,10 @@ import {
   fetchVerifiedSeries,
   listVerifiedSeriesByMint,
   deriveBuybackVault, deriveBuybackAuthority, buybackVaultPrepInstructions, buildPumpBuybackRoute, pumpBuybackInstruction,
+  buildPumpSwapBuybackRoute, pumpSwapBuybackInstruction,
   reclaimBuybackRentInstruction,
 } from '../options-client.mjs';
+const { PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda, lpMintPda } = createRequire(import.meta.url)('@pump-fun/pump-swap-sdk');
 
 const programId = Keypair.generate().publicKey;
 const issuer = Keypair.generate().publicKey;
@@ -66,6 +70,33 @@ test('Pump buyback uses a keeper rent allowance while the PDA signs only inside 
   await assert.rejects(() => pumpBuybackInstruction({ programId, series, mint, keeper: issuer,
     spendableQuoteIn: 1_000_000n, minTokensOut: 1n,
     keeperTopupLamports: 2_000_000n, strikeLamports: 1_000_000n, lotSize: 1_000_000n }), /Minimum output/);
+});
+
+test('PumpSwap route builder accepts a canonical decoded pool and emits a signed outer instruction', async () => {
+  const pool = canonicalPumpPoolPda(mint);
+  const pump = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
+  const creator = PublicKey.findProgramAddressSync([Buffer.from('pool-authority'), mint.toBuffer()], pump)[0];
+  const base = getAssociatedTokenAddressSync(mint, pool, true, TOKEN_2022_PROGRAM_ID);
+  const quote = getAssociatedTokenAddressSync(NATIVE_MINT, pool, true, TOKEN_PROGRAM_ID);
+  const data = Buffer.alloc(270);
+  Buffer.from([241, 154, 109, 4, 17, 177, 109, 188]).copy(data, 0);
+  creator.toBuffer().copy(data, 11);
+  mint.toBuffer().copy(data, 43);
+  NATIVE_MINT.toBuffer().copy(data, 75);
+  lpMintPda(pool).toBuffer().copy(data, 107);
+  base.toBuffer().copy(data, 139);
+  quote.toBuffer().copy(data, 171);
+  data.writeBigUInt64LE(1n, 203);
+  const connection = { getAccountInfo: async () => ({ owner: PUMP_AMM_PROGRAM_ID, data }) };
+  const route = await buildPumpSwapBuybackRoute({ connection, programId, series, mint,
+    spendableQuoteIn: 2_000n, minTokensOut: 1_000_000n });
+  assert.equal(route.route.programId.toBase58(), PUMP_AMM_PROGRAM_ID.toBase58());
+  assert.equal(route.route.keys[0].pubkey.toBase58(), pool.toBase58());
+  const built = await pumpSwapBuybackInstruction({ connection, programId, series, mint, keeper: issuer,
+    spendableQuoteIn: 2_000n, minTokensOut: 1_000_000n, keeperTopupLamports: 2_000_000n,
+    strikeLamports: 1_000n, lotSize: 1_000_000n });
+  assert.equal(built.instruction.data[0], 9);
+  assert.equal(built.instruction.keys[0].pubkey.toBase58(), issuer.toBase58());
 });
 
 test('all option actions target the chosen new program with exact account order', () => {
