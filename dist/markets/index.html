@@ -1778,7 +1778,7 @@ pako/dist/pako.esm.mjs:
         if (grossUnspent < 0n || unclaimed < 0n) throw new Error('On-chain premium accounting is inconsistent.');
         refundable = t.premiumRefundClaimedLots + p.boughtLots === t.soldLots
           ? unclaimed : grossUnspent * p.boughtLots / t.soldLots;
-        if (refundable > unclaimed) refundable = 0n;
+        if (refundable > unclaimed) throw new Error('On-chain premium refund accounting is inconsistent.');
       }
       show('options-market-output', ['MINT: ' + t.mint, 'ISSUER: ' + t.issuer, 'SERIES STATUS: ' + ['ACTIVE', 'DEFAULT', 'CLOSED'][t.status],
         'CURRENT SLOT: ' + view.slot, 'VAULT COLLATERAL: ' + view.vaultAmount + ' base units',
@@ -1789,11 +1789,12 @@ pako/dist/pako.esm.mjs:
         'SALE DEADLINE SLOT: ' + t.saleDeadlineSlot, 'EXERCISE EXPIRY SLOT: ' + t.expirySlot,
         'YOUR OPEN LOTS: ' + owned, 'YOUR REFUND CLAIMED: ' + (p ? !!p.premiumRefunded : 'NO POSITION'),
         'ESTIMATED UNSPENT PREMIUM REFUND: ' + formatSol(refundable) + ' / AFTER EXPIRY ONLY',
+        ...(p && !p.premiumRefunded && refundable === 0n ? ['Your refund may round to zero. Claiming still records that your position has settled.'] : []),
         'The option premium may be lost. Inspect terms and market price independently.']);
       if (connected && t.status === 0 && BigInt(view.slot) <= t.saleDeadlineSlot && available > 0n && !view.registeredTreasuryBreached) byId('options-buy').disabled = false;
       if (connected && owned > 0n && t.status === 0 && BigInt(view.slot) <= t.expirySlot) byId('options-exercise').disabled = false;
       if (connected && owned > 0n && t.status === 1) byId('options-claim').disabled = false;
-      if (connected && p && !p.premiumRefunded && refundable > 0n && BigInt(view.slot) > t.expirySlot) byId('options-refund').disabled = false;
+      if (connected && p && !p.premiumRefunded && BigInt(view.slot) > t.expirySlot) byId('options-refund').disabled = false;
       if (connected && t.status === 0 && BigInt(view.slot) <= t.expirySlot && view.registeredTreasuryBreached) byId('options-register-default').disabled = false;
       var reclaimable = t.status === 1 || BigInt(view.slot) <= t.expirySlot
         ? t.totalLots - t.soldLots - t.reclaimedLots : t.totalLots - t.exercisedLots - t.reclaimedLots;

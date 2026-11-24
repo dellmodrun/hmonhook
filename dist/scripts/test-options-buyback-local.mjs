@@ -12,8 +12,9 @@ const connection = new Connection('http://127.0.0.1:8899', 'confirmed');
 const programId = new PublicKey(process.argv[2]);
 const issuer = Keypair.generate();
 const buyer = Keypair.generate();
+const smallBuyer = Keypair.generate();
 const send = (instructions, signers) => sendAndConfirmTransaction(connection, new Transaction().add(...instructions), signers, { commitment: 'confirmed' });
-for (const wallet of [issuer, buyer]) await connection.confirmTransaction(await connection.requestAirdrop(wallet.publicKey, 2_000_000_000), 'confirmed');
+for (const wallet of [issuer, buyer, smallBuyer]) await connection.confirmTransaction(await connection.requestAirdrop(wallet.publicKey, 2_000_000_000), 'confirmed');
 
 const mint = await createMint(connection, issuer, issuer.publicKey, issuer.publicKey, 6, undefined, undefined, TOKEN_2022_PROGRAM_ID);
 const source = (await getOrCreateAssociatedTokenAccount(connection, issuer, mint, issuer.publicKey, false, 'confirmed', undefined, TOKEN_2022_PROGRAM_ID)).address;
@@ -45,6 +46,18 @@ await assert.rejects(send([partialBuyback.instruction], [buyer]), /failed|Error|
 assert.equal((await fetchVerifiedSeries(connection, programId, partial.series.address)).premiumSpentLamports, 0n);
 
 await send([buyOptionsInstruction({ programId, series, buyer: buyer.publicKey, treasury: source, lots: 50n })], [buyer]);
+const rounding = openSeriesInstructions({ programId, issuer: issuer.publicKey, mint, source, treasury: source,
+  nonce: 203n, deposit: 50_000_000n, strikeLamports: 1_000n,
+  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 800_000_000n });
+await send(rounding.instructions, [issuer]);
+await send(buybackVaultPrepInstructions({ programId, series: rounding.series.address, mint, payer: issuer.publicKey }).instructions, [issuer]);
+await send([buyOptionsInstruction({ programId, series: rounding.series.address, buyer: smallBuyer.publicKey, treasury: source, lots: 1n })], [smallBuyer]);
+await send([buyOptionsInstruction({ programId, series: rounding.series.address, buyer: buyer.publicKey, treasury: source, lots: 49n })], [buyer]);
+const roundingBuyback = await pumpBuybackInstruction({ programId, series: rounding.series.address, mint, keeper: buyer.publicKey,
+  spendableQuoteIn: 4_999n, minTokensOut: 5_000_000n, keeperTopupLamports: 2_000_000n,
+  strikeLamports: 1_000n, lotSize: 1_000_000n });
+await send([roundingBuyback.instruction], [buyer]);
+assert.equal((await fetchVerifiedSeries(connection, programId, rounding.series.address)).premiumSpentLamports, 4_999n);
 const built = await pumpBuybackInstruction({ programId, series, mint, keeper: buyer.publicKey,
   spendableQuoteIn: 2_000n, minTokensOut: 1_000_000n, keeperTopupLamports: 2_000_000n,
   strikeLamports: 1_000n, lotSize: 1_000_000n });
@@ -70,6 +83,18 @@ await assert.rejects(send([repeatTooLarge], [buyer]), /failed|Error|Instruction/
 assert.equal((await fetchVerifiedSeries(connection, programId, series)).premiumSpentLamports, 2_000n);
 
 while ((await connection.getSlot('confirmed')) <= slot + 115) await new Promise((resolve) => setTimeout(resolve, 350));
+const zeroRefund = refundPremiumInstruction({ programId, series: rounding.series.address, buyer: smallBuyer.publicKey });
+await send([zeroRefund], [smallBuyer]);
+let zeroRefundRepeated = false;
+try { await send([zeroRefund], [smallBuyer]); } catch (_) { zeroRefundRepeated = true; }
+assert.ok(zeroRefundRepeated, 'a zero-value claim must still be marked as complete');
+let roundingState = await fetchVerifiedSeries(connection, programId, rounding.series.address);
+assert.equal(roundingState.premiumRefundClaimedLots, 1n);
+assert.equal(roundingState.premiumRefundedLamports, 0n);
+await send([refundPremiumInstruction({ programId, series: rounding.series.address, buyer: buyer.publicKey })], [buyer]);
+roundingState = await fetchVerifiedSeries(connection, programId, rounding.series.address);
+assert.equal(roundingState.premiumRefundClaimedLots, 50n);
+assert.equal(roundingState.premiumRefundedLamports, 1n);
 const refund = refundPremiumInstruction({ programId, series, buyer: buyer.publicKey });
 await send([refund], [buyer]);
 const refunded = await fetchVerifiedSeries(connection, programId, series);

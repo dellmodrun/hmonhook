@@ -482,7 +482,6 @@ fn claim_premium_refund(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progra
     if Clock::get()?.slot <= series.expiry_slot { return Err(invalid()); }
     let mut position = load_position(program_id, position_account, state, buyer)?;
     let (amount, claimed_lots) = refund_entitlement(&series, &position)?;
-    if amount == 0 { return Err(invalid()); }
     let total = series.sold_lots.checked_mul(series.premium_lamports).ok_or_else(overflow)?;
     let unspent = total.checked_sub(series.premium_spent_lamports).ok_or_else(overflow)?;
     let due = unspent.checked_sub(series.premium_refunded_lamports).ok_or_else(overflow)?;
@@ -492,6 +491,9 @@ fn claim_premium_refund(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progra
     position.premium_refunded = 1;
     save(position_account, &position)?;
     save(state, &series)?;
+    // A pro-rata share can round down to zero. It still has to be marked as
+    // claimed so that the final claimant can collect the rounding remainder.
+    if amount == 0 { return Ok(()); }
     let bump_seed = [bump];
     let seeds = [b"buyback".as_ref(), state.key.as_ref(), bump_seed.as_ref()];
     let ix = system_instruction::transfer(buyback_user.key, buyer.key, amount);
@@ -921,5 +923,34 @@ mod tests {
         assert_eq!(last, 9);
         assert_eq!(first + second + last, 34);
         assert_eq!(final_lots, series.sold_lots);
+    }
+
+    #[test]
+    fn zero_value_refund_can_advance_to_the_final_claimant() {
+        let mut series = Series {
+            tag: SERIES_TAG, status: STATUS_CLOSED, bump: 0, nonce: 0,
+            issuer: Pubkey::new_unique(), mint: Pubkey::new_unique(),
+            vault: Pubkey::new_unique(), treasury: Pubkey::new_unique(),
+            treasury_floor: 1, supply_snapshot: 100, lot_size: 1,
+            total_lots: 3, sold_lots: 3, exercised_lots: 0,
+            default_claimed_lots: 0, reclaimed_lots: 3,
+            sale_deadline_slot: 10, expiry_slot: 20,
+            strike_lamports: 10, premium_lamports: 1,
+            premium_spent_lamports: 2, premium_refunded_lamports: 0,
+            premium_refund_claimed_lots: 0,
+        };
+        let position = Position {
+            tag: POSITION_TAG, bump: 0, series: Pubkey::new_unique(),
+            buyer: Pubkey::new_unique(), bought_lots: 1,
+            exercised_lots: 0, default_claimed_lots: 0, premium_refunded: 0,
+        };
+        for claimed in 1..=2 {
+            let (amount, lots) = refund_entitlement(&series, &position).unwrap();
+            assert_eq!(amount, 0);
+            assert_eq!(lots, claimed);
+            series.premium_refund_claimed_lots = lots;
+        }
+        let (amount, lots) = refund_entitlement(&series, &position).unwrap();
+        assert_eq!((amount, lots), (1, 3));
     }
 }
