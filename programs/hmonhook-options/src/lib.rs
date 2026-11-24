@@ -113,7 +113,7 @@ fn pump_curve_strike(data: &[u8], lot_size: u64) -> Result<u64, ProgramError> {
         return Err(bad_account());
     }
     let quote_mint = data.get(83..115).ok_or_else(bad_account)?;
-    if quote_mint != solana_program::system_program::id().as_ref()
+    if quote_mint != solana_system_interface::program::id().as_ref()
         && quote_mint != wrapped_sol::id().as_ref()
         && quote_mint != pump_quote_sol::id().as_ref()
     {
@@ -777,7 +777,7 @@ mod tests {
         curve[8..16].copy_from_slice(&1_073_000_000_000_000_u64.to_le_bytes());
         curve[16..24].copy_from_slice(&30_000_000_000_u64.to_le_bytes());
         curve[24..32].copy_from_slice(&793_000_000_000_000_u64.to_le_bytes());
-        curve[83..115].copy_from_slice(solana_program::system_program::id().as_ref());
+        curve[83..115].copy_from_slice(solana_system_interface::program::id().as_ref());
         let expected = 1_000_000_u128 * 30_000_000_000 / (1_073_000_000_000_000 - 1_000_000) + 1;
         assert_eq!(pump_curve_strike(&curve, 1_000_000).unwrap(), expected as u64);
         curve[48] = 1;
