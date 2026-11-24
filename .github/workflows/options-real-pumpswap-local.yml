@@ -1,0 +1,56 @@
+name: verify options with real PumpSwap locally
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/options-real-pumpswap-local.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  pumpswap-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Agave toolchain
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v4.4.0/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build options and local-only Pump curve fixture
+        run: |
+          mkdir -p artifacts
+          cargo build-sbf --manifest-path programs/hmonhook-options/Cargo.toml --sbf-out-dir artifacts
+          cargo build-sbf --manifest-path scripts/fixtures/mock-pump/Cargo.toml --sbf-out-dir artifacts
+          solana program dump pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA artifacts/official-pumpswap.so --url https://api.mainnet-beta.solana.com
+          test -s artifacts/hmonhook_options.so
+          test -s artifacts/mock_pump_local_only.so
+          test -s artifacts/official-pumpswap.so
+          sha256sum artifacts/official-pumpswap.so
+      - name: Execute real PumpSwap local-fork option flow
+        run: |
+          node scripts/prepare-pumpswap-real-local.mjs
+          PROGRAM_ID="$(solana-keygen pubkey artifacts/hmonhook_options-keypair.json)"
+          POOL_ID="$(node -e "console.log(JSON.parse(require('fs').readFileSync('.local-deploy/pumpswap-real-pool.json', 'utf8')).pubkey)")"
+          solana-test-validator --reset --url https://api.mainnet-beta.solana.com \
+            --clone ADyA8hdefvWN2dbGGWFotbzWxrAvLW83WG6QCVXvJKqw \
+            --clone 5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx \
+            --clone HjQjngTDqoHE6aaGhUqfz9aQ7WZcBRjy5xB8PScLSr8i \
+            --account "$POOL_ID" .local-deploy/pumpswap-real-pool.json \
+            --bpf-program "$PROGRAM_ID" artifacts/hmonhook_options.so \
+            --bpf-program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P artifacts/mock_pump_local_only.so \
+            --bpf-program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA artifacts/official-pumpswap.so \
+            > /tmp/hmonhook-pumpswap-validator.log 2>&1 &
+          VALIDATOR_PID=$!
+          trap 'kill "$VALIDATOR_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 45); do
+            if solana cluster-version --url http://127.0.0.1:8899 >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          node scripts/test-options-pumpswap-local.mjs "$PROGRAM_ID" --real || { cat /tmp/hmonhook-pumpswap-validator.log; exit 1; }
