@@ -95,7 +95,7 @@ for (const id of ["coin-upload-image", "coin-upload-filename", "coin-upload-desc
 assert.match(launch, /class="file-picker-button">choose image</, "upload picker must have site-controlled English text");
 assert.doesNotMatch(launch, /COMPILED OUTPUT/, "technical output should have a user-facing status label");
 assert.ok(!launch.includes('<option value="USDC">') && !launch.includes('<option value="PUMP_COIN">'), "launcher offers unsupported live quote assets");
-assert.match(launch, /OPTIONAL TRADE PLAN \/ NOT ACTIVE/, "launcher policy status is unclear");
+assert.match(launch, /OPTIONAL TRADE PLAN \/ LOCAL ONLY/, "launcher policy status is unclear");
 assert.match(launch, /id="issuer-protection"/, "issuer concept missing from launch page");
 assert.match(launch, /COIN DETAILS/, "launch form should begin with user-facing coin details");
 assert.match(launch, /Explore launch rules and technical details/, "technical launch content needs a secondary path");
