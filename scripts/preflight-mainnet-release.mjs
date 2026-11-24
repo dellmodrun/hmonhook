@@ -14,7 +14,8 @@ const programs = [
     expectedSha256: 'f90a8834e85f0e7094aa387000dbcf5e4c337f9cbc160eb537d2b6d36559776c' },
   { kind: 'options', address: 'Cz1jDZv12iXcK5JTY3s4wFX6HH8Y48xDeRxPWDgqshNQ',
     keyFile: 'options-program-keypair.json', binary: 'hmonhook_options.so',
-    expectedSha256: '1cb1456e1f2bfcbd5c9471ee27793fc7e6af7d9a0cfc5146f59f2f4fd435e16e' },
+    reviewDirectory: 'options-v3',
+    expectedSha256: '9796cb929cfa98310da7d71c10223ec488867958924478f1a54b92c21cfd59a3' },
 ];
 
 function publicKeyFromFile(file) {
@@ -23,7 +24,7 @@ function publicKeyFromFile(file) {
 }
 
 function reviewedBinary(program) {
-  const directory = resolve(root, '.local-deploy', 'release-review', program.kind);
+  const directory = resolve(root, '.local-deploy', 'release-review', program.reviewDirectory || program.kind);
   const bytes = readFileSync(resolve(directory, program.binary));
   const hash = createHash('sha256').update(bytes).digest('hex');
   const record = readFileSync(resolve(directory, `${program.binary}.sha256`), 'utf8').trim();
