@@ -1,0 +1,47 @@
+name: verify options with real Pump locally
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pump-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Agave toolchain
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v4.4.0/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build current options SBF and fetch deployed Pump binary
+        run: |
+          mkdir -p artifacts
+          cargo build-sbf --manifest-path programs/hmonhook-options/Cargo.toml --sbf-out-dir artifacts
+          solana program dump 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P artifacts/official-pump.so --url https://api.mainnet-beta.solana.com
+          test -s artifacts/hmonhook_options.so
+          test -s artifacts/official-pump.so
+          sha256sum artifacts/official-pump.so
+      - name: Execute real Pump local-fork option flow
+        run: |
+          PROGRAM_ID="$(solana-keygen pubkey artifacts/hmonhook_options-keypair.json)"
+          solana-test-validator --reset --url https://api.mainnet-beta.solana.com \
+            --clone 4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf \
+            --clone 8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt \
+            --clone 5YxQFdt3Tr9zJLvkFccqXVUwhdTWJQc1fFg2YPbxvxeD \
+            --bpf-program "$PROGRAM_ID" artifacts/hmonhook_options.so \
+            --bpf-program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P artifacts/official-pump.so \
+            > /tmp/hmonhook-pump-validator.log 2>&1 &
+          VALIDATOR_PID=$!
+          trap 'kill "$VALIDATOR_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 45); do
+            if solana cluster-version --url http://127.0.0.1:8899 >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          node scripts/test-options-pump-real-local.mjs "$PROGRAM_ID" || { cat /tmp/hmonhook-pump-validator.log; exit 1; }
