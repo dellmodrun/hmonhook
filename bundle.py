@@ -27,6 +27,7 @@ launch_client = (ROOT / "launch-client.js").read_text(encoding="utf-8")
 intent_client = (ROOT / "intent-client.js").read_text(encoding="utf-8")
 markets_client = (ROOT / "markets.js").read_text(encoding="utf-8")
 home_markets_client = (ROOT / "home-markets.js").read_text(encoding="utf-8")
+official_token_client = (ROOT / "official-token.js").read_text(encoding="utf-8")
 styles = (ROOT / "styles.css").read_text(encoding="utf-8")
 enhancements = (ROOT / "enhancements.css").read_text(encoding="utf-8")
 sources = [ROOT / "index.html"] + [ROOT / name / "index.html" for name in ("launch", "markets", "intent", "protocol", "code", "research")]
@@ -39,6 +40,7 @@ for src in sources:
     html = re.sub(r'<script src="\./intent-client\.js">\s*</script>', lambda _: "<script>" + intent_client + "</script>", html)
     html = re.sub(r'<script src="\./markets\.js">\s*</script>', lambda _: "<script>" + markets_client + "</script>", html)
     html = re.sub(r'<script src="\./home-markets\.js">\s*</script>', lambda _: "<script>" + home_markets_client + "</script>", html)
+    html = re.sub(r'<script src="\./official-token\.js">\s*</script>', lambda _: "<script>" + official_token_client + "</script>", html)
     html = html.replace('<link rel="stylesheet" href="./styles.css">', "<style>" + styles + "</style>")
     html = html.replace('<link rel="stylesheet" href="./enhancements.css">', "<style>" + enhancements + "</style>")
     replacements = 0

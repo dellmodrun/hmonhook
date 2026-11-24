@@ -129,6 +129,7 @@ body{background:#000;background-image:none}
 .button:not(.button-solid):hover{background:#25150a;border-color:var(--brand);color:#ffad58}
 .hero-banner{background:#050505}
 .ca-box,.dev-letter,.home-panel,.chapter,.route-card,.market-card,.market-command,.market-discovery,.research,.paper-origin{background:#0d0d0d}
+.official-market{margin-top:12px}.official-market-card{max-width:none;border-color:#b55b1a;background:linear-gradient(125deg,#17100b,#0d0d0d 62%)}.official-market-card .market-card-head{grid-template-columns:64px minmax(0,1fr)}.official-market-card .market-token-image img{object-fit:contain;padding:5px}.official-market-card .market-price{margin-top:18px}.official-market-card .market-ca code{overflow-wrap:anywhere;white-space:normal}.official-market-card [hidden]{display:none!important}
 .route-card:hover,.market-card:hover{border-color:#b55b1a;background:#15100d}
 .eyebrow,.chapter-label,.route-card small,.status-band .ready,.market-price em,.market-ca button{color:#ff932d}
 .ca-box strong,.status-line b,.market-badges b.live{color:#ff9d38}
@@ -347,7 +348,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <span>OFFICIAL CONTRACT ADDRESS</span>
 <strong id="official-ca">TBA</strong>
 </div>
-<p>The official h/monhook contract address has not been published. Do not trust unofficial addresses.</p>
+<p id="official-ca-note">The official h/monhook contract address has not been published. Do not trust unofficial addresses.</p>
 </section>
 
     <section class="section-block home-plain" aria-labelledby="home-plain-title">
@@ -384,7 +385,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <details><summary>When will a price appear?</summary><p>A verified creation is not a live trading market by itself. Price, liquidity and volume appear after a pool is active and a third-party indexer reports it.</p></details>
 <details><summary>Does launching here lock the developer's tokens?</summary><p>No. A coin receives a protection label only when a lock and option contract can be verified. A standard coin creation does not lock the developer's tokens.</p></details>
 <details><summary>Are transfers private by default?</summary><p>No. A standard launch and market trade remain public. Optional privacy requires its own supported transaction flow.</p></details>
-<details><summary>Where is the official h/monhook token address?</summary><p>The official address is TBA. Check the full address here when it is published; do not rely on a ticker alone.</p></details>
+<details><summary>Where is the official h/monhook token address?</summary><p id="official-ca-faq">The official address is TBA. Check the full address here when it is published; do not rely on a ticker alone.</p></details>
 </div></section>
 
     <section class="cta-panel"><div><h2>Ready to launch?</h2><p>Start with your coin details. Review every step before your wallet signs.</p></div><div class="primary-actions"><a class="button button-solid" href="./launch/">launch a coin</a><a class="button" href="./markets/">view markets</a></div></section>
@@ -1387,6 +1388,119 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     location.href = new URL('markets/?mint=' + encodeURIComponent(mint), document.baseURI).href;
   });
   void load();
+}());
+</script>
+<script>(function () {
+  'use strict';
+  var address = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  var byId = function (id) { return document.getElementById(id); };
+  var currentMint = null;
+  var endpoint = '';
+  var polling = false;
+  var lastMarketLookup = 0;
+
+  function money(value, compact) {
+    var number = Number(value);
+    if (!Number.isFinite(number) || number <= 0) return '—';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD',
+      notation: compact ? 'compact' : 'standard', maximumFractionDigits: number < 1 ? 8 : 2 }).format(number);
+  }
+  function setText(id, value) { if (byId(id)) byId(id).textContent = value; }
+  function showMint(mint) {
+    var published = !!mint;
+    setText('official-ca', mint || 'TBA');
+    setText('official-ca-note', published
+      ? 'Official h/monhook Mint address. Verify the full address before trading.'
+      : 'The official h/monhook contract address has not been published. Do not trust unofficial addresses.');
+    setText('official-ca-faq', published
+      ? 'The official h/monhook Mint is ' + mint + '. Verify the full address before trading.'
+      : 'The official address is TBA. Check the full address here when it is published; do not rely on a ticker alone.');
+    setText('official-market-mint', mint || 'TBA');
+    setText('official-market-status', published ? 'CA PUBLISHED' : 'CA TBA');
+    setText('official-market-subtitle', published ? 'Solana mainnet · official Mint' : 'Official Mint address to be announced');
+    setText('official-market-note', published
+      ? 'Official CA published by h/monhook. Market figures come from a third-party index and may be delayed.'
+      : 'The official CA has not been published. This reserved listing is not a live market.');
+    if (byId('official-market-copy')) byId('official-market-copy').hidden = !published;
+    if (byId('official-market-actions')) byId('official-market-actions').hidden = !published;
+    if (published) {
+      byId('official-market-trade').href = './intent/?outputMint=' + encodeURIComponent(mint);
+      byId('official-market-pump').href = 'https://pump.fun/coin/' + encodeURIComponent(mint);
+      byId('official-market-explorer').href = 'https://explorer.solana.com/address/' + encodeURIComponent(mint);
+    } else {
+      ['price', 'cap', 'liquidity', 'volume'].forEach(function (part) { setText('official-market-' + part, '—'); });
+      setText('official-market-change', 'Awaiting launch');
+      if (byId('official-market-chart')) byId('official-market-chart').hidden = true;
+    }
+  }
+  async function updateMarket(mint) {
+    if (!mint || !byId('official-market-price')) return;
+    try {
+      var response = await fetch('https://api.dexscreener.com/tokens/v1/solana/' + encodeURIComponent(mint), { cache: 'no-store' });
+      if (!response.ok) throw new Error('Index unavailable');
+      var rows = await response.json();
+      var pairs = (Array.isArray(rows) ? rows : []).filter(function (row) {
+        return row && row.baseToken && row.baseToken.address === mint;
+      }).sort(function (a, b) {
+        return Number(b.liquidity && b.liquidity.usd || 0) - Number(a.liquidity && a.liquidity.usd || 0);
+      });
+      if (mint !== currentMint) return;
+      var pair = pairs[0];
+      setText('official-market-price', money(pair && pair.priceUsd, false));
+      setText('official-market-cap', money(pair && (pair.marketCap || pair.fdv), true));
+      setText('official-market-liquidity', money(pair && pair.liquidity && pair.liquidity.usd, true));
+      setText('official-market-volume', money(pair && pair.volume && pair.volume.h24, true));
+      setText('official-market-change', pair && pair.priceChange && Number.isFinite(Number(pair.priceChange.h24))
+        ? Number(pair.priceChange.h24).toFixed(2) + '% / 24H' : 'Awaiting market data');
+      var chart = byId('official-market-chart');
+      if (chart) {
+        chart.hidden = !pair || !/^https:\/\//.test(pair.url || '');
+        if (!chart.hidden) chart.href = pair.url;
+      }
+    } catch (_) { setText('official-market-change', 'Market data temporarily unavailable'); }
+  }
+  async function poll() {
+    if (polling || !endpoint || document.visibilityState === 'hidden') return;
+    polling = true;
+    try {
+      var response = await fetch(endpoint, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Official token feed unavailable');
+      var data = await response.json();
+      var mint = data && data.token && data.token.mint;
+      if (mint !== null && mint !== undefined && !address.test(String(mint))) throw new Error('Invalid official Mint');
+      mint = mint || null;
+      if (mint !== currentMint) {
+        currentMint = mint;
+        window.hmonhookOfficialMint = mint;
+        showMint(mint);
+        window.dispatchEvent(new Event('hmonhook-official-updated'));
+        lastMarketLookup = 0;
+      }
+      if (mint && Date.now() - lastMarketLookup > 30000) {
+        lastMarketLookup = Date.now();
+        void updateMarket(mint);
+      }
+    } catch (_) {
+      if (currentMint === null) setText('official-market-note', 'Official address feed is temporarily unavailable. Verify the CA before trading.');
+    } finally { polling = false; }
+  }
+  if (byId('official-market-copy')) byId('official-market-copy').addEventListener('click', async function () {
+    if (!currentMint) return;
+    try { await navigator.clipboard.writeText(currentMint); this.textContent = 'COPIED'; }
+    catch (_) { this.textContent = 'COPY FAILED'; }
+    var button = this;
+    setTimeout(function () { button.textContent = 'COPY'; }, 1800);
+  });
+  fetch(new URL('markets/registry-service.json', document.baseURI), { cache: 'no-store' })
+    .then(function (response) { return response.ok ? response.json() : {}; })
+    .then(function (config) {
+      var url = new URL(config.officialEndpoint || '', document.baseURI);
+      if (url.protocol !== 'https:') return;
+      endpoint = url.href;
+      void poll();
+      setInterval(poll, 2000);
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') void poll(); });
+    }).catch(function () { /* Keep the unpublished placeholder. */ });
 }());
 </script>
 </body>

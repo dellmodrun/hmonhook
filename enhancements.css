@@ -106,6 +106,7 @@ body{background:#000;background-image:none}
 .button:not(.button-solid):hover{background:#25150a;border-color:var(--brand);color:#ffad58}
 .hero-banner{background:#050505}
 .ca-box,.dev-letter,.home-panel,.chapter,.route-card,.market-card,.market-command,.market-discovery,.research,.paper-origin{background:#0d0d0d}
+.official-market{margin-top:12px}.official-market-card{max-width:none;border-color:#b55b1a;background:linear-gradient(125deg,#17100b,#0d0d0d 62%)}.official-market-card .market-card-head{grid-template-columns:64px minmax(0,1fr)}.official-market-card .market-token-image img{object-fit:contain;padding:5px}.official-market-card .market-price{margin-top:18px}.official-market-card .market-ca code{overflow-wrap:anywhere;white-space:normal}.official-market-card [hidden]{display:none!important}
 .route-card:hover,.market-card:hover{border-color:#b55b1a;background:#15100d}
 .eyebrow,.chapter-label,.route-card small,.status-band .ready,.market-price em,.market-ca button{color:#ff932d}
 .ca-box strong,.status-line b,.market-badges b.live{color:#ff9d38}

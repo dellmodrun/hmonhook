@@ -133,6 +133,7 @@
   function render() {
     var grid = byId("market-grid");
     var launches = state.launches.filter(function (item) {
+      if (item.mint === window.hmonhookOfficialMint) return false;
       var live = state.pairs.has(item.mint);
       if (state.filter === "live") return live;
       if (state.filter === "awaiting") return !live;
@@ -228,6 +229,7 @@
   }
 
   byId("market-refresh").addEventListener("click", refresh);
+  window.addEventListener('hmonhook-official-updated', render);
   byId("market-sort").addEventListener("change", function () { state.sort = this.value; render(); });
   document.querySelectorAll("[data-market-filter]").forEach(function (button) {
     button.addEventListener("click", function () {

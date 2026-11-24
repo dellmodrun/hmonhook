@@ -1,3 +1,4 @@
 {
-  "endpoint": "https://hmonhook-launch-api.zaunmanx.chatgpt.site/launch-registry"
+  "endpoint": "https://hmonhook-launch-api.zaunmanx.chatgpt.site/launch-registry",
+  "officialEndpoint": "https://hmonhook-launch-api.zaunmanx.chatgpt.site/official-token"
 }
