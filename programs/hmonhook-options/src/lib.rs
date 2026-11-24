@@ -23,6 +23,9 @@ mod associated_token {
 mod wrapped_sol {
     solana_program::declare_id!("So11111111111111111111111111111111111111112");
 }
+mod pump_quote_sol {
+    solana_program::declare_id!("9pan9bMn5HatX4EJdBwg9VgCa7Uz5HL8N1m5D3NdXejP");
+}
 mod pump {
     solana_program::declare_id!("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P");
 }
@@ -99,6 +102,31 @@ fn u64_at(data: &[u8], at: usize) -> Result<u64, ProgramError> {
     let end = at.checked_add(8).ok_or_else(invalid)?;
     let bytes: [u8; 8] = data.get(at..end).ok_or_else(invalid)?.try_into().map_err(|_| invalid())?;
     Ok(u64::from_le_bytes(bytes))
+}
+
+// Pump's BondingCurve V2 layout: 8-byte discriminator, five u64 reserve/supply
+// fields, complete flag, creator, two flags, then quote Mint. The same
+// exact-token calculation is used by the browser to propose one-token terms.
+fn pump_curve_strike(data: &[u8], lot_size: u64) -> Result<u64, ProgramError> {
+    const DISCRIMINATOR: [u8; 8] = [23, 183, 248, 55, 96, 216, 172, 96];
+    if data.len() < 115 || data.get(0..8) != Some(&DISCRIMINATOR) || data[48] != 0 || lot_size == 0 {
+        return Err(bad_account());
+    }
+    let quote_mint = data.get(83..115).ok_or_else(bad_account)?;
+    if quote_mint != solana_program::system_program::id().as_ref()
+        && quote_mint != wrapped_sol::id().as_ref()
+        && quote_mint != pump_quote_sol::id().as_ref()
+    {
+        return Err(bad_account());
+    }
+    let virtual_tokens = u64_at(data, 8)?;
+    let virtual_quote = u64_at(data, 16)?;
+    let real_tokens = u64_at(data, 24)?;
+    if virtual_tokens <= lot_size || virtual_quote == 0 || real_tokens < lot_size { return Err(invalid()); }
+    let numerator = (lot_size as u128).checked_mul(virtual_quote as u128).ok_or_else(overflow)?;
+    let strike = numerator.checked_div((virtual_tokens - lot_size) as u128).ok_or_else(overflow)?
+        .checked_add(1).ok_or_else(overflow)?;
+    u64::try_from(strike).map_err(|_| overflow())
 }
 
 fn token_data(account: &AccountInfo, mint: &Pubkey, authority: &Pubkey) -> Result<u64, ProgramError> {
@@ -741,6 +769,26 @@ entrypoint!(process_instruction);
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pump_curve_strike_matches_one_token_quote_and_rejects_wrong_curve() {
+        let mut curve = vec![0_u8; 115];
+        curve[..8].copy_from_slice(&[23, 183, 248, 55, 96, 216, 172, 96]);
+        curve[8..16].copy_from_slice(&1_073_000_000_000_000_u64.to_le_bytes());
+        curve[16..24].copy_from_slice(&30_000_000_000_u64.to_le_bytes());
+        curve[24..32].copy_from_slice(&793_000_000_000_000_u64.to_le_bytes());
+        curve[83..115].copy_from_slice(solana_program::system_program::id().as_ref());
+        let expected = 1_000_000_u128 * 30_000_000_000 / (1_073_000_000_000_000 - 1_000_000) + 1;
+        assert_eq!(pump_curve_strike(&curve, 1_000_000).unwrap(), expected as u64);
+        curve[48] = 1;
+        assert!(pump_curve_strike(&curve, 1_000_000).is_err());
+        curve[48] = 0;
+        curve[83..115].copy_from_slice(Pubkey::new_unique().as_ref());
+        assert!(pump_curve_strike(&curve, 1_000_000).is_err());
+        curve[83..115].copy_from_slice(wrapped_sol::id().as_ref());
+        curve[24..32].copy_from_slice(&999_999_u64.to_le_bytes());
+        assert!(pump_curve_strike(&curve, 1_000_000).is_err());
+    }
 
     #[test]
     fn premium_rounds_up_and_minimum_deposit_is_enforced() {
