@@ -233,12 +233,12 @@ export async function submitPositionAction({ rpcEndpoint, programId, series, buy
   const terms = await fetchVerifiedSeries(connection, programKey, seriesKey);
   let instructions;
   if (action === 'refund') instructions = [refundPremiumInstruction({ programId: programKey, series: seriesKey, buyer: buyerKey })];
-  else {
+  else if (action === 'exercise' || action === 'claim') {
     const count = positiveInteger(lots, 'Lots');
     const args = { programId: programKey, series: seriesKey, mint: terms.mint,
       vault: terms.vault, issuer: terms.issuer, buyer: buyerKey, lots: count };
     instructions = action === 'exercise' ? exerciseInstructions(args).instructions : claimDefaultInstructions(args).instructions;
-  }
+  } else throw new Error('Unsupported option position action.');
   return submitOptionsInstructions({ connection, provider, authority: buyerKey, instructions });
 }
 
@@ -254,10 +254,10 @@ export async function submitSeriesAction({ rpcEndpoint, programId, series, signe
   if (action === 'register-default') {
     if (terms.status !== 0) throw new Error('Only an active series can register a treasury breach.');
     instructions = [triggerDefaultInstruction({ programId: programKey, series: seriesKey, treasury: terms.treasury })];
-  } else {
+  } else if (action === 'reclaim') {
     if (!terms.issuer.equals(signerKey)) throw new Error('Only the issuer can reclaim eligible collateral.');
     instructions = reclaimInstructions({ programId: programKey, issuer: signerKey, series: seriesKey,
       mint: terms.mint, vault: terms.vault }).instructions;
-  }
+  } else throw new Error('Unsupported option series action.');
   return submitOptionsInstructions({ connection, provider, authority: signerKey, instructions });
 }
