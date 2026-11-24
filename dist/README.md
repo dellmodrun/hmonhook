@@ -1,6 +1,8 @@
 # h/monhook
 
-Public issuer commitments, transaction-bound settlement and an optional privacy direction for Solana. The implemented core is Jolt Guard; the issuer-option and Privacy Rings layers are design and integration work, respectively. See [product scope](docs/PRODUCT_SCOPE.md) for the exact boundary.
+Public issuer commitments, transaction-bound settlement and an optional privacy direction for Solana. The currently deployed settlement core is the earlier Jolt Guard; issuer options have a development contract, and Privacy Rings remains integration work. See [product scope](docs/PRODUCT_SCOPE.md) for the exact boundary.
+
+The currently deployed mainnet trade path uses the earlier Jolt Guard binary and its JOLT wire format. `programs/hmonhook-guard` and `programs/hmonhook-options` are separate development programs; both have temporary Devnet deployments for byte identity and runtime checks, but neither is deployed to mainnet or enabled in the public site. See the [release status](docs/HMONHOOK_RELEASE_STATUS.md) before treating any feature as live.
 
 h/monhook is not a block explorer. Jolt Guard changes whether a supported route is allowed
 to settle. A user signs maximum-input, minimum-output and expiry constraints;
@@ -10,6 +12,8 @@ the realized token-account deltas violate the intent.
 ## Protocol
 
 - programs/jolt-guard: native Rust Solana program.
+- programs/hmonhook-guard: new h/monhook Guard under development.
+- programs/hmonhook-options: issuer collateral and option program under development.
 - sdk/src/codec.ts: canonical intent commitment and JOLT V1 wire encoder.
 - sdk/src/instruction.ts: ordered account assembly and privilege deduplication.
 - sdk/src/adapters/jupiter.ts: validated Jupiter v6 route adapter.
@@ -67,7 +71,7 @@ The source commit, loader, program-data account and SBF SHA-256 are recorded in
 deployment is an integration target, not a mainnet production claim; Kora may
 reclaim devnet programs after seven days without on-chain activity.
 
-The verified mainnet deployment is
+The verified legacy Jolt Guard mainnet deployment is
 [`6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY`](https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY).
 Its ProgramData address, deployment signature, upgrade authority and matching
 SBF digest are published in [`deployments/mainnet.json`](deployments/mainnet.json).

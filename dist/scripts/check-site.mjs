@@ -80,6 +80,10 @@ for (const forbidden of ["github.com", "raw.githubusercontent.com", "dellmodrun"
   assert.ok(!publicFrontend.toLowerCase().includes(forbidden), `public frontend exposes forbidden host or account: ${forbidden}`);
 }
 const intent = readFileSync(resolve(root, "intent/index.html"), "utf8");
+for (const [page, html] of [["home", home], ["intent", intent]]) {
+  assert.match(html, /legacy Jolt Guard/, `${page} must identify the currently deployed program`);
+  assert.ok(!/verified h\/monhook Guard mainnet/i.test(html), `${page} mislabels the legacy mainnet program`);
+}
 for (const id of ["intent-input-mint", "intent-output-mint", "intent-slippage", "intent-quote", "intent-submit"]) {
   assert.match(intent, new RegExp(`id=["']${id}["']`), `intent workbench missing ${id}`);
 }

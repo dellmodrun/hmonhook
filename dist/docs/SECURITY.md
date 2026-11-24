@@ -14,7 +14,9 @@
 
 Adapters are part of the security boundary. A malicious or incorrectly decoded route instruction can select unintended accounts even when the guard itself behaves correctly. Production adapters should pin known program IDs, validate writable/signing roles and test adversarial account layouts.
 
-The same published SBF digest is deployed on mainnet and devnet. The mainnet deployment is executable and independently inspectable, but it is not presented as independently audited. Integrators should review the program, adapters and deployment manifest before enabling production value.
+The same published **legacy Jolt Guard** SBF digest is deployed on mainnet and devnet. The mainnet deployment is executable and independently inspectable, but it is not presented as independently audited. The separate h/monhook Guard and options programs have temporary Devnet deployments only; their byte identity and invalid-instruction smoke checks do not establish a safe money path. Integrators should review the applicable program, adapters and deployment manifest before enabling production value.
+
+The development options program checks one registered issuer treasury's current token balance. A sale followed by a refill before default is registered leaves no historical evidence in that account. Its present rule must not be described as detecting every developer sale. The forfeiture evidence policy remains a release blocker.
 
 ## Reporting
 
