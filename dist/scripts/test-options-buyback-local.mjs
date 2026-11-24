@@ -5,7 +5,9 @@ import { TOKEN_2022_PROGRAM_ID, AuthorityType, createMint, getOrCreateAssociated
   getAccount, mintTo, setAuthority } from '@solana/spl-token';
 import { openSeriesInstructions, buyOptionsInstruction, buybackVaultPrepInstructions,
   pumpBuybackInstruction, fetchVerifiedSeries, refundPremiumInstruction } from '../options-client.mjs';
-import { reclaimBuybackRentInstruction } from '../options-client.mjs';
+import { reclaimBuybackRentInstruction, reclaimPumpSwapQuoteRentInstruction,
+  withdrawExpiredTreasuryForIssuerInstructions, reclaimExpiredForIssuerInstructions,
+  closePositionInstruction, closeSeriesTokenInstruction, closeSeriesInstruction } from '../options-client.mjs';
 import { createMockPumpCurve } from './local-pump-curve.mjs';
 
 const connection = new Connection('http://127.0.0.1:8899', 'confirmed');
@@ -29,14 +31,14 @@ await setAuthority(connection, issuer, mint, issuer, AuthorityType.FreezeAccount
 const slot = await connection.getSlot('confirmed');
 const opened = openSeriesInstructions({ programId, issuer: issuer.publicKey, mint, source, treasury: source,
   nonce: 201n, deposit: 50_000_000n, strikeLamports: 1_000n,
-  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 900_000_000n });
+  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 100_000_000n });
 await send(opened.instructions, [issuer]);
 const series = opened.series.address;
 const prep = buybackVaultPrepInstructions({ programId, series, mint, payer: issuer.publicKey });
 await send(prep.instructions, [issuer]);
 const partial = openSeriesInstructions({ programId, issuer: issuer.publicKey, mint, source, treasury: source,
   nonce: 202n, deposit: 50_000_000n, strikeLamports: 1_000n,
-  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 850_000_000n });
+  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 100_000_000n });
 await send(partial.instructions, [issuer]);
 await send([buyOptionsInstruction({ programId, series: partial.series.address, buyer: buyer.publicKey, treasury: source, lots: 2n })], [buyer]);
 const partialBuyback = await pumpBuybackInstruction({ programId, series: partial.series.address, mint, keeper: buyer.publicKey,
@@ -48,7 +50,7 @@ assert.equal((await fetchVerifiedSeries(connection, programId, partial.series.ad
 await send([buyOptionsInstruction({ programId, series, buyer: buyer.publicKey, treasury: source, lots: 50n })], [buyer]);
 const rounding = openSeriesInstructions({ programId, issuer: issuer.publicKey, mint, source, treasury: source,
   nonce: 203n, deposit: 50_000_000n, strikeLamports: 1_000n,
-  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 800_000_000n });
+  saleDeadlineSlot: BigInt(slot + 80), expirySlot: BigInt(slot + 115), treasuryFloor: 100_000_000n });
 await send(rounding.instructions, [issuer]);
 await send(buybackVaultPrepInstructions({ programId, series: rounding.series.address, mint, payer: issuer.publicKey }).instructions, [issuer]);
 await send([buyOptionsInstruction({ programId, series: rounding.series.address, buyer: smallBuyer.publicKey, treasury: source, lots: 1n })], [smallBuyer]);
@@ -106,5 +108,23 @@ redirectedRent.keys[2].pubkey = buyer.publicKey;
 await assert.rejects(send([redirectedRent], [buyer]), /failed|Error|Instruction/i);
 await send([rentReturn], [buyer]);
 assert.equal(await connection.getBalance(built.vault.authority, 'confirmed'), 0);
+await send(withdrawExpiredTreasuryForIssuerInstructions({ programId, issuer: issuer.publicKey,
+  series, mint, keeper: buyer.publicKey }).instructions, [buyer]);
+await send(reclaimExpiredForIssuerInstructions({ programId, issuer: issuer.publicKey,
+  series, mint, vault: opened.series.vault, keeper: buyer.publicKey }).instructions, [buyer]);
+await send([closePositionInstruction({ programId, series, buyer: buyer.publicKey })], [buyer]);
+for (const kind of ['collateral', 'treasury']) {
+  await send([closeSeriesTokenInstruction({ programId, series, mint,
+    issuer: issuer.publicKey, kind })], [buyer]);
+}
+if (await connection.getBalance(built.vault.quoteVault, 'confirmed')) {
+  await send([reclaimPumpSwapQuoteRentInstruction({ programId, series, mint,
+    issuer: issuer.publicKey })], [buyer]);
+}
+const finalSeriesRent = await connection.getBalance(series, 'confirmed');
+await send([closeSeriesInstruction({ programId, series, mint, issuer: issuer.publicKey })], [buyer]);
+assert.equal(await connection.getBalance(series, 'confirmed'), 0);
+assert.equal((await getAccount(connection, built.vault.baseVault, 'confirmed', TOKEN_2022_PROGRAM_ID)).amount, 1_000_000n);
 console.log(JSON.stringify({ mockPump: true, signature, premiumSpent: String(refunded.premiumSpentLamports),
-  premiumRefunded: String(refunded.premiumRefundedLamports), boughtTokens: '1000000' }));
+  premiumRefunded: String(refunded.premiumRefundedLamports), boughtTokens: '1000000',
+  finalSeriesRentReturned: finalSeriesRent }));

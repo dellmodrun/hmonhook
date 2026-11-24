@@ -22,6 +22,16 @@
   function show(id, lines) { byId(id).textContent = Array.isArray(lines) ? lines.join('\n') : String(lines); }
   function error(id, err) { show(id, 'ERROR: ' + (err && err.message || err)); }
   function configUrl() { return new URL('options/program.json', document.baseURI); }
+  async function optionDirectoryUrl() {
+    var response = await fetch(new URL('markets/registry-service.json', document.baseURI), { cache: 'no-store' });
+    if (!response.ok) throw new Error('Directory configuration unavailable.');
+    var endpoint = (await response.json()).endpoint;
+    if (!endpoint) throw new Error('Directory is not configured.');
+    var url = new URL(endpoint);
+    if (url.protocol !== 'https:') throw new Error('Directory must use HTTPS.');
+    url.pathname = '/option-series'; url.search = '';
+    return url;
+  }
   async function release(rpc) {
     if (!config || config.enabled !== true || config.cluster !== 'mainnet-beta' || !config.programId ||
         !/^[0-9a-f]{64}$/i.test(config.programSha256 || '') || !Object.hasOwn(config, 'upgradeAuthority')) {
@@ -35,7 +45,7 @@
     await api.loadOptionsProgram(connection, config);
     return connection;
   }
-  function issuerInputs() { return [value('options-mint'), value('options-percent'), value('options-rpc'), value('options-sale-slots'), value('options-expiry-slots')].join('|'); }
+  function issuerInputs() { return [value('options-mint'), value('options-percent'), value('options-registered-tokens'), value('options-rpc'), value('options-sale-slots'), value('options-expiry-slots')].join('|'); }
   function marketInputs() { return [value('options-series'), value('options-market-rpc'), value('options-lots')].join('|'); }
   function formatSol(lamports) {
     var amount = BigInt(lamports);
@@ -50,17 +60,19 @@
         show('options-issuer-output', 'Reading Mint, Pump curve and issuer treasury...');
         var prepared = await api.previewIssuerSeries({ rpcEndpoint: rpc, programId: config.programId,
           issuer: who.address, mint: value('options-mint'), percent: Number(value('options-percent')),
+          registeredTokens: value('options-registered-tokens'),
           saleWindowSlots: Number(value('options-sale-slots')), expiryWindowSlots: Number(value('options-expiry-slots')) });
         if (submittedInputs !== issuerInputs() || who.address !== wallet().address) throw new Error('Inputs or wallet changed during review. Review again.');
         issuerReview = { prepared: prepared, inputs: issuerInputs(), address: who.address };
         show('options-issuer-output', ['MINT: ' + prepared.mint, 'ISSUER: ' + prepared.issuer,
           'SERIES: ' + prepared.series, 'SNAPSHOT SLOT: ' + prepared.snapshotSlot,
-          'LOCK: ' + prepared.deposit + ' base units / ' + prepared.totalLots + ' lots',
-          'REGISTERED TREASURY: ' + prepared.treasury, 'TREASURY FLOOR: ' + prepared.treasuryFloor + ' base units',
+          'OPTION COLLATERAL: ' + prepared.deposit + ' base units / ' + prepared.totalLots + ' lots',
+          'REGISTERED CUSTODY: ' + prepared.treasury, 'ADDITIONAL TOKENS HELD: ' + prepared.treasuryFloor + ' base units',
           'STRIKE / LOT: ' + formatSol(prepared.strikeLamports),
           'PREMIUM / LOT: ' + formatSol(prepared.premiumLamports),
           'SALE DEADLINE SLOT: ' + prepared.saleDeadlineSlot, 'EXERCISE EXPIRY SLOT: ' + prepared.expirySlot,
-          'Review the Mint and terms before signing. Locking does not guarantee market price.']);
+          'Both amounts leave your wallet when signing. Withdrawing registered tokens before expiry permanently defaults this series.',
+          'Only this registered allocation is monitored; unrelated wallets are outside this protection.']);
         byId('options-open').disabled = false;
       } catch (err) { error('options-issuer-output', err); }
     });
@@ -71,12 +83,24 @@
         await release(value('options-rpc'));
         byId('options-open').disabled = true; show('options-issuer-output', 'Waiting for wallet confirmation...');
         var result = await api.submitIssuerSeries(issuerReview.prepared, who.provider);
+        var confirmedMint = String(issuerReview.prepared.mint);
         show('options-issuer-output', ['STATUS: ' + result.status, 'SERIES: ' + result.series, 'SIGNATURE: ' + result.signature,
           result.status === 'confirmed' ? 'Collateral lock verified on chain.' : 'Check the signature in a Solana explorer before retrying.']);
         issuerReview = null;
         if (result.status === 'confirmed') {
           byId('options-view-series').href = './markets/?series=' + encodeURIComponent(result.series);
           byId('options-view-series').hidden = false;
+          try {
+            var directoryUrl = await optionDirectoryUrl();
+            var listed = await fetch(directoryUrl, { method: 'POST', headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ mint: confirmedMint, series: result.series }) });
+            if (!listed.ok) throw new Error('Directory registration pending.');
+            show('options-issuer-output', ['STATUS: confirmed', 'SERIES: ' + result.series, 'SIGNATURE: ' + result.signature,
+              'Collateral lock verified on chain. Series submitted to the market directory.']);
+          } catch (_) {
+            show('options-issuer-output', ['STATUS: confirmed', 'SERIES: ' + result.series, 'SIGNATURE: ' + result.signature,
+              'Collateral lock verified on chain. Directory listing pending; the direct series link works.']);
+          }
         }
       } catch (err) { error('options-issuer-output', err); }
     });
@@ -84,7 +108,38 @@
   if (marketForm) {
     sharedSeries = new URL(location.href).searchParams.get('series');
     if (sharedSeries && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedSeries)) byId('options-series').value = sharedSeries;
-    var actionIds = ['options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund', 'options-register-default', 'options-reclaim'];
+    var sharedMint = new URL(location.href).searchParams.get('mint');
+    if (sharedMint && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(sharedMint)) byId('options-find-mint').value = sharedMint;
+    byId('options-find-series').addEventListener('click', async function () {
+      var results = byId('options-series-results');
+      results.replaceChildren();
+      try {
+        var mint = value('options-find-mint'); var rpc = value('options-market-rpc');
+        if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) throw new Error('Enter a Solana Mint address.');
+        await release(rpc);
+        var directoryUrl;
+        try { directoryUrl = await optionDirectoryUrl(); } catch (_) { /* Direct RPC can still find series. */ }
+        var rows = await api.listRegisteredOptionSeriesForMint({ rpcEndpoint: rpc, programId: config.programId,
+          mint: mint, directoryEndpoint: directoryUrl && directoryUrl.href });
+        if (mint !== value('options-find-mint') || rpc !== value('options-market-rpc')) throw new Error('Search inputs changed. Search again.');
+        if (!rows.length) { results.textContent = 'No verified V3 option series found for this Mint.'; return; }
+        var heading = document.createElement('p');
+        heading.textContent = rows.length + ' verified V3 series found. Select one to inspect its current terms.';
+        results.appendChild(heading);
+        rows.slice(0, 20).forEach(function (row) {
+          var button = document.createElement('button');
+          button.className = 'button'; button.type = 'button';
+          button.textContent = String(row.address) + ' / ' + ['ACTIVE', 'DEFAULT', 'CLOSED'][row.status];
+          button.addEventListener('click', function () {
+            byId('options-series').value = String(row.address);
+            inspectMarketSeries().catch(function (err) { error('options-market-output', err); });
+          });
+          results.appendChild(button);
+        });
+        if (rows.length > 20) { var more = document.createElement('p'); more.textContent = 'Showing the first 20 series. Search by exact series address for others.'; results.appendChild(more); }
+      } catch (err) { results.textContent = 'ERROR: ' + (err && err.message || err); }
+    });
+    var actionIds = ['options-buy', 'options-confirm-buy', 'options-exercise', 'options-claim', 'options-refund', 'options-register-default', 'options-withdraw-registered', 'options-reclaim'];
     function disableActions() { actionIds.forEach(function (id) { byId(id).disabled = true; }); purchaseReview = null; }
     marketForm.addEventListener('input', disableActions);
     inspectMarketSeries = async function () {
@@ -111,7 +166,7 @@
       }
       show('options-market-output', ['MINT: ' + t.mint, 'ISSUER: ' + t.issuer, 'SERIES STATUS: ' + ['ACTIVE', 'DEFAULT', 'CLOSED'][t.status],
         'CURRENT SLOT: ' + view.slot, 'VAULT COLLATERAL: ' + view.vaultAmount + ' base units',
-        'REGISTERED TREASURY: ' + view.treasuryAmount + ' base units', 'TREASURY FLOOR: ' + t.treasuryFloor + ' base units',
+        'REGISTERED CUSTODY: ' + view.treasuryAmount + ' base units', 'REGISTERED ALLOCATION: ' + t.treasuryFloor + ' base units',
         'TREASURY BELOW FLOOR: ' + (view.registeredTreasuryBreached ? 'YES' : 'NO'),
         'LOT SIZE: ' + t.lotSize + ' base units', 'AVAILABLE LOTS: ' + available,
         'STRIKE / LOT: ' + formatSol(t.strikeLamports), 'PREMIUM / LOT: ' + formatSol(t.premiumLamports),
@@ -119,12 +174,14 @@
         'YOUR OPEN LOTS: ' + owned, 'YOUR REFUND CLAIMED: ' + (p ? !!p.premiumRefunded : 'NO POSITION'),
         'ESTIMATED UNSPENT PREMIUM REFUND: ' + formatSol(refundable) + ' / AFTER EXPIRY ONLY',
         ...(p && !p.premiumRefunded && refundable === 0n ? ['Your refund may round to zero. Claiming still records that your position has settled.'] : []),
+        'Only the registered allocation is covered. Issuer withdrawal before expiry permanently defaults this series.',
         'The option premium may be lost. Inspect terms and market price independently.']);
       if (connected && t.status === 0 && BigInt(view.slot) <= t.saleDeadlineSlot && available > 0n && !view.registeredTreasuryBreached) byId('options-buy').disabled = false;
       if (connected && owned > 0n && t.status === 0 && BigInt(view.slot) <= t.expirySlot) byId('options-exercise').disabled = false;
       if (connected && owned > 0n && t.status === 1) byId('options-claim').disabled = false;
       if (connected && p && !p.premiumRefunded && BigInt(view.slot) > t.expirySlot) byId('options-refund').disabled = false;
       if (connected && t.status === 0 && BigInt(view.slot) <= t.expirySlot && view.registeredTreasuryBreached) byId('options-register-default').disabled = false;
+      if (connected && String(t.issuer) === connected && view.treasuryAmount > 0n) byId('options-withdraw-registered').disabled = false;
       var reclaimable = t.status === 1 || BigInt(view.slot) <= t.expirySlot
         ? t.totalLots - t.soldLots - t.reclaimedLots : t.totalLots - t.exercisedLots - t.reclaimedLots;
       if (connected && String(t.issuer) === connected && BigInt(view.slot) > t.saleDeadlineSlot && t.status !== 2 && reclaimable > 0n && view.vaultAmount >= reclaimable * t.lotSize) byId('options-reclaim').disabled = false;
@@ -170,10 +227,12 @@
         } catch (err) { error('options-market-output', err); }
       });
     });
-    [['options-register-default','register-default'],['options-reclaim','reclaim']].forEach(function (pair) {
+    [['options-register-default','register-default'],['options-withdraw-registered','withdraw-registered'],['options-reclaim','reclaim']].forEach(function (pair) {
       byId(pair[0]).addEventListener('click', async function () {
         try {
           var who = wallet(); if (!marketView || marketView.inputs !== marketInputs() || marketView.address !== who.address) throw new Error('Refresh the series after changing inputs or wallet.');
+          if (pair[1] === 'withdraw-registered' && BigInt(marketView.view.slot) <= marketView.view.terms.expirySlot &&
+              !window.confirm('Withdrawing registered tokens before expiry permanently defaults this series. Option buyers may claim collateral. Continue?')) return;
           await release(value('options-market-rpc')); byId(pair[0]).disabled = true;
           show('options-market-output', 'Waiting for wallet confirmation...');
           var result = await api.submitSeriesAction({ rpcEndpoint: value('options-market-rpc'), programId: config.programId,

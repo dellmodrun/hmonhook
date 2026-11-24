@@ -1,6 +1,6 @@
 # Mainnet SOL recovery and shutdown plan
 
-Status: **deployment blocked**. This document is a release gate, not a claim that all SOL can be recovered.
+Status: **Guard deployed; options deployment blocked**. This document is a release and shutdown record, not a claim that all SOL can be recovered.
 
 ## Read-only snapshot, 2026-11-24
 
@@ -9,15 +9,17 @@ Status: **deployment blocked**. This document is a release gate, not a claim tha
 | Item | Current result |
 | --- | --- |
 | Management address | `DyjJ2cxfL3oYCnazLHB7zpe4sd4mSnQuCbqV5sDGrgmG` |
-| Management balance | 1.1999945 SOL at the latest read-only check |
-| New Guard / options accounts | Both reserved addresses unoccupied |
-| Final program-account rent floor | 1.00495608 SOL for the current CI Guard and options binaries |
-| Simultaneous temporary buffer rent | 1.00320856 SOL; staging, not an additional permanent cost |
+| Management balance | 1.03013242 SOL after Guard deployment |
+| New Guard account | Executable at `Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ`; upgrade authority retained |
+| Options account | Reserved address still unoccupied |
+| Guard program-account rent | 0.16967708 SOL held in Program and ProgramData; recoverable by the retained authority only after safe shutdown |
+| Options final-account rent estimate | 0.83527900 SOL for the current CI options binary, not yet paid |
+| Options temporary buffer rent estimate | 0.83440524 SOL during staging, not an additional permanent cost |
 | Transaction fees and other accounts | Excluded from the rent floor |
 
-These estimates use the CI artifacts from run `45393759609` at commit `53a2fac`, whose options SBF hash is `bacfb380c38167de444c797ca223ad2d59463f34f8379342dd64ac5ac9c3ac6f`. The CI build and local lifecycle passed; this is **not** an independent security review or public-cluster transaction test. Recompute from the final binaries and current network rent immediately before deployment.
+The Guard was deployed in slot `473358430` with signature `4V6Jgnb8yrQjmC7yitHeHcxjnXc59Uog51XjgPVtJpMHZQKBuKj8rAKeBoFD9uNy5UHYzH4hVcPapUTym8Ny7sWa`. Its on-chain SBF dump matches SHA-256 `f90a8834e85f0e7094aa387000dbcf5e4c337f9cbc160eb537d2b6d36559776c` and its upgrade authority is the management wallet. The options estimate uses the CI artifact from run `45393759609` at commit `53a2fac`, hash `bacfb380c38167de444c797ca223ad2d59463f34f8379342dd64ac5ac9c3ac6f`. The CI build and local lifecycle passed; this is **not** an independent security review or public-cluster options transaction test. Recompute from the final binary and current network rent before any later options deployment.
 
-The latest read-only preflight returned `machineChecksPassed: true` and `readyToDeploy: false`. Machine checks cover identity, binary hashes, vacant addresses, balance above the **final-account rent floor**, and network identity. They do not prove that 1.1999945 SOL is enough for the temporary deployment buffer, fees, and other accounts at each step. A deployment transaction must not be sent based on the rent floor alone. The read-only recovery audit also confirmed both reserved mainnet programs remain undeployed, so no new mainnet program rent has been paid or become recoverable.
+The original unified-release preflight now reports the Guard address as occupied; that is expected after this partial Guard deployment, not a cue to redeploy it. The options release remains blocked. Balance above the options **final-account rent floor** does not prove sufficient staging liquidity or product readiness. The read-only recovery audit must continue checking retained upgrade authority and remaining state before any future closure.
 
 ## Which SOL can be recovered
 
@@ -47,7 +49,7 @@ The earlier Jolt Guard mainnet deployment uses a different recorded upgrade auth
 
 Stop new positions; keep the program available while users exercise, claim, or receive refunds. Settle remaining issuer collateral and treasury obligations, then close eligible token, Position, Series, and buyback accounts to their authorized recipients. Only after all user obligations are discharged should the upgrade authority close the programs and transfer the wallet's remaining SOL. Never close a program while it is needed to release user funds.
 
-`node scripts/audit-program-recovery.mjs` is a read-only mainnet check of the new programs' upgrade authority, ProgramData balances, and remaining options program-owned state accounts. An RPC error leaves eligibility unknown. A positive result is a pre-close signal, not permission to skip the user-obligation and token-vault review. The current read-only run reported both reserved program addresses unoccupied; no mainnet program rent has been paid yet.
+`node scripts/audit-program-recovery.mjs` is a read-only mainnet check of the new programs' upgrade authority, ProgramData balances, and remaining options program-owned state accounts. An RPC error leaves eligibility unknown. A positive result is a pre-close signal, not permission to skip the user-obligation and token-vault review. The current read-only run reports Guard deployed with its management-wallet upgrade authority and options undeployed.
 
 A disposable local-validator wallet also deployed the Guard SBF with retained upgrade authority, then closed it using `solana program close`. The CLI reported 0.23132952 local-test SOL reclaimed. The payer balance moved from 2.000000000 to 1.998668560 SOL across deployment and closure, with transaction costs remaining. This validates the close command and authority path on a local validator. Local-validator rent settings and fees must not be treated as a mainnet quote.
 

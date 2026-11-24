@@ -110,14 +110,14 @@
 </div>
 <span class="page-code">RUST / TYPESCRIPT / TESTS</span>
 </div>
-<p>Inspect the new h/monhook Guard and option program source alongside the deployed legacy Guard. Both new programs remain development artifacts; the browser clients and release notes distinguish working code from live features.</p>
-<p><strong>Code lineage and deployment:</strong> h/monhook builds on the earlier Joltwork Guard implementation. The mainnet and devnet program IDs shown below are deployments of that earlier Jolt Guard binary, built from source commit <code>d1f21ed</code>; the deployment manifests record their IDs and binary digest. The <code>programs/jolt-guard</code> path, <code>sdk</code> package and <code>JOLT</code> wire marker are compatibility identifiers in that deployed protocol. The website's h/monhook name does not rename or replace those on-chain programs. A separately named h/monhook Guard is in development and has not been deployed to mainnet.</p>
+<p>Inspect the deployed h/monhook Guard and its SDK alongside the options program in development and the earlier Jolt Guard source.</p>
+<p><strong>Code lineage and deployment:</strong> h/monhook builds on the earlier Joltwork Guard implementation. The <code>programs/jolt-guard</code> path, <code>sdk</code> package and <code>JOLT</code> wire marker belong to the earlier deployment. Its mainnet and devnet manifests remain published for verification. The site's supported trade path now uses the separately deployed h/monhook Guard and <code>HMON</code> instruction format. The options program is not deployed to mainnet.</p>
 </header>
 <section class="chapter">
 <div class="chapter-label">PUBLISHED SOURCE BROWSER</div>
 <h2>Read the complete files, not decorative excerpts.</h2>
-<p class="source-summary">This browser loads complete published files from h/monhook’s own site. The new Guard checks signed intents and settlement conditions; the separate option program holds issuer collateral and tracks option positions. Both require more work and review before mainnet use. The legacy Guard remains available for comparison with the currently deployed binary.</p>
-<div class="prose-block"><p>Start with <code>docs/PRODUCT_SCOPE.md</code> for the deployment boundary, then inspect <code>programs/hmonhook-guard/src/lib.rs</code> and <code>programs/hmonhook-options/src/lib.rs</code>. The new SDK shows how applications build Guard instructions. The legacy Guard and SDK are listed separately because their mainnet identity and wire format have not changed.</p><p>The browser displays the published source files rather than marketing snippets. Local tests demonstrate parts of the behavior, but the new programs have not passed a funded devnet deployment or independent security review.</p></div>
+<p class="source-summary">This browser loads complete published files from h/monhook's own site. The deployed Guard checks signed intents and settlement conditions; the separate option program holds issuer collateral and tracks option positions but is not active on mainnet. The earlier Guard remains available for comparison.</p>
+<div class="prose-block"><p>Start with <code>docs/PRODUCT_SCOPE.md</code> for the deployment boundary, then inspect <code>programs/hmonhook-guard/src/lib.rs</code> and <code>programs/hmonhook-options/src/lib.rs</code>. The new SDK shows how applications build Guard instructions. The earlier Guard and SDK remain listed with their original identities and wire format.</p><p>The browser displays the published source files. Local tests cover parts of the behavior; the issuer options program still needs funded public-cluster tests and independent security review.</p></div>
 <div class="build-strip">
 <span>NEW GUARD<b>DEVELOPMENT BUILD</b>
 </span>
@@ -189,7 +189,8 @@
 <button data-code="sdkPackage">sdk/package.json</button></div>
 <div class="code-group"><b>DEPLOYMENT</b>
 <button data-code="deployment">deployments/devnet.json</button>
-<button data-code="mainnetDeployment">deployments/mainnet.json</button>
+<button data-code="mainnetDeployment">deployments/hmonhook-mainnet.json</button>
+<button data-code="legacyMainnetDeployment">deployments/mainnet.json</button>
 <button data-code="verifyDeployment">scripts/verify-deployment.mjs</button>
 <button data-code="checkSite">scripts/check-site.mjs</button></div>
 <div class="code-group"><b>DOCUMENTATION</b>
@@ -281,7 +282,7 @@
 <h2>What the repository proves—and what deployment must still prove.</h2>
 </div>
 </div>
-<div class="prose-block"><p>Source code shows which mechanisms have been built; the mainnet and devnet manifests identify the deployed legacy Jolt Guard binary and its SBF hash. The new h/monhook Guard and issuer-options contracts are development code, with local-validator tests but no mainnet deployment or independent review. Privacy Rings integration is not available. <code>docs/PRODUCT_SCOPE.md</code> records these boundaries.</p><p>The browser can assemble a supported Jupiter route with the deployed legacy Guard and ask the user wallet to sign. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. A separate development options interface can review a lock and inspect or settle a series, but its signing actions are disabled by release configuration. Deployment, integration and audit are different kinds of evidence.</p></div>
+<div class="prose-block"><p>Source code shows which mechanisms have been built. The h/monhook mainnet manifest identifies the deployed Guard and its SBF hash; separate manifests preserve the earlier Jolt Guard history. Issuer options remain development code, without a mainnet deployment or independent review. Privacy Rings integration is not available. <code>docs/PRODUCT_SCOPE.md</code> records these boundaries.</p><p>The browser can assemble a supported Jupiter route with the deployed h/monhook Guard and ask the user wallet to sign. The launcher separately creates a Pump coin, while its JLM1 policy selection remains a local plan. A separate development options interface can review a lock and inspect or settle a series, but its signing actions are disabled by release configuration. Deployment, integration and audit are different kinds of evidence.</p></div>
 <div class="split-panel">
 <article>
 <h3>Inspectable now</h3>
@@ -306,8 +307,8 @@
 </article>
 </div>
 <div class="callout">
-<b>LEGACY JOLT GUARD DEPLOYMENTS</b>
-<p>The legacy Jolt Guard mainnet and devnet programs are independently inspectable. Published manifests bind their identities to the same SBF digest. The separately named h/monhook Guard remains in development; audit and production monitoring remain separate evidence.</p>
+<b>H/MONHOOK GUARD DEPLOYMENT</b>
+<p>The h/monhook Guard is deployed on mainnet at <a href="https://explorer.solana.com/address/Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ" target="_blank" rel="noreferrer"><code>Be7RvxKN…1E2ELQ</code></a>. Its published manifest records the exact SBF hash and retained upgrade authority. The earlier Jolt Guard manifests remain available for code lineage; issuer options and Privacy Rings are not active in this release.</p>
 </div>
 </section>
 <section class="cta-panel">

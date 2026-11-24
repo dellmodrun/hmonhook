@@ -256,7 +256,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <span class="page-code">ATOMIC CPI WRAPPER / JRC1</span>
 </div>
-<p>h/monhook is an intent-bound settlement protocol for Solana. The currently deployed Guard is the earlier Jolt Guard implementation used by h/monhook; its JOLT wire format remains for compatibility. A separately named h/monhook Guard is in development and is not deployed to mainnet. JLM1, Intent V1, JHK1 and JRC1 connect issuers, wallets, routes, policies and receipts. Issuer options and optional confidential transfers are separate product directions, not features of the deployed Jolt Guard binary.</p>
+<p>h/monhook is an intent-bound settlement protocol for Solana. Its own Guard is deployed on mainnet and uses the <code>HMON</code> instruction format and <code>HRC1</code> receipt. The earlier Jolt Guard and its <code>JOLT</code> format remain published as code lineage. Issuer options and optional confidential transfers are separate product directions, not features of the deployed Guard binary.</p>
 </header>
 
 <section class="section-block">
@@ -307,20 +307,19 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </div>
 <div>
 <span>PROGRAM + SDK</span>
-<b class="ready">LEGACY GUARD / 11 SDK TESTS PASSING</b>
+<b class="ready">H/MONHOOK GUARD / 11 SDK TESTS PASSING</b>
 </div>
 <div>
 <span>DEVNET PROGRAM ID</span>
-<b class="ready">3gAqr1U9…K2knfVG</b>
+<b class="ready">DjEzdqVd?cyT4ZQ7</b>
 </div>
 <div>
 <span>MAINNET PROGRAM ID</span>
-<b class="ready">6HfEuWvE…S3ENTY</b>
+<b class="ready">Be7RvxKN?1E2ELQ</b>
 </div>
 </div>
 <div class="callout">
-<b>VERIFIED LEGACY JOLT GUARD DEPLOYMENTS</b>
-<p>The legacy Jolt Guard used by this site is executable on <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer">Solana mainnet at <code>6HfEu…S3ENTY</code> ↗</a> and on <a href="https://explorer.solana.com/address/3gAqr1U9CzYhZBoqDJeEQFtphjVGvr24h4znUK2knfVG?cluster=devnet" target="_blank" rel="noreferrer">devnet at <code>3gAqr…K2knfVG</code> ↗</a>. Both ProgramData accounts match SBF SHA-256 <code>469ab222…124ebdd</code>; the deployment manifests publish their exact identities and authorities. Neither address is the new h/monhook Guard.</p>
+<b>VERIFIED H/MONHOOK GUARD DEPLOYMENT</b><p>The active h/monhook Guard is executable on <a href="https://explorer.solana.com/address/Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ" target="_blank" rel="noreferrer">Solana mainnet at <code>Be7RvxKN...1E2ELQ</code></a>. Its deployed SBF hash is <code>f90a8834...5ac9c3ac6f</code>; the project management wallet retains upgrade authority. The earlier Jolt Guard deployments remain in the source and historical manifests.</p>
 </div>
 </section>
 <section id="privacy-boundary" class="section-block protection-story" aria-labelledby="privacy-title">
@@ -1279,7 +1278,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         slippageBps: byId("intent-slippage").value.trim(), expiresAtSlot: byId("intent-expiry").value.trim(),
         rpcEndpoint: solanaRpcUrl(byId("intent-rpc").value.trim())
       });
-      output.textContent = JSON.stringify({ status: "confirmed", protection: "h/monhook Guard mainnet", programId: "6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
+      output.textContent = JSON.stringify({ status: "confirmed", protection: "h/monhook Guard mainnet", programId: "Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ", intentId: result.intentId, signature: result.signature, explorer: result.explorer }, null, 2);
       showToast("Protected swap confirmed", "success");
     } catch (error) {
       output.textContent = "protected swap error · " + (error && error.message ? error.message : String(error));
@@ -1366,7 +1365,8 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     webPackage: "package.json",
     sdkPackage: "sdk/package.json",
     deployment: "deployments/devnet.json",
-    mainnetDeployment: "deployments/mainnet.json",
+    mainnetDeployment: "deployments/hmonhook-mainnet.json",
+    legacyMainnetDeployment: "deployments/mainnet.json",
     verifyDeployment: "scripts/verify-deployment.mjs",
     checkSite: "scripts/check-site.mjs",
     readme: "README.md",

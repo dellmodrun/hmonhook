@@ -1,0 +1,14 @@
+{
+  "name": "h/monhook Guard",
+  "version": "1.0.0-mainnet",
+  "cluster": "solana-mainnet-beta",
+  "programId": "Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ",
+  "programData": "3jPJiNC3EcdDSRHBpHSXzJu7pofWyZPNVAzdV4EzchLS",
+  "loader": "BPFLoaderUpgradeab1e11111111111111111111111",
+  "executable": true,
+  "upgradeAuthority": "DyjJ2cxfL3oYCnazLHB7zpe4sd4mSnQuCbqV5sDGrgmG",
+  "deployedAt": "2026-11-24T13:18:42Z",
+  "deployedSlot": 473358430,
+  "deploymentSignature": "4V6Jgnb8yrQjmC7yitHeHcxjnXc59Uog51XjgPVtJpMHZQKBuKj8rAKeBoFD9uNy5UHYzH4hVcPapUTym8Ny7sWa",
+  "sha256": "f90a8834e85f0e7094aa387000dbcf5e4c337f9cbc160eb537d2b6d36559776c"
+}
