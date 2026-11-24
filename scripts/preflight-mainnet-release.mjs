@@ -68,13 +68,17 @@ if (genesis !== SOLANA_MAINNET_GENESIS_HASH) throw new Error('RPC is not Solana 
 const balanceLamports = await rpcRead(() => connection.getBalance(new PublicKey(managementAddress)));
 const programRent = await rpcRead(() => connection.getMinimumBalanceForRentExemption(36));
 let finalRentLamports = 0;
+let temporaryBufferRentLamports = 0;
 for (const program of programs) {
   program.mainnetAccountExists = (await rpcRead(() => connection.getAccountInfo(new PublicKey(program.address)))) !== null;
   if (program.mainnetAccountExists) blockers.push(`${program.kind}: reserved mainnet program address is already occupied.`);
   if (program.bytes) {
     program.finalAccountRentLamports = programRent +
       await rpcRead(() => connection.getMinimumBalanceForRentExemption(45 + program.bytes));
+    program.temporaryBufferRentLamports =
+      await rpcRead(() => connection.getMinimumBalanceForRentExemption(37 + program.bytes));
     finalRentLamports += program.finalAccountRentLamports;
+    temporaryBufferRentLamports += program.temporaryBufferRentLamports;
   }
 }
 if (finalRentLamports && balanceLamports < finalRentLamports) {
@@ -84,10 +88,13 @@ if (finalRentLamports && balanceLamports < finalRentLamports) {
 console.log(JSON.stringify({ network: 'mainnet-beta', readOnly: true,
   machineChecksPassed: blockers.length === 0, readyToDeploy: false, managementAddress,
   managementBalanceLamports: balanceLamports, minimumFinalAccountRentLamports: finalRentLamports,
-  excludesTemporaryBuffersFeesAndOtherAccounts: true,
-  programs: programs.map(({ kind, address, bytes, sha256, mainnetAccountExists, finalAccountRentLamports }) =>
+  minimumTemporaryBufferRentLamports: temporaryBufferRentLamports,
+  excludesTransactionFeesAndOtherAccounts: true,
+  programs: programs.map(({ kind, address, bytes, sha256, mainnetAccountExists,
+    finalAccountRentLamports, temporaryBufferRentLamports }) =>
     ({ kind, address, bytes: bytes ?? null, sha256: sha256 ?? null, mainnetAccountExists,
-      finalAccountRentLamports: finalAccountRentLamports ?? null })),
+      finalAccountRentLamports: finalAccountRentLamports ?? null,
+      temporaryBufferRentLamports: temporaryBufferRentLamports ?? null })),
   machineCheckBlockers: blockers,
   manualReleaseGates: ['funded public-cluster lifecycle tests', 'developer-sale evidence policy',
     'global same-name launch indexing', 'Privacy Rings implementation and verification',
