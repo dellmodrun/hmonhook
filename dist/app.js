@@ -751,8 +751,6 @@
     marketsRegistry: "markets/registry.json",
     webPackage: "package.json",
     mainnetDeployment: "deployments/hmonhook-mainnet.json",
-    verifyDeployment: "scripts/verify-deployment.mjs",
-    checkSite: "scripts/check-site.mjs",
   };
 
   function renderSource(text) {
