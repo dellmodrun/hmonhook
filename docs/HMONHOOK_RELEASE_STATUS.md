@@ -2,7 +2,7 @@
 
 The public GitHub Pages site is still using the existing deployed Guard program. The new h/monhook programs in this branch are **development artifacts**, not deployed to Solana mainnet.
 
-The development branch now includes a V3 option-series directory route. It accepts a series only after the Mint's Pump launch is indexed and the series account passes live owner, Mint and PDA checks. Issuers submit the series after confirmed creation; market search can use directory candidates when bulk RPC discovery fails, but re-verifies each candidate on chain. This route has only mocked service tests and has not been deployed to the public Worker. No V3 options program exists on mainnet yet, so this is not a live options marketplace.
+The development branch now includes a V3 option-series directory route. It accepts a series only after the Mint's Pump launch is indexed and the series account passes live owner, Mint and PDA checks. Issuers submit the series after confirmed creation; market search can use directory candidates when bulk RPC discovery fails, but re-verifies each candidate on chain. Site version 6 deployed this route on 2026-11-24: live health and empty directory reads returned HTTP 200, and an unindexed Mint registration returned HTTP 409. No V3 options program exists on mainnet yet, so a real series registration cannot be tested and this is not a live options marketplace.
 
 ## Temporary Devnet deployment
 

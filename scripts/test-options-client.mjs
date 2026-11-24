@@ -10,6 +10,7 @@ import {
   reclaimInstructions, refundPremiumInstruction, decodeSeries,
   fetchVerifiedSeries,
   listVerifiedSeriesByMint,
+  listVerifiedDirectoryCandidates,
   deriveBuybackVault, deriveBuybackAuthority, buybackVaultPrepInstructions, buildPumpBuybackRoute, pumpBuybackInstruction,
   buildPumpSwapBuybackRoute, pumpSwapBuybackInstruction,
   reclaimBuybackRentInstruction,
@@ -174,4 +175,21 @@ test('remote series must be owned by the expected program and match its PDA', as
   } }, programId, mint);
   assert.equal(listed.length, 1);
   assert.equal(listed[0].address.toBase58(), series.toBase58());
+});
+
+test('directory hints cannot introduce a forged or wrong-Mint option series', async () => {
+  const bytes = Buffer.alloc(266);
+  bytes.write('HMONOPT3', 0);
+  bytes[9] = deriveSeries(programId, mint, issuer, nonce).bump;
+  bytes.writeBigUInt64LE(nonce, 10);
+  for (let index = 0; index < 4; index++) bytes.set([issuer, mint, vault, treasury][index].toBuffer(), 18 + index * 32);
+  const connection = { getAccountInfo: async (address) => address.equals(series)
+    ? { owner: programId, data: bytes } : { owner: buyer, data: bytes } };
+  const candidates = [{ address: buyer.toBase58() }, { address: series.toBase58() },
+    { address: series.toBase58() }, { address: 'not an address' }, { address: 123 }];
+  const rows = await listVerifiedDirectoryCandidates(connection, programId, mint, candidates);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].address.toBase58(), series.toBase58());
+  assert.equal((await listVerifiedDirectoryCandidates(connection, programId, buyer, candidates)).length, 0);
+  assert.throws(() => decodeSeries(Buffer.from(bytes).fill(3, 8, 9)), /Invalid.*status/);
 });

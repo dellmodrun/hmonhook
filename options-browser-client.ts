@@ -12,7 +12,8 @@ export { submitOptionsInstructions } from './options-transaction-core.mjs';
 import { openSeriesInstructions, buyOptionsInstruction, exerciseInstructions,
   claimDefaultInstructions, refundPremiumInstruction, triggerDefaultInstruction,
   reclaimInstructions, withdrawRegisteredTreasuryInstruction, fetchVerifiedSeries,
-  derivePosition, fetchVerifiedPosition, listVerifiedSeriesByMint } from './options-core.mjs';
+  derivePosition, fetchVerifiedPosition, listVerifiedSeriesByMint,
+  listVerifiedDirectoryCandidates } from './options-core.mjs';
 
 const MAX_U64 = (1n << 64n) - 1n;
 
@@ -96,22 +97,9 @@ export async function listRegisteredOptionSeriesForMint({ rpcEndpoint, programId
       candidates = (await response.json()).candidates;
     } catch (_) { throw originalError; }
     if (!Array.isArray(candidates)) throw originalError;
-    const connection = rpcConnection(rpcEndpoint);
-    const programKey = publicKey(programId);
-    const mintKey = publicKey(mint);
-    const seen = new Set<string>();
-    const rows = await Promise.all(candidates.slice(0, 100).map(async (candidate) => {
-      try {
-        if (!candidate || typeof candidate.address !== 'string') return null;
-        const address = publicKey(candidate.address);
-        if (seen.has(address.toBase58())) return null;
-        seen.add(address.toBase58());
-        const terms = await fetchVerifiedSeries(connection, programKey, address);
-        if (!terms.mint.equals(mintKey)) return null;
-        return { address, ...terms };
-      } catch (_) { return null; }
-    }));
-    return rows.filter((row): row is NonNullable<typeof row> => !!row)
+    const rows = await listVerifiedDirectoryCandidates(rpcConnection(rpcEndpoint), publicKey(programId),
+      publicKey(mint), candidates);
+    return rows
       .sort((a, b) => a.expirySlot === b.expirySlot ? 0 : a.expirySlot > b.expirySlot ? -1 : 1);
   }
 }

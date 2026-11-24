@@ -147,6 +147,7 @@ export function reclaimBuybackRentInstruction({ programId, series, issuer }) {
 export function decodeSeries(data) {
   const bytes = Buffer.from(data);
   if (bytes.length !== 266 || bytes.subarray(0, 8).toString() !== 'HMONOPT3') throw new Error('Invalid h/monhook option series account');
+  if (bytes[8] > 2) throw new Error('Invalid h/monhook option series status');
   let offset = 10;
   const readU64 = () => { const value = bytes.readBigUInt64LE(offset); offset += 8; return value; };
   const readKey = () => { const value = new PublicKey(bytes.subarray(offset, offset + 32)); offset += 32; return value; };
@@ -206,4 +207,29 @@ export async function listVerifiedSeriesByMint(connection, programId, mint) {
       return [{ address: pubkey, ...series }];
     } catch (_) { return []; }
   });
+}
+
+export async function listVerifiedDirectoryCandidates(connection, programId, mint, candidates) {
+  if (!Array.isArray(candidates)) throw new Error('Invalid option directory response');
+  const mintKey = key(mint);
+  const seen = new Set();
+  const addresses = [];
+  for (const candidate of candidates.slice(0, 100)) {
+    try {
+      if (!candidate || typeof candidate.address !== 'string') continue;
+      const address = key(candidate.address);
+      const id = address.toBase58();
+      if (seen.has(id)) continue;
+      seen.add(id);
+      addresses.push(address);
+    } catch (_) { /* Ignore malformed directory hints. */ }
+  }
+  const rows = [];
+  for (const address of addresses.slice(0, 20)) {
+    try {
+      const series = await fetchVerifiedSeries(connection, programId, address);
+      if (series.mint.equals(mintKey)) rows.push({ address, ...series });
+    } catch (_) { /* A stale or forged hint cannot appear in search results. */ }
+  }
+  return rows;
 }
