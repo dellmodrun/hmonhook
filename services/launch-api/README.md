@@ -10,5 +10,9 @@ Routes:
 - `GET /metadata/<sha256>.json` and `GET /images/<sha256>.<ext>` return immutable public objects.
 - `POST /launch-registry` verifies a confirmed mainnet Pump creation before storing it.
 - `GET /launch-registry` lists recent verified launches; `?name=` returns exact normalized name matches.
+- `POST /option-series` accepts a V3 series address and Mint only after the Mint's Pump launch is already indexed. It checks the live Solana account owner, V3 wire tag, issuer/Mint fields, series PDA, custody PDA and collateral ATA before storing a candidate address.
+- `GET /option-series?mint=<Mint>` returns stored candidate addresses for that Mint. These are discovery hints, not current protection badges; the browser re-reads live Series data before listing them, and checks the vault and registered treasury before enabling a purchase.
 
 The Worker limits requests per Cloudflare client IP with atomic conditional R2 writes. This prevents concurrent requests from exceeding one IP's daily cap, but clients with many IPs can still generate traffic. It requests Solana transaction version 1 and falls back from PublicNode to the official public RPC when necessary. A live image upload, public metadata and image fetch, empty directory read and CORS preflight passed. A real signed Pump launch, transaction-history lookup and cross-device directory read still need testing before the development branch can be called production ready. The existing GitHub Pages main branch has not been updated to these endpoints.
+
+The V3 option-series route exists only in this repository's development Worker source until a new service version is deployed. Because the V3 options program is not on mainnet, no real series can currently pass its registration check.

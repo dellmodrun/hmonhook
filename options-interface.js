@@ -22,6 +22,16 @@
   function show(id, lines) { byId(id).textContent = Array.isArray(lines) ? lines.join('\n') : String(lines); }
   function error(id, err) { show(id, 'ERROR: ' + (err && err.message || err)); }
   function configUrl() { return new URL('options/program.json', document.baseURI); }
+  async function optionDirectoryUrl() {
+    var response = await fetch(new URL('markets/registry-service.json', document.baseURI), { cache: 'no-store' });
+    if (!response.ok) throw new Error('Directory configuration unavailable.');
+    var endpoint = (await response.json()).endpoint;
+    if (!endpoint) throw new Error('Directory is not configured.');
+    var url = new URL(endpoint);
+    if (url.protocol !== 'https:') throw new Error('Directory must use HTTPS.');
+    url.pathname = '/option-series'; url.search = '';
+    return url;
+  }
   async function release(rpc) {
     if (!config || config.enabled !== true || config.cluster !== 'mainnet-beta' || !config.programId ||
         !/^[0-9a-f]{64}$/i.test(config.programSha256 || '') || !Object.hasOwn(config, 'upgradeAuthority')) {
@@ -73,12 +83,24 @@
         await release(value('options-rpc'));
         byId('options-open').disabled = true; show('options-issuer-output', 'Waiting for wallet confirmation...');
         var result = await api.submitIssuerSeries(issuerReview.prepared, who.provider);
+        var confirmedMint = String(issuerReview.prepared.mint);
         show('options-issuer-output', ['STATUS: ' + result.status, 'SERIES: ' + result.series, 'SIGNATURE: ' + result.signature,
           result.status === 'confirmed' ? 'Collateral lock verified on chain.' : 'Check the signature in a Solana explorer before retrying.']);
         issuerReview = null;
         if (result.status === 'confirmed') {
           byId('options-view-series').href = './markets/?series=' + encodeURIComponent(result.series);
           byId('options-view-series').hidden = false;
+          try {
+            var directoryUrl = await optionDirectoryUrl();
+            var listed = await fetch(directoryUrl, { method: 'POST', headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ mint: confirmedMint, series: result.series }) });
+            if (!listed.ok) throw new Error('Directory registration pending.');
+            show('options-issuer-output', ['STATUS: confirmed', 'SERIES: ' + result.series, 'SIGNATURE: ' + result.signature,
+              'Collateral lock verified on chain. Series submitted to the market directory.']);
+          } catch (_) {
+            show('options-issuer-output', ['STATUS: confirmed', 'SERIES: ' + result.series, 'SIGNATURE: ' + result.signature,
+              'Collateral lock verified on chain. Directory listing pending; the direct series link works.']);
+          }
         }
       } catch (err) { error('options-issuer-output', err); }
     });
@@ -95,7 +117,10 @@
         var mint = value('options-find-mint'); var rpc = value('options-market-rpc');
         if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) throw new Error('Enter a Solana Mint address.');
         await release(rpc);
-        var rows = await api.listOptionSeriesForMint({ rpcEndpoint: rpc, programId: config.programId, mint: mint });
+        var directoryUrl;
+        try { directoryUrl = await optionDirectoryUrl(); } catch (_) { /* Direct RPC can still find series. */ }
+        var rows = await api.listRegisteredOptionSeriesForMint({ rpcEndpoint: rpc, programId: config.programId,
+          mint: mint, directoryEndpoint: directoryUrl && directoryUrl.href });
         if (mint !== value('options-find-mint') || rpc !== value('options-market-rpc')) throw new Error('Search inputs changed. Search again.');
         if (!rows.length) { results.textContent = 'No verified V3 option series found for this Mint.'; return; }
         var heading = document.createElement('p');

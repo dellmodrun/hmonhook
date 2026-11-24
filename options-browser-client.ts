@@ -81,6 +81,41 @@ export async function listOptionSeriesForMint({ rpcEndpoint, programId, mint }:
   return rows.sort((a, b) => a.expirySlot === b.expirySlot ? 0 : a.expirySlot > b.expirySlot ? -1 : 1);
 }
 
+export async function listRegisteredOptionSeriesForMint({ rpcEndpoint, programId, mint, directoryEndpoint }:
+  { rpcEndpoint: string; programId: string; mint: string; directoryEndpoint?: string }) {
+  try { return await listOptionSeriesForMint({ rpcEndpoint, programId, mint }); }
+  catch (originalError) {
+    if (!directoryEndpoint) throw originalError;
+    const endpoint = new URL(directoryEndpoint);
+    if (endpoint.protocol !== 'https:') throw originalError;
+    endpoint.searchParams.set('mint', publicKey(mint).toBase58());
+    let candidates: unknown;
+    try {
+      const response = await fetch(endpoint.href, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Option directory unavailable');
+      candidates = (await response.json()).candidates;
+    } catch (_) { throw originalError; }
+    if (!Array.isArray(candidates)) throw originalError;
+    const connection = rpcConnection(rpcEndpoint);
+    const programKey = publicKey(programId);
+    const mintKey = publicKey(mint);
+    const seen = new Set<string>();
+    const rows = await Promise.all(candidates.slice(0, 100).map(async (candidate) => {
+      try {
+        if (!candidate || typeof candidate.address !== 'string') return null;
+        const address = publicKey(candidate.address);
+        if (seen.has(address.toBase58())) return null;
+        seen.add(address.toBase58());
+        const terms = await fetchVerifiedSeries(connection, programKey, address);
+        if (!terms.mint.equals(mintKey)) return null;
+        return { address, ...terms };
+      } catch (_) { return null; }
+    }));
+    return rows.filter((row): row is NonNullable<typeof row> => !!row)
+      .sort((a, b) => a.expirySlot === b.expirySlot ? 0 : a.expirySlot > b.expirySlot ? -1 : 1);
+  }
+}
+
 export async function previewIssuerSeries({ rpcEndpoint, programId, issuer, mint, percent, registeredTokens, saleWindowSlots,
   expiryWindowSlots }: { rpcEndpoint: string; programId: string; issuer: string; mint: string;
   percent: number; registeredTokens: string; saleWindowSlots: number; expiryWindowSlots: number }) {

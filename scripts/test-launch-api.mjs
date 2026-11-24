@@ -4,6 +4,8 @@ import { createRequire } from 'node:module';
 import bs58 from 'bs58';
 import { Keypair } from '@solana/web3.js';
 import api from '../services/launch-api/worker.mjs';
+import { verifiedV3Series, OPTIONS_PROGRAM_ID } from '../services/launch-api/verify-series.mjs';
+import { deriveSeries } from '../options-core.mjs';
 
 const { PUMP_SDK, PUMP_PROGRAM_ID } = createRequire(import.meta.url)('@pump-fun/pump-sdk');
 const origin = 'https://dellmodrun.github.io';
@@ -173,5 +175,46 @@ test('registry tries the official RPC if the primary provider fails', async () =
     }) }), env);
     assert.equal(result.status, 409);
     assert.deepEqual(endpoints, ['https://solana-rpc.publicnode.com', 'https://api.mainnet-beta.solana.com']);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('option directory accepts only a real V3 series PDA for an indexed Mint', async () => {
+  const storage = bucket();
+  const env = { BUCKET: storage };
+  const mint = Keypair.generate().publicKey;
+  const issuer = Keypair.generate().publicKey;
+  const nonce = 9n;
+  const series = deriveSeries(OPTIONS_PROGRAM_ID, mint, issuer, nonce);
+  const bytes = Buffer.alloc(266);
+  bytes.write('HMONOPT3', 0);
+  bytes[9] = series.bump;
+  bytes.writeBigUInt64LE(nonce, 10);
+  for (const [index, value] of [issuer, mint, series.vault, series.treasury].entries()) {
+    value.toBuffer().copy(bytes, 18 + index * 32);
+  }
+  bytes.writeBigUInt64LE(1_000_000n, 146);
+  const account = { owner: OPTIONS_PROGRAM_ID.toBase58(), executable: false,
+    data: [bytes.toString('base64'), 'base64'] };
+  assert.equal(verifiedV3Series(account, series.address.toBase58(), mint.toBase58()).issuer, issuer.toBase58());
+  assert.equal(verifiedV3Series({ ...account, owner: issuer.toBase58() }, series.address.toBase58(), mint.toBase58()), null);
+  const forged = Buffer.from(bytes);
+  forged[114] ^= 1;
+  assert.equal(verifiedV3Series({ ...account, data: [forged.toString('base64'), 'base64'] }, series.address.toBase58(), mint.toBase58()), null);
+  assert.equal(verifiedV3Series(account, Keypair.generate().publicKey.toBase58(), mint.toBase58()), null);
+  const payload = JSON.stringify({ mint: mint.toBase58(), series: series.address.toBase58() });
+  assert.equal((await api.fetch(request('/option-series', { method: 'POST', body: payload }), env)).status, 409);
+  await storage.put(`launch/by-mint/${mint}.json`, JSON.stringify({ mint: mint.toBase58(), name: 'Test Coin' }));
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, options) => {
+    assert.equal(JSON.parse(options.body).method, 'getAccountInfo');
+    return Response.json({ result: { value: account } });
+  };
+  try {
+    const submitted = await api.fetch(request('/option-series', { method: 'POST', body: payload }), env);
+    assert.equal(submitted.status, 200);
+    const listed = await (await api.fetch(request(`/option-series?mint=${mint}`), env)).json();
+    assert.deepEqual(listed.candidates, [{ address: series.address.toBase58(), mint: mint.toBase58(), issuer: issuer.toBase58(), name: 'Test Coin' }]);
+    account.owner = issuer.toBase58();
+    assert.equal((await api.fetch(request('/option-series', { method: 'POST', body: payload }), env)).status, 422);
   } finally { globalThis.fetch = originalFetch; }
 });

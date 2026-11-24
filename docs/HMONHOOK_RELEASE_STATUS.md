@@ -2,6 +2,8 @@
 
 The public GitHub Pages site is still using the existing deployed Guard program. The new h/monhook programs in this branch are **development artifacts**, not deployed to Solana mainnet.
 
+The development branch now includes a V3 option-series directory route. It accepts a series only after the Mint's Pump launch is indexed and the series account passes live owner, Mint and PDA checks. Issuers submit the series after confirmed creation; market search can use directory candidates when bulk RPC discovery fails, but re-verifies each candidate on chain. This route has only mocked service tests and has not been deployed to the public Worker. No V3 options program exists on mainnet yet, so this is not a live options marketplace.
+
 ## Temporary Devnet deployment
 
 The new h/monhook Guard was deployed on Devnet through the Solana Kora paymaster at `DjEzdqVdMBJjvhtPSeFeP7bs6iNLe9zJyc86GzyT4ZQ7` (ProgramData `GXy6HUbMrDSoVC4VDxVn2rXEqSeEaTB8vVpdxPzPvD5w`). `node scripts/verify-devnet-program.mjs guard DjEzdqVdMBJjvhtPSeFeP7bs6iNLe9zJyc86GzyT4ZQ7` confirmed that its full deployed SBF matches reviewed CI artifact SHA-256 `f90a8834e85f0e7094aa387000dbcf5e4c337f9cbc160eb537d2b6d36559776c`.
