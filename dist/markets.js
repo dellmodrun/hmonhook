@@ -144,6 +144,7 @@
 
   function render() {
     var grid = byId("market-grid");
+    var officialCard = byId("official-market-card");
     var launches = state.launches.filter(function (item) {
       if (item.mint === window.hmonhookOfficialMint) return false;
       var live = state.pairs.has(item.mint);
@@ -168,11 +169,13 @@
     byId("market-updated").textContent = "UPDATED " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     if (!launches.length && !demoCount) {
-      grid.innerHTML = '<div class="market-empty"><span>NO MATCHING MARKETS</span><h2>Your next coin can start here.</h2><p>No verified launch matches this view yet. Create a coin or search a Mint above. Price data appears after a market is active and indexed.</p><a class="button button-solid" href="./launch/">launch a coin</a></div>';
+      grid.replaceChildren(officialCard);
+      grid.insertAdjacentHTML('beforeend', '<div class="market-empty"><span>NO MATCHING MARKETS</span><h2>Your next coin can start here.</h2><p>No verified launch matches this view yet. Create a coin or search a Mint above. Price data appears after a market is active and indexed.</p><a class="button button-solid" href="./launch/">launch a coin</a></div>');
       return;
     }
 
-    grid.innerHTML = launches.map(function (item) {
+    grid.replaceChildren(officialCard);
+    grid.insertAdjacentHTML('beforeend', launches.map(function (item) {
       var pair = state.pairs.get(item.mint);
       var token = pairToken(pair, item.mint) || {};
       var info = pair && pair.info || {};
@@ -194,7 +197,7 @@
         '</article>';
     }).join("") + Array.from({ length: demoCount }, function (_, index) {
       return demoCard(launches.length + index + 1);
-    }).join("");
+    }).join(""));
   }
 
   async function retryDirectoryReceipts() {

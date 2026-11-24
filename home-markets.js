@@ -6,6 +6,10 @@
   var live = document.getElementById('home-market-live');
   var search = document.getElementById('home-market-search');
   var message = document.getElementById('home-market-message');
+  var officialCard = document.getElementById('home-official-card');
+  var allRows = [];
+  var pairs = new Map();
+  var directoryError = false;
   var validMint = function (value) { return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(value || '')); };
   function short(value) { return value.slice(0, 5) + '…' + value.slice(-5); }
   function money(value) {
@@ -15,7 +19,7 @@
       maximumFractionDigits: number < 1 ? 8 : 2 }).format(number);
   }
   function empty(title, detail) {
-    list.replaceChildren();
+    list.replaceChildren(officialCard);
     var card = document.createElement('div'); card.className = 'home-market-empty';
     var heading = document.createElement('strong'); heading.textContent = title;
     var text = document.createElement('p'); text.textContent = detail;
@@ -23,6 +27,7 @@
   }
   function card(row, pair) {
     var article = document.createElement('article'); article.className = 'home-market-card';
+    article.dataset.mint = row.mint;
     var top = document.createElement('div'); top.className = 'home-market-card-top';
     var name = document.createElement('strong'); name.textContent = row.name || 'Unnamed coin';
     var tag = document.createElement('span'); tag.textContent = pair ? 'LIVE MARKET' : 'AWAITING MARKET DATA';
@@ -36,6 +41,20 @@
     article.append(top, identity, price, note, link);
     return article;
   }
+  function render() {
+    var rows = allRows.filter(function (row) { return row.mint !== window.hmonhookOfficialMint; });
+    var recent = rows.slice(0, 4);
+    count.textContent = directoryError ? '—' : String(rows.length);
+    live.textContent = directoryError ? '—' : String(recent.filter(function (row) { return pairs.has(row.mint); }).length);
+    list.replaceChildren(officialCard);
+    if (directoryError) {
+      empty('Market directory is temporarily unavailable.', 'You can still search a Mint on the Markets page.');
+    } else if (!rows.length) {
+      empty('The first user launch will appear here.', 'The official token stays above; confirmed user coins will follow.');
+    } else {
+      recent.forEach(function (row) { list.appendChild(card(row, pairs.get(row.mint))); });
+    }
+  }
   async function load() {
     try {
       var configResponse = await fetch(new URL('markets/registry-service.json', document.baseURI), { cache: 'no-store' });
@@ -46,38 +65,30 @@
       if (!response.ok) throw new Error('Directory unavailable');
       var data = await response.json();
       var seen = new Set();
-      var rows = (Array.isArray(data.launches) ? data.launches : []).filter(function (row) {
+      allRows = (Array.isArray(data.launches) ? data.launches : []).filter(function (row) {
         if (!row || !validMint(row.mint) || seen.has(row.mint)) return false;
         seen.add(row.mint); return true;
       });
-      count.textContent = String(rows.length);
-      if (!rows.length) {
-        live.textContent = '0';
-        empty('The first verified launch will appear here.', 'Browse markets by Mint or create a coin to start the directory.');
-        return;
+      var recent = allRows.slice(0, 5);
+      if (recent.length) {
+        try {
+          var prices = await fetch('https://api.dexscreener.com/tokens/v1/solana/' + recent.map(function (row) { return row.mint; }).join(','));
+          if (prices.ok) {
+            var found = await prices.json();
+            (Array.isArray(found) ? found : []).forEach(function (pair) {
+              var mint = pair && pair.baseToken && pair.baseToken.address;
+              if (!validMint(mint) || !recent.some(function (row) { return row.mint === mint; })) return;
+              var existing = pairs.get(mint);
+              if (!existing || Number(pair.liquidity && pair.liquidity.usd || 0) > Number(existing.liquidity && existing.liquidity.usd || 0)) pairs.set(mint, pair);
+            });
+          }
+        } catch (_) { /* Verified launches remain visible if price indexing is unavailable. */ }
       }
-      var recent = rows.slice(0, 3);
-      var pairs = new Map();
-      try {
-        var prices = await fetch('https://api.dexscreener.com/tokens/v1/solana/' + recent.map(function (row) { return row.mint; }).join(','));
-        if (prices.ok) {
-          var found = await prices.json();
-          (Array.isArray(found) ? found : []).forEach(function (pair) {
-            var mint = pair && pair.baseToken && pair.baseToken.address;
-            if (!validMint(mint) || !recent.some(function (row) { return row.mint === mint; })) return;
-            var existing = pairs.get(mint);
-            if (!existing || Number(pair.liquidity && pair.liquidity.usd || 0) > Number(existing.liquidity && existing.liquidity.usd || 0)) pairs.set(mint, pair);
-          });
-        }
-      } catch (_) { /* Verified launches remain visible if price indexing is unavailable. */ }
-      live.textContent = String(recent.filter(function (row) { return pairs.has(row.mint); }).length);
-      list.replaceChildren();
-      recent.forEach(function (row) { list.appendChild(card(row, pairs.get(row.mint))); });
-    } catch (_) {
-      count.textContent = '—'; live.textContent = '—';
-      empty('Market directory is temporarily unavailable.', 'You can still search a Mint on the Markets page.');
-    }
+      directoryError = false;
+    } catch (_) { directoryError = true; }
+    render();
   }
+  window.addEventListener('hmonhook-official-updated', render);
   search.addEventListener('submit', function (event) {
     event.preventDefault();
     var mint = document.getElementById('home-market-mint').value.trim();

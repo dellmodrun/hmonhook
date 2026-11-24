@@ -24,6 +24,12 @@
       ? 'The official h/monhook Mint is ' + mint + '. Verify the full address before trading.'
       : 'The official address is TBA. Check the full address here when it is published; do not rely on a ticker alone.');
     setText('official-market-mint', mint || 'TBA');
+    setText('home-official-mint', published ? 'Mint: ' + mint.slice(0, 5) + '…' + mint.slice(-5) : 'Official Mint: TBA');
+    if (byId('home-official-mint')) byId('home-official-mint').title = mint || '';
+    setText('home-official-status', published ? 'OFFICIAL · CA PUBLISHED' : 'OFFICIAL · CA TBA');
+    setText('home-official-note', published
+      ? 'Verify the full Mint address before trading. Market data may be delayed.'
+      : 'Official token. No CA has been published.');
     setText('official-market-status', published ? 'CA PUBLISHED' : 'CA TBA');
     setText('official-market-subtitle', published ? 'Solana mainnet · official Mint' : 'Official Mint address to be announced');
     setText('official-market-note', published
@@ -32,17 +38,22 @@
     if (byId('official-market-copy')) byId('official-market-copy').hidden = !published;
     if (byId('official-market-actions')) byId('official-market-actions').hidden = !published;
     if (published) {
-      byId('official-market-trade').href = './intent/?outputMint=' + encodeURIComponent(mint);
-      byId('official-market-pump').href = 'https://pump.fun/coin/' + encodeURIComponent(mint);
-      byId('official-market-explorer').href = 'https://explorer.solana.com/address/' + encodeURIComponent(mint);
+      setText('home-official-price', 'Loading market data');
+      ['price', 'cap', 'liquidity', 'volume'].forEach(function (part) { setText('official-market-' + part, '—'); });
+      setText('official-market-change', 'Loading market data');
+      if (byId('official-market-chart')) byId('official-market-chart').hidden = true;
+      if (byId('official-market-trade')) byId('official-market-trade').href = './intent/?outputMint=' + encodeURIComponent(mint);
+      if (byId('official-market-pump')) byId('official-market-pump').href = 'https://pump.fun/coin/' + encodeURIComponent(mint);
+      if (byId('official-market-explorer')) byId('official-market-explorer').href = 'https://explorer.solana.com/address/' + encodeURIComponent(mint);
     } else {
+      setText('home-official-price', 'Awaiting launch');
       ['price', 'cap', 'liquidity', 'volume'].forEach(function (part) { setText('official-market-' + part, '—'); });
       setText('official-market-change', 'Awaiting launch');
       if (byId('official-market-chart')) byId('official-market-chart').hidden = true;
     }
   }
   async function updateMarket(mint) {
-    if (!mint || !byId('official-market-price')) return;
+    if (!mint || (!byId('official-market-price') && !byId('home-official-price'))) return;
     try {
       var response = await fetch('https://api.dexscreener.com/tokens/v1/solana/' + encodeURIComponent(mint), { cache: 'no-store' });
       if (!response.ok) throw new Error('Index unavailable');
@@ -54,6 +65,7 @@
       });
       if (mint !== currentMint) return;
       var pair = pairs[0];
+      setText('home-official-price', pair ? money(pair.priceUsd, false) : 'Awaiting market data');
       setText('official-market-price', money(pair && pair.priceUsd, false));
       setText('official-market-cap', money(pair && (pair.marketCap || pair.fdv), true));
       setText('official-market-liquidity', money(pair && pair.liquidity && pair.liquidity.usd, true));
@@ -65,7 +77,10 @@
         chart.hidden = !pair || !/^https:\/\//.test(pair.url || '');
         if (!chart.hidden) chart.href = pair.url;
       }
-    } catch (_) { setText('official-market-change', 'Market data temporarily unavailable'); }
+    } catch (_) {
+      setText('official-market-change', 'Market data temporarily unavailable');
+      if (byId('home-official-price')) setText('home-official-price', 'Market data unavailable');
+    }
   }
   async function poll() {
     if (polling || !endpoint || document.visibilityState === 'hidden') return;

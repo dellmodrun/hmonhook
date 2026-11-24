@@ -216,6 +216,25 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .home-dev-note .button{margin-top:8px}
 @media(max-width:1000px){.home-step-cards,.home-feature-grid,.home-market-list{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.home-step-cards,.home-feature-grid,.home-market-list,.home-market-summary{grid-template-columns:1fr}.home-market-search>div{flex-direction:column}.home-market-summary>a{text-align:left;min-height:54px}.hero-copy h1{font-size:clamp(38px,9vw,44px)}.home-dev-note{padding:24px}}
+
+/* Compact market directory: the official token is the first card in the same grid. */
+.market-grid{--card-height:350px;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:var(--card-height);gap:10px;max-height:calc(3 * var(--card-height) + 20px);overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#a65820 #17110d;scrollbar-width:thin;padding-right:4px}
+.market-grid .market-card{display:flex;flex-direction:column;min-height:0;padding:12px;overflow:hidden}
+.market-grid .market-card-head,.market-grid .official-market-card .market-card-head{grid-template-columns:40px minmax(0,1fr);gap:8px;min-height:52px}
+.market-grid .market-token-image{width:40px;height:40px}.market-grid .market-token-image img{padding:3px}
+.market-grid .market-badges{gap:3px}.market-grid .market-badges b{padding:3px 4px;font-size:8px}
+.market-grid .market-card h2{margin:5px 0 2px;font-size:20px}.market-grid .market-card-head p{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px}
+.market-grid .market-price,.market-grid .official-market-card .market-price{margin:10px 0 8px;padding:9px}.market-grid .market-price strong{margin:4px 0;font-size:20px}.market-grid .market-price span,.market-grid .market-price em{font-size:9px}
+.market-grid .market-metrics div{padding:6px}.market-grid .market-metrics span{font-size:9px}.market-grid .market-metrics b{margin-top:3px;font-size:11px}
+.market-grid .market-ca{gap:5px;margin-top:8px;padding:7px}.market-grid .market-ca span,.market-grid .market-ca code,.market-grid .market-ca button{font-size:9px}.market-grid .official-market-card .market-ca code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-grid .market-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin-top:8px}.market-grid .market-actions .button{min-height:27px;padding:4px;font-size:9px;line-height:1.15;text-align:center}
+.market-grid .market-source{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin:8px 0 0;font-size:10px;line-height:1.35}
+.market-grid .market-demo-card{min-height:0}.market-grid .market-empty{align-self:stretch;padding:48px 20px}
+.home-market-list{grid-template-columns:repeat(5,minmax(0,1fr))}.home-market-card,.home-market-empty{padding:14px}.home-market-card-top{display:block}.home-market-card-top strong{font-size:20px}.home-market-card-top span{display:block;max-width:none;margin-top:5px;font-size:10px}.home-market-card>b{margin-top:5px;font-size:18px}.home-official-card{border-color:#b55b1a;background:linear-gradient(125deg,#17100b,#0d0d0d 62%)}.home-official-card p{overflow-wrap:anywhere}.home-market-list .home-market-empty{grid-column:2/-1}
+@media(max-width:1020px){.market-grid,.home-market-list{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:850px){.market-grid,.home-market-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.market-grid,.home-market-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:500px){.market-grid,.home-market-list{grid-template-columns:1fr}.market-grid{--card-height:350px}.home-market-list .home-market-empty{grid-column:auto}}
 .advanced-information{margin-top:18px;padding:0 24px;border:1px solid var(--line);background:var(--panel)}
 .advanced-information>summary{padding:22px 0;cursor:pointer;color:var(--text);font-size:15px;line-height:1.4}
 .advanced-information>summary::marker{color:var(--brand)}
@@ -373,9 +392,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 </section>
 
     <section class="section-block home-market" aria-labelledby="home-market-title">
-<div class="section-head"><div><div class="eyebrow">MARKETS / LIVE DATA</div><h2 id="home-market-title">See new launches and market activity.</h2></div><p>Listings come from confirmed Pump creations. Prices come from a separate market data provider and may be delayed.</p></div>
-<div class="home-market-summary"><div><span>RECENT VERIFIED LAUNCHES</span><strong id="home-market-count">—</strong></div><div><span>LIVE IN THE LATEST THREE</span><strong id="home-market-live">—</strong></div><a href="./markets/">Explore all markets</a></div>
-<div id="home-market-list" class="home-market-list" aria-live="polite"><div class="home-market-empty"><strong>Loading verified launches...</strong></div></div>
+<div class="section-head"><div><div class="eyebrow">MARKETS / LIVE DATA</div><h2 id="home-market-title">See new launches and market activity.</h2></div><p>The official token stays first. User launches follow after verification. Prices come from a separate market data provider and may be delayed.</p></div>
+<div class="home-market-summary"><div><span>VERIFIED USER LAUNCHES</span><strong id="home-market-count">—</strong></div><div><span>LIVE IN LATEST FOUR</span><strong id="home-market-live">—</strong></div><a href="./markets/">Explore all markets</a></div>
+<div id="home-market-list" class="home-market-list" aria-live="polite"><article id="home-official-card" class="home-market-card home-official-card"><div class="home-market-card-top"><strong>h/monhook</strong><span id="home-official-status">OFFICIAL · CA TBA</span></div><p id="home-official-mint">Official Mint: TBA</p><b id="home-official-price">Awaiting launch</b><small id="home-official-note">Official token. No CA has been published.</small><a href="./markets/">View market</a></article><div class="home-market-empty"><strong>Loading verified launches...</strong></div></div>
 <form id="home-market-search" class="home-market-search"><label for="home-market-mint">Have a Mint address?</label><div><input id="home-market-mint" spellcheck="false" autocomplete="off" placeholder="Paste a Solana Mint address"><button class="button" type="submit">Find market</button></div><small id="home-market-message">A Mint search can show any Solana coin; it does not mark it as an h/monhook launch.</small></form>
 </section>
 
@@ -1310,6 +1329,10 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   var live = document.getElementById('home-market-live');
   var search = document.getElementById('home-market-search');
   var message = document.getElementById('home-market-message');
+  var officialCard = document.getElementById('home-official-card');
+  var allRows = [];
+  var pairs = new Map();
+  var directoryError = false;
   var validMint = function (value) { return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(value || '')); };
   function short(value) { return value.slice(0, 5) + '…' + value.slice(-5); }
   function money(value) {
@@ -1319,7 +1342,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       maximumFractionDigits: number < 1 ? 8 : 2 }).format(number);
   }
   function empty(title, detail) {
-    list.replaceChildren();
+    list.replaceChildren(officialCard);
     var card = document.createElement('div'); card.className = 'home-market-empty';
     var heading = document.createElement('strong'); heading.textContent = title;
     var text = document.createElement('p'); text.textContent = detail;
@@ -1327,6 +1350,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
   }
   function card(row, pair) {
     var article = document.createElement('article'); article.className = 'home-market-card';
+    article.dataset.mint = row.mint;
     var top = document.createElement('div'); top.className = 'home-market-card-top';
     var name = document.createElement('strong'); name.textContent = row.name || 'Unnamed coin';
     var tag = document.createElement('span'); tag.textContent = pair ? 'LIVE MARKET' : 'AWAITING MARKET DATA';
@@ -1340,6 +1364,20 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     article.append(top, identity, price, note, link);
     return article;
   }
+  function render() {
+    var rows = allRows.filter(function (row) { return row.mint !== window.hmonhookOfficialMint; });
+    var recent = rows.slice(0, 4);
+    count.textContent = directoryError ? '—' : String(rows.length);
+    live.textContent = directoryError ? '—' : String(recent.filter(function (row) { return pairs.has(row.mint); }).length);
+    list.replaceChildren(officialCard);
+    if (directoryError) {
+      empty('Market directory is temporarily unavailable.', 'You can still search a Mint on the Markets page.');
+    } else if (!rows.length) {
+      empty('The first user launch will appear here.', 'The official token stays above; confirmed user coins will follow.');
+    } else {
+      recent.forEach(function (row) { list.appendChild(card(row, pairs.get(row.mint))); });
+    }
+  }
   async function load() {
     try {
       var configResponse = await fetch(new URL('markets/registry-service.json', document.baseURI), { cache: 'no-store' });
@@ -1350,38 +1388,30 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       if (!response.ok) throw new Error('Directory unavailable');
       var data = await response.json();
       var seen = new Set();
-      var rows = (Array.isArray(data.launches) ? data.launches : []).filter(function (row) {
+      allRows = (Array.isArray(data.launches) ? data.launches : []).filter(function (row) {
         if (!row || !validMint(row.mint) || seen.has(row.mint)) return false;
         seen.add(row.mint); return true;
       });
-      count.textContent = String(rows.length);
-      if (!rows.length) {
-        live.textContent = '0';
-        empty('The first verified launch will appear here.', 'Browse markets by Mint or create a coin to start the directory.');
-        return;
+      var recent = allRows.slice(0, 5);
+      if (recent.length) {
+        try {
+          var prices = await fetch('https://api.dexscreener.com/tokens/v1/solana/' + recent.map(function (row) { return row.mint; }).join(','));
+          if (prices.ok) {
+            var found = await prices.json();
+            (Array.isArray(found) ? found : []).forEach(function (pair) {
+              var mint = pair && pair.baseToken && pair.baseToken.address;
+              if (!validMint(mint) || !recent.some(function (row) { return row.mint === mint; })) return;
+              var existing = pairs.get(mint);
+              if (!existing || Number(pair.liquidity && pair.liquidity.usd || 0) > Number(existing.liquidity && existing.liquidity.usd || 0)) pairs.set(mint, pair);
+            });
+          }
+        } catch (_) { /* Verified launches remain visible if price indexing is unavailable. */ }
       }
-      var recent = rows.slice(0, 3);
-      var pairs = new Map();
-      try {
-        var prices = await fetch('https://api.dexscreener.com/tokens/v1/solana/' + recent.map(function (row) { return row.mint; }).join(','));
-        if (prices.ok) {
-          var found = await prices.json();
-          (Array.isArray(found) ? found : []).forEach(function (pair) {
-            var mint = pair && pair.baseToken && pair.baseToken.address;
-            if (!validMint(mint) || !recent.some(function (row) { return row.mint === mint; })) return;
-            var existing = pairs.get(mint);
-            if (!existing || Number(pair.liquidity && pair.liquidity.usd || 0) > Number(existing.liquidity && existing.liquidity.usd || 0)) pairs.set(mint, pair);
-          });
-        }
-      } catch (_) { /* Verified launches remain visible if price indexing is unavailable. */ }
-      live.textContent = String(recent.filter(function (row) { return pairs.has(row.mint); }).length);
-      list.replaceChildren();
-      recent.forEach(function (row) { list.appendChild(card(row, pairs.get(row.mint))); });
-    } catch (_) {
-      count.textContent = '—'; live.textContent = '—';
-      empty('Market directory is temporarily unavailable.', 'You can still search a Mint on the Markets page.');
-    }
+      directoryError = false;
+    } catch (_) { directoryError = true; }
+    render();
   }
+  window.addEventListener('hmonhook-official-updated', render);
   search.addEventListener('submit', function (event) {
     event.preventDefault();
     var mint = document.getElementById('home-market-mint').value.trim();
@@ -1417,6 +1447,12 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       ? 'The official h/monhook Mint is ' + mint + '. Verify the full address before trading.'
       : 'The official address is TBA. Check the full address here when it is published; do not rely on a ticker alone.');
     setText('official-market-mint', mint || 'TBA');
+    setText('home-official-mint', published ? 'Mint: ' + mint.slice(0, 5) + '…' + mint.slice(-5) : 'Official Mint: TBA');
+    if (byId('home-official-mint')) byId('home-official-mint').title = mint || '';
+    setText('home-official-status', published ? 'OFFICIAL · CA PUBLISHED' : 'OFFICIAL · CA TBA');
+    setText('home-official-note', published
+      ? 'Verify the full Mint address before trading. Market data may be delayed.'
+      : 'Official token. No CA has been published.');
     setText('official-market-status', published ? 'CA PUBLISHED' : 'CA TBA');
     setText('official-market-subtitle', published ? 'Solana mainnet · official Mint' : 'Official Mint address to be announced');
     setText('official-market-note', published
@@ -1425,17 +1461,22 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
     if (byId('official-market-copy')) byId('official-market-copy').hidden = !published;
     if (byId('official-market-actions')) byId('official-market-actions').hidden = !published;
     if (published) {
-      byId('official-market-trade').href = './intent/?outputMint=' + encodeURIComponent(mint);
-      byId('official-market-pump').href = 'https://pump.fun/coin/' + encodeURIComponent(mint);
-      byId('official-market-explorer').href = 'https://explorer.solana.com/address/' + encodeURIComponent(mint);
+      setText('home-official-price', 'Loading market data');
+      ['price', 'cap', 'liquidity', 'volume'].forEach(function (part) { setText('official-market-' + part, '—'); });
+      setText('official-market-change', 'Loading market data');
+      if (byId('official-market-chart')) byId('official-market-chart').hidden = true;
+      if (byId('official-market-trade')) byId('official-market-trade').href = './intent/?outputMint=' + encodeURIComponent(mint);
+      if (byId('official-market-pump')) byId('official-market-pump').href = 'https://pump.fun/coin/' + encodeURIComponent(mint);
+      if (byId('official-market-explorer')) byId('official-market-explorer').href = 'https://explorer.solana.com/address/' + encodeURIComponent(mint);
     } else {
+      setText('home-official-price', 'Awaiting launch');
       ['price', 'cap', 'liquidity', 'volume'].forEach(function (part) { setText('official-market-' + part, '—'); });
       setText('official-market-change', 'Awaiting launch');
       if (byId('official-market-chart')) byId('official-market-chart').hidden = true;
     }
   }
   async function updateMarket(mint) {
-    if (!mint || !byId('official-market-price')) return;
+    if (!mint || (!byId('official-market-price') && !byId('home-official-price'))) return;
     try {
       var response = await fetch('https://api.dexscreener.com/tokens/v1/solana/' + encodeURIComponent(mint), { cache: 'no-store' });
       if (!response.ok) throw new Error('Index unavailable');
@@ -1447,6 +1488,7 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
       });
       if (mint !== currentMint) return;
       var pair = pairs[0];
+      setText('home-official-price', pair ? money(pair.priceUsd, false) : 'Awaiting market data');
       setText('official-market-price', money(pair && pair.priceUsd, false));
       setText('official-market-cap', money(pair && (pair.marketCap || pair.fdv), true));
       setText('official-market-liquidity', money(pair && pair.liquidity && pair.liquidity.usd, true));
@@ -1458,7 +1500,10 @@ window.JOLT_OFFICIAL_WALLET_ICONS = Object.freeze({
         chart.hidden = !pair || !/^https:\/\//.test(pair.url || '');
         if (!chart.hidden) chart.href = pair.url;
       }
-    } catch (_) { setText('official-market-change', 'Market data temporarily unavailable'); }
+    } catch (_) {
+      setText('official-market-change', 'Market data temporarily unavailable');
+      if (byId('home-official-price')) setText('home-official-price', 'Market data unavailable');
+    }
   }
   async function poll() {
     if (polling || !endpoint || document.visibilityState === 'hidden') return;
