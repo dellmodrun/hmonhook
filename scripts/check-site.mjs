@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const pages = ["index.html", "launch/index.html", "markets/index.html", "intent/index.html", "protocol/index.html", "code/index.html", "research/index.html"];
 for (const page of pages) assert.ok(existsSync(resolve(root, page)), `missing route: ${page}`);
-assert.ok(!existsSync(resolve(root, "CNAME")), "copied site must not claim the original custom domain");
+assert.equal(readFileSync(resolve(root, "CNAME"), "utf8").trim(), "hmonhook.fun", "Pages domain must match the approved hostname");
 
 for (const page of pages) {
   const html = readFileSync(resolve(root, page), "utf8");
