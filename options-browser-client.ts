@@ -46,6 +46,15 @@ function rpcConnection(endpoint: string): Connection {
   }
   return new Connection(parsed.href, 'confirmed');
 }
+async function requireTreasuryAboveFloor(connection: Connection, terms: Awaited<ReturnType<typeof fetchVerifiedSeries>>) {
+  let treasury;
+  try { treasury = await getAccount(connection, terms.treasury, 'confirmed', TOKEN_2022_PROGRAM_ID); }
+  catch (_) { throw new Error('The registered issuer treasury is missing or unreadable. Purchase is blocked.'); }
+  if (!treasury.mint.equals(terms.mint) || !treasury.owner.equals(terms.issuer) ||
+      treasury.amount < terms.treasuryFloor) {
+    throw new Error('The registered issuer treasury is below its commitment. Purchase is blocked.');
+  }
+}
 
 export async function loadOptionsProgram(connection: Connection, config: { enabled: boolean; programId?: string }) {
   if (!config?.enabled || !config.programId) throw new Error('Issuer options are not enabled on this release.');
@@ -152,6 +161,7 @@ export async function previewBuyerPosition({ rpcEndpoint, programId, series, buy
   const slot = await connection.getSlot('confirmed');
   if (terms.status !== 0 || BigInt(slot) > terms.saleDeadlineSlot ||
       count > terms.totalLots - terms.soldLots) throw new Error('The requested option lots are not on sale.');
+  await requireTreasuryAboveFloor(connection, terms);
   return { connection, programId: programKey, series: seriesKey, buyer: buyerKey, terms,
     lots: count, premiumLamports: terms.premiumLamports * count,
     position: derivePosition(programKey, seriesKey, buyerKey) };
@@ -180,9 +190,13 @@ export async function inspectOptionSeries({ rpcEndpoint, programId, series, buye
 
 export async function submitBuyerPosition(prepared: Awaited<ReturnType<typeof previewBuyerPosition>>, provider: any) {
   const current = await fetchVerifiedSeries(prepared.connection, prepared.programId, prepared.series);
-  if (current.soldLots !== prepared.terms.soldLots || current.premiumLamports !== prepared.terms.premiumLamports) {
+  const slot = await prepared.connection.getSlot('confirmed');
+  if (current.status !== 0 || BigInt(slot) > current.saleDeadlineSlot ||
+      current.soldLots !== prepared.terms.soldLots || current.premiumLamports !== prepared.terms.premiumLamports ||
+      prepared.lots > current.totalLots - current.soldLots) {
     throw new Error('Option availability changed. Review a fresh quote.');
   }
+  await requireTreasuryAboveFloor(prepared.connection, current);
   const instruction = buyOptionsInstruction({ programId: prepared.programId, series: prepared.series,
     buyer: prepared.buyer, treasury: current.treasury, lots: prepared.lots });
   const result = await submitOptionsInstructions({ connection: prepared.connection, provider,
