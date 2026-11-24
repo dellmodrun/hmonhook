@@ -2,6 +2,14 @@
 
 The public GitHub Pages site is still using the existing deployed Guard program. The new h/monhook programs in this branch are **development artifacts**, not deployed to Solana mainnet.
 
+## Temporary Devnet deployment
+
+The new h/monhook Guard was deployed on Devnet through the Solana Kora paymaster at `DjEzdqVdMBJjvhtPSeFeP7bs6iNLe9zJyc86GzyT4ZQ7` (ProgramData `GXy6HUbMrDSoVC4VDxVn2rXEqSeEaTB8vVpdxPzPvD5w`). `node scripts/verify-devnet-program.mjs guard DjEzdqVdMBJjvhtPSeFeP7bs6iNLe9zJyc86GzyT4ZQ7` confirmed that its full deployed SBF matches reviewed CI artifact SHA-256 `f90a8834e85f0e7094aa387000dbcf5e4c337f9cbc160eb537d2b6d36559776c`.
+
+The new options program was deployed through the same paymaster at `D6iF15Dwpd9tK2nMEzUd5w5RNYQLnCWApUNoaGucaCni` (ProgramData `6z9ZbscPbjdwEW1bcN2BwR1ka3HtUsnVj7vXEjgGczwq`). `node scripts/verify-devnet-program.mjs options D6iF15Dwpd9tK2nMEzUd5w5RNYQLnCWApUNoaGucaCni` confirmed the full deployed SBF matches reviewed CI artifact SHA-256 `1cb1456e1f2bfcbd5c9471ee27793fc7e6af7d9a0cfc5146f59f2f4fd435e16e`. These checks prove deployment and byte identity, not transaction behavior on a public cluster. The first options deployment attempt timed out while writing its buffer; the second attempt completed and is the address verified here.
+
+Kora pays Devnet deployment rent and fees, retains the on-chain upgrade authority, and may close idle programs after seven days. The registered test owner is a separate disposable wallet; these temporary IDs and Kora's authority policy must not be used as production program identities. No mainnet funds or desktop backup files were used.
+
 ## Unified mainnet release
 
 The owner chose to finish the product and launch its money-facing features as one release. The old Guard-only deployment script is inspection-only; its `-Deploy` switch deliberately fails. A standalone, public metadata and directory service has been deployed for non-funding integration tests; this does not activate new on-chain programs or publish the development front end. The final release still needs one plan covering both program binaries, market and privacy integrations, site configuration, authority backup, funding, and post-deployment transactions. No mainnet release date or SOL amount is established yet.
