@@ -5,6 +5,10 @@ import { resolve } from 'node:path';
 import { Connection, PublicKey } from '@solana/web3.js';
 
 const loaderId = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
+const reviewedHashes = {
+  guard: 'f90a8834e85f0e7094aa387000dbcf5e4c337f9cbc160eb537d2b6d36559776c',
+  options: '1cb1456e1f2bfcbd5c9471ee27793fc7e6af7d9a0cfc5146f59f2f4fd435e16e',
+};
 
 const [kind, address] = process.argv.slice(2);
 if (!['guard', 'options'].includes(kind) || !address) {
@@ -14,8 +18,9 @@ const artifactDir = resolve(import.meta.dirname, '..', '.local-deploy', 'release
 const binary = readFileSync(resolve(artifactDir, `hmonhook_${kind}.so`));
 const expectedHash = createHash('sha256').update(binary).digest('hex');
 const hashRecord = readFileSync(resolve(artifactDir, `hmonhook_${kind}.so.sha256`), 'utf8').trim();
-if (!hashRecord.startsWith(`${expectedHash}  artifacts/hmonhook_${kind}.so`)) {
-  throw new Error('Local SBF does not match its CI SHA-256 record.');
+if (expectedHash !== reviewedHashes[kind] ||
+  hashRecord !== `${expectedHash}  artifacts/hmonhook_${kind}.so`) {
+  throw new Error('Local SBF does not match the reviewed hash and CI SHA-256 record.');
 }
 const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
 async function rpcRead(read) {
