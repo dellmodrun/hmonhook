@@ -1,10 +1,10 @@
 import { Buffer } from 'buffer';
-import { PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
 
 const MAYHEM_PROGRAM_ID = new PublicKey('MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e');
 const OFFICIAL_PUMP_PROGRAM_ID = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
+const PUMP_PROGRAM_ID = OFFICIAL_PUMP_PROGRAM_ID;
 const DISCRIMINATOR = 'd6904cec5f8b31b4';
 const pda = (program, ...seeds) => PublicKey.findProgramAddressSync(seeds.map((seed) => Buffer.from(seed)), program)[0];
 

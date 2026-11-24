@@ -1,7 +1,8 @@
 // Local validator only. Pump's actual mainnet SBF is loaded as a local test program.
 import assert from 'node:assert/strict';
 import BN from 'bn.js';
-import { PUMP_SDK } from '@pump-fun/pump-sdk';
+import { createRequire } from 'node:module';
+const { PUMP_SDK } = createRequire(import.meta.url)('@pump-fun/pump-sdk');
 import { Connection, Keypair, PublicKey, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID, createAssociatedTokenAccountIdempotentInstruction,
   getAccount, getAssociatedTokenAddressSync, getMint } from '@solana/spl-token';

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { PUMP_PROGRAM_ID, PUMP_SDK } from "@pump-fun/pump-sdk";
+import { createRequire } from "node:module";
+const { PUMP_PROGRAM_ID, PUMP_SDK } = createRequire(import.meta.url)("@pump-fun/pump-sdk");
 import { Connection, Keypair, Transaction } from "@solana/web3.js";
 import { assertPumpCreateV2Route } from "../pump-launch-route.mjs";
 

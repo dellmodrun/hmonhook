@@ -1,5 +1,6 @@
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
-import { PUMP_PROGRAM_ID, PUMP_SDK } from '@pump-fun/pump-sdk';
+import { createRequire } from 'node:module';
+const { PUMP_PROGRAM_ID, PUMP_SDK } = createRequire(import.meta.url)('@pump-fun/pump-sdk');
 import BN from 'bn.js';
 import {
   NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync,

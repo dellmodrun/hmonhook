@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PUMP_PROGRAM_ID, PUMP_SDK } from '@pump-fun/pump-sdk';
+import { createRequire } from 'node:module';
+const { PUMP_PROGRAM_ID, PUMP_SDK } = createRequire(import.meta.url)('@pump-fun/pump-sdk');
 import { Keypair } from '@solana/web3.js';
 import { assertPumpCreateV2Route } from '../pump-launch-route.mjs';
 

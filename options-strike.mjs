@@ -1,6 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
-import { PumpSdk, PUMP_PROGRAM_ID, bondingCurvePda, isSolLikeQuoteMint } from '@pump-fun/pump-sdk';
+import { createRequire } from 'node:module';
+const { PumpSdk, PUMP_PROGRAM_ID, bondingCurvePda, isSolLikeQuoteMint } = createRequire(import.meta.url)('@pump-fun/pump-sdk');
 
 const MAX_U64 = (1n << 64n) - 1n;
 
