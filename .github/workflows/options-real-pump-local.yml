@@ -33,7 +33,7 @@ jobs:
           sha256sum artifacts/official-pump.so
       - name: Execute real Pump local-fork option flow
         run: |
-          PROGRAM_ID="$(solana-keygen pubkey artifacts/hmonhook_options-keypair.json)"
+          PROGRAM_ID="Cz1jDZv12iXcK5JTY3s4wFX6HH8Y48xDeRxPWDgqshNQ"
           solana-test-validator --reset --url https://api.mainnet-beta.solana.com \
             --clone 4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf \
             --clone 8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt \

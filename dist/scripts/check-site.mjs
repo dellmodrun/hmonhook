@@ -37,9 +37,13 @@ const legacySdkTests = ["codec", "instruction", "jupiter", "receipt"].reduce((co
 }, 0);
 assert.ok(legacySdkTests > 0, "legacy SDK test count was not found");
 assert.ok(code.includes(`LEGACY SDK TESTS<b>${legacySdkTests} PASSING`), "Source Code SDK test count differs from the test files");
-assert.ok(protocol.includes(`LEGACY GUARD / ${legacySdkTests} SDK TESTS PASSING`), "Protocol SDK test count differs from the test files");
+const guardSdkTests = ["codec", "instruction", "jupiter", "receipt"].reduce((count, name) => {
+  const source = readFileSync(resolve(root, `hmonhook-sdk/test/${name}.test.js`), "utf8");
+  return count + [...source.matchAll(/^test\(/gm)].length;
+}, 0);
+assert.ok(protocol.includes(`H/MONHOOK GUARD / ${guardSdkTests} SDK TESTS PASSING`), "Protocol SDK test count differs from the new SDK tests");
 assert.match(code, /Code lineage and deployment:/, "Source Code does not explain the Jolt inheritance");
-assert.match(protocol, /currently deployed Guard is the earlier Jolt Guard/, "Protocol does not identify the deployed legacy program");
+assert.match(protocol, /Its own Guard is deployed on mainnet/, "Protocol does not identify the deployed h\/monhook Guard");
 for (const id of ["code-view", "code-filter", "code-copy", "code-download"]) {
   assert.match(code, new RegExp(`id=["']${id}["']`), `code browser missing ${id}`);
 }
@@ -81,9 +85,16 @@ for (const forbidden of ["github.com", "raw.githubusercontent.com", "dellmodrun"
 }
 const intent = readFileSync(resolve(root, "intent/index.html"), "utf8");
 for (const [page, html] of [["home", home], ["intent", intent]]) {
-  assert.match(html, /legacy Jolt Guard/, `${page} must identify the currently deployed program`);
-  assert.ok(!/verified h\/monhook Guard mainnet/i.test(html), `${page} mislabels the legacy mainnet program`);
+  assert.match(html, /h\/monhook Guard/, `${page} must identify the currently deployed program`);
+  assert.ok(!/new h\/monhook Guard is not|new h\/monhook Guard remains/i.test(html), `${page} has stale deployment status`);
 }
+assert.match(intent, /VERIFIED H\/MONHOOK MAINNET DEPLOYMENT/, "intent page omits the verified Guard release");
+const guardManifest = JSON.parse(readFileSync(resolve(root, "deployments/hmonhook-mainnet.json"), "utf8"));
+assert.equal(guardManifest.programId, "Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ");
+assert.match(readFileSync(resolve(root, "intent-client.ts"), "utf8"), /verifyGuardProgram\(connection\)/,
+  "protected swap must verify the on-chain Guard before signing");
+assert.match(readFileSync(resolve(root, "intent-client.ts"), "utf8"), /connection\.getLatestBlockhash\('confirmed'\)/,
+  "protected swap must use a fresh blockhash from its submission RPC");
 for (const id of ["intent-input-mint", "intent-output-mint", "intent-slippage", "intent-quote", "intent-submit"]) {
   assert.match(intent, new RegExp(`id=["']${id}["']`), `intent workbench missing ${id}`);
 }

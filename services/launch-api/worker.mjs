@@ -1,5 +1,6 @@
 import { readBoundedFormData, validateUpload } from '../../supabase/functions/metadata-upload/validate-upload.mjs';
 import { verifiedLaunch } from '../../supabase/functions/launch-registry/verify-launch.mjs';
+import { verifiedV3Series } from './verify-series.mjs';
 
 const SITE_ORIGIN = 'https://dellmodrun.github.io';
 const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -8,6 +9,7 @@ const IMAGE_PATH = /^\/images\/([a-f0-9]{64})\.(png|jpg|webp)$/;
 const JSON_PATH = /^\/metadata\/([a-f0-9]{64})\.json$/;
 const RPC = 'https://solana-rpc.publicnode.com';
 const FALLBACK_RPC = 'https://api.mainnet-beta.solana.com';
+const OFFICIAL_TOKEN_KEY = 'config/official-token.json';
 
 function response(body, status = 200, type = 'application/json; charset=utf-8', extra = {}) {
   return new Response(type.startsWith('application/json') ? JSON.stringify(body) : body, {
@@ -88,6 +90,36 @@ async function publicObject(path, env) {
     'etag': object.httpEtag } });
 }
 
+async function officialToken(request, env) {
+  if (request.method === 'GET') {
+    const stored = await env.BUCKET.get(OFFICIAL_TOKEN_KEY);
+    const token = stored ? JSON.parse(await stored.text()) : { mint: null, status: 'tba', updated_at: null };
+    return response({ token }, 200, 'application/json; charset=utf-8', { 'cache-control': 'no-store, max-age=0' });
+  }
+  if (request.method !== 'PUT') return response({ error: 'Method not allowed' }, 405);
+  if (!env.HMONHOOK_OFFICIAL_TOKEN_ADMIN_KEY) return response({ error: 'Admin update unavailable' }, 503);
+  const supplied = request.headers.get('authorization') || '';
+  const expected = `Bearer ${env.HMONHOOK_OFFICIAL_TOKEN_ADMIN_KEY}`;
+  if (supplied.length !== expected.length) return response({ error: 'Unauthorized' }, 401);
+  let mismatch = 0;
+  for (let i = 0; i < expected.length; i += 1) mismatch |= supplied.charCodeAt(i) ^ expected.charCodeAt(i);
+  if (mismatch) return response({ error: 'Unauthorized' }, 401);
+  let body;
+  try {
+    const raw = await request.text();
+    if (raw.length > 256) return response({ error: 'Request too large' }, 413);
+    body = JSON.parse(raw);
+  } catch { return response({ error: 'Invalid JSON' }, 400); }
+  const mint = body?.mint === null || body?.mint === 'TBA' ? null : body?.mint;
+  if (mint !== null && (typeof mint !== 'string' || !ADDRESS.test(mint))) {
+    return response({ error: 'Invalid Solana Mint' }, 400);
+  }
+  const token = { mint, status: mint ? 'published' : 'tba', updated_at: new Date().toISOString() };
+  await env.BUCKET.put(OFFICIAL_TOKEN_KEY, JSON.stringify(token),
+    { httpMetadata: { contentType: 'application/json' } });
+  return response({ token }, 200, 'application/json; charset=utf-8', { 'cache-control': 'no-store, max-age=0' });
+}
+
 async function hostedMetadata(request, env, launch) {
   let uri;
   try { uri = new URL(launch.metadata_uri); } catch { return {}; }
@@ -126,6 +158,61 @@ async function rpcTransaction(env, signature) {
   }
   if (sawNull) return null;
   throw new Error('Solana RPC unavailable');
+}
+
+async function rpcSeriesAccount(env, address) {
+  const endpoints = [...new Set([env.HMONHOOK_SOLANA_RPC_URL || RPC, FALLBACK_RPC])];
+  let sawNull = false;
+  for (const endpoint of endpoints) {
+    try {
+      const result = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' },
+        signal: AbortSignal.timeout(8_000),
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getAccountInfo',
+          params: [address, { encoding: 'base64', commitment: 'confirmed' }] }) });
+      if (!result.ok) continue;
+      const payload = await result.json();
+      if (payload.error) continue;
+      if (payload.result?.value) return payload.result.value;
+      sawNull = true;
+    } catch { /* Try the next RPC. */ }
+  }
+  if (sawNull) return null;
+  throw new Error('Solana RPC unavailable');
+}
+
+async function optionSeriesRegistry(request, env) {
+  if (request.method === 'GET') {
+    const mint = new URL(request.url).searchParams.get('mint');
+    if (!mint || !ADDRESS.test(mint)) return response({ error: 'Valid Mint required' }, 400);
+    const rows = await listObjects(env.BUCKET, `options/by-mint/${mint}/`, 100);
+    return response({ candidates: rows }, 200, 'application/json; charset=utf-8',
+      { 'cache-control': 'public, max-age=5' });
+  }
+  if (request.method !== 'POST') return response({ error: 'Method not allowed' }, 405);
+  if (!await rateLimit(request, env, 'options', 100)) return response({ error: 'Submission limit reached' }, 429);
+  let body;
+  try {
+    const text = await request.text();
+    if (text.length > 512) return response({ error: 'Request too large' }, 413);
+    body = JSON.parse(text);
+  } catch { return response({ error: 'Invalid JSON' }, 400); }
+  const { mint, series } = body || {};
+  if (typeof mint !== 'string' || typeof series !== 'string' || !ADDRESS.test(mint) || !ADDRESS.test(series)) {
+    return response({ error: 'Invalid series identifiers' }, 400);
+  }
+  const launch = await env.BUCKET.get(`launch/by-mint/${mint}.json`);
+  if (!launch) return response({ error: 'Verify this Mint launch in the directory first' }, 409);
+  let account;
+  try { account = await rpcSeriesAccount(env, series); }
+  catch { return response({ error: 'Solana RPC unavailable' }, 503); }
+  if (!account) return response({ error: 'V3 series is not confirmed yet' }, 409);
+  const verified = verifiedV3Series(account, series, mint);
+  if (!verified) return response({ error: 'Series does not match the V3 options program and Mint' }, 422);
+  const row = { ...verified, name: JSON.parse(await launch.text()).name };
+  const path = `options/by-mint/${mint}/${series}.json`;
+  if (!await env.BUCKET.head(path)) await env.BUCKET.put(path, JSON.stringify(row),
+    { httpMetadata: { contentType: 'application/json' } });
+  return response({ candidate: row });
 }
 
 async function listObjects(bucket, prefix, limit = 100) {
@@ -206,6 +293,8 @@ export default {
       if (path === '/health') return response({ ok: true, storage: true });
       if (path === '/metadata-upload') return await metadataUpload(request, env);
       if (path === '/launch-registry') return await launchRegistry(request, env);
+      if (path === '/official-token') return await officialToken(request, env);
+      if (path === '/option-series') return await optionSeriesRegistry(request, env);
       if (request.method === 'GET') return await publicObject(path, env);
       return response({ error: 'Not found' }, 404);
     } catch { return response({ error: 'Service unavailable' }, 503); }

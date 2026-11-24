@@ -7,9 +7,9 @@ import { SOLANA_MAINNET_GENESIS_HASH } from '../options-network-core.mjs';
 
 const root = resolve(import.meta.dirname, '..', '.local-deploy', 'release-review');
 const offline = process.argv.includes('--offline');
-const requested = process.argv.find((arg) => ['guard', 'options'].includes(arg));
-const targets = requested ? [requested] : ['guard', 'options'];
-const names = { guard: 'hmonhook_guard', options: 'hmonhook_options' };
+const requested = process.argv.find((arg) => ['guard', 'options', 'options-v3'].includes(arg));
+const targets = requested ? [requested] : ['guard', 'options-v3'];
+const names = { guard: 'hmonhook_guard', options: 'hmonhook_options', 'options-v3': 'hmonhook_options' };
 
 export function inspectArtifact(directory, binaryName) {
   const expected = [`${binaryName}.so`, `${binaryName}.so.sha256`];

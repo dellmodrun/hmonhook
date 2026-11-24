@@ -74,7 +74,7 @@ jobs:
           test -s artifacts/mock_pumpswap_local_only.so
           npm ci
           npm run test:options
-          PROGRAM_ID="$(solana-keygen pubkey artifacts/hmonhook_options-keypair.json)"
+          PROGRAM_ID="Cz1jDZv12iXcK5JTY3s4wFX6HH8Y48xDeRxPWDgqshNQ"
           solana-test-validator --reset \
             --bpf-program "$PROGRAM_ID" artifacts/hmonhook_options.so \
             --bpf-program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P artifacts/mock_pump_local_only.so \

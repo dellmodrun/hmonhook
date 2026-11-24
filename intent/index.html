@@ -115,7 +115,7 @@
 <section class="chapter">
 <div class="chapter-label">INTENT WORKBENCH</div>
 <h2>Specify the result before signing the route.</h2>
-<div class="prose-block"><p>A quote explains what may happen; the currently deployed legacy Jolt Guard can enforce a supported trade's maximum input, minimum output and expiry against the balance changes that actually settle. This browser path uses a Jupiter route and asks the wallet to sign the final mainnet transaction.</p><p>Amounts below use token base units, which the Solana program checks without rounding ambiguity. Review the final transaction in your wallet. The preview hash shown on this page is a local summary; the actual protected intent ID is built from the route instruction when the swap is assembled.</p></div>
+<div class="prose-block"><p>A quote explains what may happen; the deployed h/monhook Guard enforces a supported trade's maximum input, minimum output and expiry against the balance changes that actually settle. This browser path uses a Jupiter route and asks the wallet to sign the final mainnet transaction.</p><p>Amounts below use token base units, which the Solana program checks without rounding ambiguity. Review the final transaction in your wallet. The preview hash shown on this page is a local summary; the actual protected intent ID is built from the route instruction when the swap is assembled.</p></div>
 <div class="wallet-context">
 <span>SIGNING AUTHORITY</span>
 <b data-wallet-state>not connected</b>
@@ -166,8 +166,8 @@
 <pre id="intent-output">Get a live quote, then review a local preview before signing the protected route.</pre>
 </div>
 </div>
-<div class="status-band"><div><span>QUOTE</span><b class="ready">JUPITER SWAP API V2</b></div><div><span>MAINNET PROGRAM</span><b class="ready">6HfEuWvE…S3ENTY</b></div><div><span>DEPLOYED SBF</span><b class="ready">SHA-256 VERIFIED</b></div></div>
-<div class="callout"><b>VERIFIED LEGACY MAINNET DEPLOYMENT</b><p>The earlier Jolt Guard used by this page is executable on Solana mainnet at <a href="https://explorer.solana.com/address/6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY" target="_blank" rel="noreferrer"><code>6HfEuWvEmargNraXeqCiqCZRJ223kGjxsCB7H9S3ENTY</code> ↗</a>. Its ProgramData bytecode matches the published SBF SHA-256 <code>469ab222…124ebdd</code>. The new h/monhook Guard is not deployed to mainnet.</p></div>
+<div class="status-band"><div><span>QUOTE</span><b class="ready">JUPITER SWAP API V2</b></div><div><span>MAINNET PROGRAM</span><b class="ready">Be7RvxKN…1E2ELQ</b></div><div><span>DEPLOYED SBF</span><b class="ready">SHA-256 VERIFIED</b></div></div>
+<div class="callout"><b>VERIFIED H/MONHOOK MAINNET DEPLOYMENT</b><p>The h/monhook Guard used by this page is executable on Solana mainnet at <a href="https://explorer.solana.com/address/Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ" target="_blank" rel="noreferrer"><code>Be7RvxKNFa35ER8DSmPoBq6AssMMoJsMU4fBso1E2ELQ</code> ↗</a>. Its ProgramData bytecode matches SBF SHA-256 <code>f90a8834…5ac9c3ac6f</code>, and the upgrade authority remains with the project management wallet. The browser checks these release values before requesting a trade signature.</p></div>
 <div class="callout">
 <b>ATOMICITY</b>
 <p>If the route spends above the ceiling, receives below the floor, expires, or fails a selected hook, the entire Solana transaction returns an error and does not settle partially.</p>
@@ -294,7 +294,7 @@
 <div class="faq">
 <details>
 <summary>Does h/monhook provide the swap quote?</summary>
-<p>Jupiter provides the quote and executable route. The browser requests a live quote, then builds a fresh Jupiter swap instruction at signing time and wraps supported bounds with the deployed legacy Jolt Guard. Prices and routes may change between those steps; if the final result misses the signed minimum, the guarded transaction fails.</p>
+<p>Jupiter provides the quote and executable route. The browser requests a live quote, then builds a fresh Jupiter swap instruction at signing time and wraps supported bounds with the deployed h/monhook Guard. Prices and routes may change between those steps; if the final result misses the signed minimum, the guarded transaction fails.</p>
 </details>
 <details>
 <summary>Can one intent cross multiple programs?</summary>
