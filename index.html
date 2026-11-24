@@ -126,10 +126,10 @@
 
     <section class="section-block protection-story" aria-labelledby="protection-title">
 <div class="section-head"><div><div class="eyebrow">ONE PROTECTION STORY / THREE MOMENTS</div><h2 id="protection-title">From a launch promise to the final result.</h2></div></div>
-<div class="prose-block compact"><p>h/monhook starts with a rule that already has an on-chain enforcement path: the trader defines an acceptable result, and h/monhook Guard checks what actually settles. The next product layers extend that accountability to the issuer before a trade and give users an optional privacy path after one.</p></div>
+<div class="prose-block compact"><p>h/monhook starts with a rule that already has an on-chain enforcement path: the trader defines an acceptable result, and the deployed legacy Jolt Guard checks what actually settles. The separately named h/monhook Guard is in development. The next product layers extend that accountability to the issuer before a trade and give users an optional privacy path after one.</p></div>
 <div class="story-grid">
 <article><span>BEFORE A TRADE <em>DESIGN / NOT LIVE</em></span><h3>Compare the promise</h3><p>Group same-name launches so buyers can compare developers side by side. A proposed issuer protection module would show locked supply, option coverage, strike, premium, expiry and a clear “unlocked” label where no lock exists.</p><a href="./launch/#issuer-protection">Explore issuer protection</a></article>
-<article><span>DURING A TRADE <em>CORE / PROGRAM DEPLOYED</em></span><h3>Enforce the terms</h3><p>The user signs a maximum input, minimum output, route and expiry. h/monhook Guard executes a supported route and rejects the entire transaction if the measured result breaks those terms. Browser and router adapters have their own release status.</p><a href="./intent/">Explore h/monhook Guard</a></article>
+<article><span>DURING A TRADE <em>LEGACY GUARD / DEPLOYED</em></span><h3>Enforce the terms</h3><p>The user signs a maximum input, minimum output, route and expiry. The deployed legacy Jolt Guard executes a supported route and rejects the entire transaction if the measured result breaks those terms. Browser and router adapters have their own release status.</p><a href="./intent/">Explore the deployed Guard</a></article>
 <article><span>AFTER A TRADE <em>INTEGRATION / PLANNED</em></span><h3>Choose privacy</h3><p>Explore optional confidential transfers for eligible user funds through Helius Privacy Rings. Public issuer commitments and any evidence used to judge a violation must stay verifiable.</p><a href="./protocol/#privacy-boundary">Read the privacy boundary</a></article>
 </div>
 <p class="story-note">These are separate release states. h/monhook does not currently offer issuer options, forfeiture claims or Privacy Rings transactions.</p>
@@ -140,7 +140,7 @@
 <h2>Why I am building h/monhook.</h2>
 <p>I started h/monhook with a simple frustration: a trader can carefully choose a route, set slippage and sign a transaction, yet the promise they saw in the interface is still separate from the result that finally settles on-chain. Most tools explain the trade before it happens or analyse it after it happens. I want the promise itself to become executable.</p>
 <p>That is why the hook in h/monhook does not belong to one pool. It belongs to one transaction. The user signs the outcome they are willing to accept—how much may leave, how much must arrive, which route may execute, when the intent expires, and which extra policy must pass. h/monhook Guard surrounds the route, measures what actually changed, and lets Solana commit the transaction only when those conditions hold.</p>
-<p>The same question starts before a trade: what did a developer promise, and can a buyer verify it? I want same-name launches to be compared by Mint, developer, locked supply and option terms instead of a familiar ticker alone. After settlement, users should also have a choice of private transfer where it is compatible with that public evidence. Those issuer and privacy layers are designs I am working toward; h/monhook Guard is the deployed core.</p>
+<p>The same question starts before a trade: what did a developer promise, and can a buyer verify it? I want same-name launches to be compared by Mint, developer, locked supply and option terms instead of a familiar ticker alone. After settlement, users should also have a choice of private transfer where it is compatible with that public evidence. Those issuer and privacy layers are designs I am working toward; today's deployed settlement path uses the earlier Jolt Guard, while the new h/monhook Guard is being prepared for release.</p>
 <p>I do not want h/monhook to be another dashboard wearing protocol language. I am building the program, SDK, manifest formats and product surfaces together so the idea can be used by token creators, wallets, routers and ordinary traders. I am publishing the work as it develops because the mechanism should be inspectable, testable and improved in public.</p>
 <p class="dev-signature">— The h/monhook developer<br>
 <span>Building intent-bound settlement on Solana.</span>
@@ -284,7 +284,7 @@
 <li>Browser route assembly for a supported Jupiter protected swap.</li>
 <li>JHK1 policy and JRC1 receipt specifications.</li>
 <li>Protocol CI, SDK tests and inspectable source.</li>
-<li>Verified h/monhook Guard mainnet and devnet deployments with public Program IDs.</li>
+<li>Verified legacy Jolt Guard mainnet and devnet deployments with public Program IDs; the new h/monhook Guard remains outside the mainnet product.</li>
 </ul>
 </article>
 <article>
@@ -372,7 +372,7 @@
 </details>
 <details>
 <summary>Can buyers use issuer options or private transfers now?</summary>
-<p>No. Issuer locks, options, forfeiture claims and Helius Privacy Rings integration are proposed product layers. The verified mainnet deployment here is h/monhook Guard; a deployed program alone does not mean every wallet or route is integrated.</p>
+<p>No. Issuer locks, options, forfeiture claims and Helius Privacy Rings integration are proposed product layers. The verified mainnet deployment used here is the earlier Jolt Guard. The new h/monhook Guard is not on mainnet; a deployed program alone does not mean every wallet or route is integrated.</p>
 </details>
 </div>
 </section>

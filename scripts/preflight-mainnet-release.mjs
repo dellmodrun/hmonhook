@@ -81,7 +81,8 @@ if (finalRentLamports && balanceLamports < finalRentLamports) {
   blockers.push('Management balance is below minimum final program account rent.');
 }
 
-console.log(JSON.stringify({ network: 'mainnet-beta', readOnly: true, managementAddress,
+console.log(JSON.stringify({ network: 'mainnet-beta', readOnly: true,
+  machineChecksPassed: blockers.length === 0, readyToDeploy: false, managementAddress,
   managementBalanceLamports: balanceLamports, minimumFinalAccountRentLamports: finalRentLamports,
   excludesTemporaryBuffersFeesAndOtherAccounts: true,
   programs: programs.map(({ kind, address, bytes, sha256, mainnetAccountExists, finalAccountRentLamports }) =>
